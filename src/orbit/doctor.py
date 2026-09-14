@@ -1,4 +1,4 @@
-"""Diagnostic checks for verifying the in-process data plane (Kùzu and LanceDB)."""
+"""Diagnostic checks for verifying the in-process data plane (LadybugDB and LanceDB)."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ import tempfile
 import time
 from typing import Any
 
-import kuzu
+import ladybug
 import lancedb
 import pyarrow as pa
 from pydantic import BaseModel, Field
@@ -49,13 +49,13 @@ def get_system_info() -> dict[str, str]:
     }
 
 
-def check_kuzu_engine() -> CheckResult:
-    """Verify that the embedded Kùzu C++ graph engine executes in-process transactions."""
+def check_ladybug_engine() -> CheckResult:
+    """Verify that the embedded LadybugDB C++ graph engine executes in-process transactions."""
     start_time = time.perf_counter()
     try:
         # Test in-memory database instance
-        db = kuzu.Database("")
-        conn = kuzu.Connection(db)
+        db = ladybug.Database("")
+        conn = ladybug.Connection(db)
 
         # Create schema, insert node, and query via openCypher
         conn.execute("CREATE NODE TABLE HealthCheck(id INT64, status STRING, PRIMARY KEY(id));")
@@ -76,18 +76,18 @@ def check_kuzu_engine() -> CheckResult:
         latency = (time.perf_counter() - start_time) * 1000
 
         return CheckResult(
-            name="Kùzu Property Graph",
+            name="LadybugDB Property Graph",
             passed=status_value == "HEALTHY",
-            version=getattr(kuzu, "__version__", "unknown"),
+            version=getattr(ladybug, "__version__", "unknown"),
             latency_ms=round(latency, 2),
             details=f"In-memory Cypher transactional read/write verified ({status_value})",
         )
     except Exception as exc:
         latency = (time.perf_counter() - start_time) * 1000
         return CheckResult(
-            name="Kùzu Property Graph",
+            name="LadybugDB Property Graph",
             passed=False,
-            version=getattr(kuzu, "__version__", "unknown"),
+            version=getattr(ladybug, "__version__", "unknown"),
             latency_ms=round(latency, 2),
             details=f"Check failed: {exc}",
         )
@@ -141,7 +141,7 @@ def run_diagnostics() -> DoctorReport:
     """Execute all system and engine health checks."""
     system_info = get_system_info()
     checks = [
-        check_kuzu_engine(),
+        check_ladybug_engine(),
         check_lancedb_engine(),
     ]
     return DoctorReport(system_info=system_info, checks=checks)

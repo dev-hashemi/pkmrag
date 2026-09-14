@@ -16,7 +16,7 @@ flowchart TD
     Vault["📂 Markdown Vault (Obsidian)"]
 
     Vault --> T1["🏗️ Tier 1: Deterministic Parser ($0 Cost)"]
-    T1 --> BaseGraph[("Kùzu Property Graph<br/><i>Wikilinks, Tags, Hierarchy</i>")]
+    T1 --> BaseGraph[("LadybugDB Property Graph<br/><i>Wikilinks, Tags, Hierarchy</i>")]
 
     Vault --> T2["🔍 Tier 2: Hybrid Semantic Index"]
     T2 --> Lance[("LanceDB Vector & FTS Index<br/><i>Dense Embeddings + BM25</i>")]
@@ -37,7 +37,7 @@ flowchart TD
 
 ## 🚀 Key Architectural Principles
 
-- **Zero-Daemon, In-Process Storage:** Runs entirely in-process using embedded C++ and Apache Arrow engines (**Kùzu** for property graph traversals, **LanceDB** for hybrid vector/BM25 search). No background Docker containers, no JVM overhead, sub-millisecond query latency.
+- **Zero-Daemon, In-Process Storage:** Runs entirely in-process using embedded C++ and Apache Arrow engines (**LadybugDB** for property graph traversals, **LanceDB** for hybrid vector/BM25 search). No background Docker containers, no JVM overhead, sub-millisecond query latency.
 - **Model Context Protocol (MCP):** Acts as a high-precision retrieval data plane for agents (**Claude Code, Cursor, Claude Desktop**) via standardized tool schemas without requiring direct filesystem access.
 - **Scientific Quality Gating:** Benchmark regressions (Context Recall, Context Precision, MRR) measured automatically with automated evaluation suites.
 
@@ -46,7 +46,7 @@ flowchart TD
 ## 🚦 Project Status
 
 - **Phase 0 (`v0.0.1`):** In-process storage engine validation & CLI diagnostics (`orbit doctor`) — **Completed** ✅
-- **Phase 1 (`v0.1.0`):** Deterministic AST wikilink backbone ingestion into Kùzu — *Next*
+- **Phase 1 (`v0.1.0`):** Deterministic AST wikilink backbone ingestion into LadybugDB — *Next*
 - **Phase 2 (`v0.2.0`):** Hybrid vector + BM25 search with Reciprocal Rank Fusion
 - **Phase 3 (`v0.3.0`):** FastMCP server (`query_vault`, `read_note`, `find_bridges`)
 
@@ -81,14 +81,14 @@ Output:
  Python Version       3.12.3
 
                        In-Process Data Plane Verification                       
-┏━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ Component             ┃ Status ┃ Version ┃ Latency ┃ Verification Details    ┃
-┡━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━┩
-│ Kùzu Property Graph   │  PASS  │ 0.11.3  │  23.6ms │ In-memory Cypher read/  │
-│                       │        │         │         │ write verified (HEALTHY)│
-│ LanceDB Vector Engine │  PASS  │ 0.38.0  │   6.3ms │ Arrow-backed vector     │
-│                       │        │         │         │ index verified          │
-└───────────────────────┴────────┴─────────┴─────────┴─────────────────────────┘
+┏━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Component              ┃ Status ┃ Version ┃ Latency ┃ Verification Details    ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ LadybugDB Property Gr… │  PASS  │ 0.20.4  │   0.3ms │ In-memory Cypher read/  │
+│                        │        │         │         │ write verified (HEALTHY)│
+│ LanceDB Vector Engine  │  PASS  │ 0.38.0  │   6.3ms │ Arrow-backed vector     │
+│                        │        │         │         │ index verified          │
+└────────────────────────┴────────┴─────────┴─────────┴─────────────────────────┘
 All systems operational. In-process engines ready for Phase 1.
 ```
 
