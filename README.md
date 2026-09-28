@@ -73,7 +73,7 @@ orbit doctor
 Output:
 ```text
 ╭────────────────────────────────────────────────────╮
-│ Project Orbit v0.0.1 — System Health & Diagnostics │
+│ Project Orbit v0.1.0 — System Health & Diagnostics │
 ╰────────────────────────────────────────────────────╯
                  Environment Details                 
  Operating System     Linux ...
@@ -89,14 +89,17 @@ Output:
 │ LanceDB Vector Engine  │  PASS  │ 0.38.0  │   6.3ms │ Arrow-backed vector     │
 │                        │        │         │         │ index verified          │
 └────────────────────────┴────────┴─────────┴─────────┴─────────────────────────┘
-All systems operational. In-process engines ready for Phase 1.
+All systems operational. Engines ready for Phase 2.
 ```
 
-### Ingesting an Obsidian Vault
-Ingest notes, wikilinks, tags, and folder hierarchies into LadybugDB with incremental delta sync:
+### Ingesting a Knowledge Base
+Ingest notes, links, tags, and folder hierarchies into LadybugDB with incremental delta sync:
 ```bash
-# Ingest vault (defaults graph database to <vault>/.orbit/graph)
+# Ingest with auto-detection (defaults to <vault>/.orbit/graph)
 orbit ingest /path/to/vault
+
+# Explicitly choose a dialect (obsidian, commonmark)
+orbit ingest /path/to/docs --dialect commonmark
 
 # Force a clean rebuild
 orbit ingest /path/to/vault --rebuild
