@@ -39,7 +39,7 @@ class SearchService:
             db_dir = get_default_db_dir(self.vault_path)
             if db_dir.exists():
                 try:
-                    self._graph_store = GraphStore(db_dir)
+                    self._graph_store = GraphStore(db_dir, read_only=True)
                     self._owns_graph_store = True
                 except Exception:
                     self._graph_store = None

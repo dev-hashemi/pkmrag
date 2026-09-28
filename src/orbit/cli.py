@@ -204,5 +204,67 @@ def search(
     render_search_results(results, query=query, near=near, mode=mode, console=console)
 
 
+@app.command()
+def serve(
+    vault_path: Path = typer.Argument(
+        ...,
+        help="Path to the indexed Obsidian vault directory.",
+        exists=True,
+        file_okay=False,
+        dir_okay=True,
+        resolve_path=True,
+    ),
+    transport: str = typer.Option(
+        "stdio",
+        "--transport",
+        "-t",
+        help="MCP transport protocol (stdio).",
+    ),
+) -> None:
+    """Start an MCP server exposing Orbit tools over stdio to Claude and Cursor."""
+    if transport != "stdio":
+        msg = f"[bold red]Unsupported transport '{transport}'. Only 'stdio' supported.[/bold red]"
+        console.print(msg)
+        sys.exit(1)
+
+    from orbit.mcp import create_mcp_server
+
+    server = create_mcp_server(vault_path)
+    server.run(transport="stdio")
+
+
+@app.command(name="mcp-config")
+def mcp_config(
+    vault_path: Path = typer.Argument(
+        ...,
+        help="Path to the indexed Obsidian vault directory.",
+        exists=True,
+        file_okay=False,
+        dir_okay=True,
+        resolve_path=True,
+    ),
+) -> None:
+    """Generate ready-to-use MCP configuration snippets for Claude Desktop and Cursor."""
+    resolved = vault_path.resolve()
+    repo_root = Path(__file__).resolve().parent.parent.parent
+    cfg = {
+        "mcpServers": {
+            "orbit": {
+                "command": "uv",
+                "args": [
+                    "--directory",
+                    str(repo_root),
+                    "run",
+                    "orbit",
+                    "serve",
+                    str(resolved),
+                ],
+            }
+        }
+    }
+    console.print("[bold green]Claude Desktop / Cursor MCP Configuration Snippet:[/bold green]\n")
+    console.print_json(json.dumps(cfg, indent=2))
+
+
 if __name__ == "__main__":
     app()

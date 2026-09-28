@@ -25,7 +25,12 @@ from orbit.graph.traversal import (
 class GraphStore:
     """Manages LadybugDB lifecycle, transactions, and openCypher graph operations."""
 
-    def __init__(self, db_path: Path | str, rebuild: bool = False) -> None:
+    def __init__(
+        self,
+        db_path: Path | str,
+        rebuild: bool = False,
+        read_only: bool = False,
+    ) -> None:
         target_path = Path(db_path).resolve()
         if target_path.is_dir() or target_path.suffix != ".ladybug":
             self.db_dir = target_path
@@ -34,7 +39,7 @@ class GraphStore:
             self.db_path = target_path
             self.db_dir = self.db_path.parent
 
-        if rebuild and self.db_dir.exists():
+        if rebuild and not read_only and self.db_dir.exists():
             for p in self.db_dir.glob("orbit.ladybug*"):
                 if p.is_dir():
                     shutil.rmtree(p)
@@ -42,9 +47,11 @@ class GraphStore:
                     p.unlink()
 
         self.db_dir.mkdir(parents=True, exist_ok=True)
-        self.db = ladybug.Database(str(self.db_path))
+        self.read_only = read_only
+        self.db = ladybug.Database(str(self.db_path), read_only=read_only)
         self.conn = ladybug.Connection(self.db)
-        self._init_schema()
+        if not read_only:
+            self._init_schema()
 
     def _init_schema(self) -> None:
         """Execute DDL statements to ensure all tables exist."""

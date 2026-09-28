@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
@@ -112,3 +112,37 @@ class SearchResult(BaseModel):
     sparse_score: Optional[float] = None
     graph_boost_factor: float = 1.0
     hop_distance: Optional[int] = None
+
+
+class NoteContext(BaseModel):
+    """Detailed structural neighborhood and metadata for a note."""
+
+    path: str
+    title: str
+    tags: list[str] = Field(default_factory=list)
+    outgoing_links: list[str] = Field(default_factory=list)
+    backlinks: list[str] = Field(default_factory=list)
+    neighbors_2hop: list[str] = Field(default_factory=list)
+    is_unresolved: bool = False
+
+
+class GraphBridge(BaseModel):
+    """Shortest graph path connection between two notes."""
+
+    source: str
+    target: str
+    found: bool = False
+    hops: int = -1
+    path: list[str] = Field(default_factory=list)
+
+
+class VaultOverview(BaseModel):
+    """High-level structural summary of vault graph and top hubs."""
+
+    total_notes: int
+    resolved_notes: int
+    ghost_notes: int
+    total_links: int
+    total_tags: int
+    hub_notes: list[dict[str, Any]] = Field(default_factory=list)
+    top_tags: list[dict[str, Any]] = Field(default_factory=list)

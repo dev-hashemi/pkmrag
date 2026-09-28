@@ -2,6 +2,7 @@
 
 from typer.testing import CliRunner
 
+from orbit import __version__
 from orbit.cli import app
 from orbit.doctor import (
     check_ladybug_engine,
@@ -52,7 +53,7 @@ def test_cli_version() -> None:
     """Verify orbit --version command."""
     result = runner.invoke(app, ["--version"])
     assert result.exit_code == 0
-    assert "0.2.0" in result.stdout
+    assert __version__ in result.stdout
 
 
 def test_cli_doctor_text() -> None:

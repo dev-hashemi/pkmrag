@@ -57,5 +57,6 @@ flowchart TD
 - [**Search Engine**](subsystems/search-engine.md): LanceDB Arrow dataset, FastEmbed ONNX inference, and native BM25 full-text search.
 - [**Ingestion Pipeline**](subsystems/ingestion.md): Markdown dialect strategies, SHA-256/mtime incremental sync, and ghost note reconciliation.
 - [**Hybrid Search & Ranking**](subsystems/hybrid-search.md): Hierarchical heading chunker, Reciprocal Rank Fusion ($k=60$), and graph proximity multipliers.
-- [**Benchmarks**](subsystems/benchmarks.md): Golden 10 ground truth dataset and evaluation metrics.
+- [**MCP Server**](subsystems/mcp.md): Model Context Protocol stdio server, tool definitions, and client configuration.
+- [**Benchmarks**](subsystems/benchmarks.md): Golden 10 and Obsidian Help 50 ground truth datasets and evaluation metrics.
 - [**Architecture Decision Records (ADRs)**](adr/): Historical design decisions and rationale.

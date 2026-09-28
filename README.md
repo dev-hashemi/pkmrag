@@ -58,7 +58,8 @@ flowchart TD
 - **Phase 0 (`v0.0.1`):** In-process storage engine validation & CLI diagnostics (`orbit doctor`) — **Completed** ✅
 - **Phase 1 (`v0.1.0`):** Deterministic AST wikilink backbone ingestion into LadybugDB — **Completed** ✅
 - **Phase 2 (`v0.2.0`):** Hybrid vector + BM25 search with Reciprocal Rank Fusion & graph proximity boosting — **Completed** ✅
-- **Phase 3 (`v0.3.0`):** FastMCP server (`query_vault`, `read_note`, `find_bridges`) — *Next*
+- **Phase 3 (`v0.3.0`):** Model Context Protocol (MCP) server over stdio (`query_vault`, `read_note`, `get_note_context`, `find_bridges`, `vault_overview`) — **Completed** ✅
+- **Phase 4 (`v0.4.0`):** AI semantic gap detection & inferred relationships (`[:INFERRED_REL]`) — *Next*
 
 ---
 
@@ -136,6 +137,23 @@ orbit search "database schema" --mode sparse --limit 10
 # Structured JSON output
 orbit search "retrieval" --json
 ```
+
+### Model Context Protocol (MCP) Server
+Expose Orbit directly to AI assistants (**Claude Code**, **Cursor**, **Claude Desktop**) over stdio:
+```bash
+# Start the MCP server for an indexed vault
+orbit serve /path/to/vault
+
+# Generate copy-paste JSON configuration for Claude Desktop and Cursor
+orbit mcp-config /path/to/vault
+```
+
+Exposed Tools:
+- `query_vault`: Hybrid semantic + BM25 keyword retrieval with optional graph proximity boost.
+- `read_note`: Read full or paginated note content with strict path traversal boundaries.
+- `get_note_context`: Inspect incoming backlinks, outgoing citations, tags, and 2-hop clusters.
+- `find_bridges`: Discover the shortest link path between two notes across the vault.
+- `vault_overview`: Bird's-eye view of vault notes, wikilinks, tags, and central hub notes.
 
 ### Benchmarks
 Retrieval accuracy is validated against the Golden 10 ground truth benchmark dataset (`benchmarks/golden_10.json`):

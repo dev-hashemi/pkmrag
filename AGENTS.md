@@ -20,6 +20,7 @@ src/orbit/
   graph/          # LadybugDB graph store, schema DDL, and traversal
   ingest/         # Vault → graph and vector ingestion pipeline
   search/         # Chunking, FastEmbed, LanceDB vector store, RRF fusion, service
+  mcp/            # FastMCP server, tool handlers, and stdio transport
 tests/            # Mirrors src/orbit/ structure
 benchmarks/       # Ground-truth evaluation benchmarks
 ```
@@ -66,6 +67,8 @@ benchmarks/       # Ground-truth evaluation benchmarks
 uv run orbit doctor                      # Sanity check both DBs
 uv run orbit ingest <path>               # Ingest a vault (all, graph, or vector)
 uv run orbit search "query" --near <note># Hybrid search with graph boost
+uv run orbit serve <path>                # Start stdio MCP server for Claude/Cursor
+uv run orbit mcp-config <path>           # Output MCP JSON client configuration
 uv run ruff check --fix .                # Lint
 uv run ruff format .                     # Format
 uv run mypy src tests                    # Type check

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "project-orbit"
-version = "0.2.0"
+version = "0.3.0"
 description = "Local-first Hybrid GraphRAG retrieval engine and MCP server for linked knowledge bases"
 readme = "README.md"
 license = { text = "MIT" }
@@ -16,6 +16,7 @@ dependencies = [
     "fastembed>=0.3.0",
     "ladybug>=0.20.0",
     "lancedb>=0.38.0",
+    "mcp>=1.2.0",
     "pyarrow>=17.0.0",
     "pydantic>=2.8.0",
     "pyyaml>=6.0.0",
