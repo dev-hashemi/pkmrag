@@ -47,7 +47,13 @@ def test_dialect_auto_detection(tmp_path: Path) -> None:
     detected = reg.detect(obsidian_vault)
     assert detected.name == "obsidian"
 
-    # Generic documentation folder without .obsidian
+    # Obsidian Publish vault (with publish.css or site-options.json)
+    publish_vault = tmp_path / "publish_kb"
+    publish_vault.mkdir(parents=True)
+    (publish_vault / "publish.css").write_text("body {}")
+    assert reg.detect(publish_vault).name == "obsidian"
+
+    # Generic documentation folder without .obsidian or publish files
     docs_folder = tmp_path / "generic_docs"
     docs_folder.mkdir(parents=True)
     detected_docs = reg.detect(docs_folder)

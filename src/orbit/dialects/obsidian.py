@@ -15,8 +15,12 @@ class ObsidianDialect:
     name: str = "obsidian"
 
     def can_handle(self, root_path: Path) -> bool:
-        """Check if root directory contains an Obsidian configuration directory."""
-        return (root_path / ".obsidian").is_dir()
+        """Check if root directory contains an Obsidian vault or publish structure."""
+        return (
+            (root_path / ".obsidian").is_dir()
+            or (root_path / "site-options.json").is_file()
+            or (root_path / "publish.css").is_file()
+        )
 
     def should_ignore_dir(self, dir_name: str) -> bool:
         """Filter out Obsidian internal folders and dot directories."""

@@ -1,0 +1,352 @@
+[
+  {
+    "id": "q1",
+    "category": "exact_keyword",
+    "query": "How to format a callout with custom fold state?",
+    "near": null,
+    "expected_notes": ["Editing and formatting/Callouts.md"]
+  },
+  {
+    "id": "q2",
+    "category": "exact_keyword",
+    "query": "What is the obsidian URI syntax for opening a vault?",
+    "near": null,
+    "expected_notes": ["Extending Obsidian/Obsidian URI.md"]
+  },
+  {
+    "id": "q3",
+    "category": "exact_keyword",
+    "query": "How to use block references to link to a specific paragraph?",
+    "near": null,
+    "expected_notes": ["Linking notes and files/Internal links.md"]
+  },
+  {
+    "id": "q4",
+    "category": "exact_keyword",
+    "query": "Where are community plugins and CSS snippets stored in the configuration folder?",
+    "near": null,
+    "expected_notes": ["Files and folders/Configuration folder.md"]
+  },
+  {
+    "id": "q5",
+    "category": "exact_keyword",
+    "query": "How to configure YAML frontmatter properties in Obsidian?",
+    "near": null,
+    "expected_notes": ["Editing and formatting/Properties.md"]
+  },
+  {
+    "id": "q6",
+    "category": "exact_keyword",
+    "query": "What are the search operators for matching tags and path in Obsidian search?",
+    "near": null,
+    "expected_notes": ["Plugins/Search.md"]
+  },
+  {
+    "id": "q7",
+    "category": "exact_keyword",
+    "query": "How to embed web pages using an iframe in Obsidian notes?",
+    "near": null,
+    "expected_notes": ["Editing and formatting/Embed web pages.md"]
+  },
+  {
+    "id": "q8",
+    "category": "exact_keyword",
+    "query": "How to add footnotes in Markdown notes?",
+    "near": null,
+    "expected_notes": ["Editing and formatting/Advanced formatting syntax.md", "Plugins/Footnotes view.md"]
+  },
+  {
+    "id": "q9",
+    "category": "exact_keyword",
+    "query": "How to customize hotkeys for editor actions?",
+    "near": null,
+    "expected_notes": ["User interface/Hotkeys.md"]
+  },
+  {
+    "id": "q10",
+    "category": "exact_keyword",
+    "query": "How to define aliases for note titles?",
+    "near": null,
+    "expected_notes": ["Linking notes and files/Aliases.md"]
+  },
+  {
+    "id": "q11",
+    "category": "exact_keyword",
+    "query": "What formats can be imported using the official Importer plugin?",
+    "near": null,
+    "expected_notes": ["Import notes/Importer.md"]
+  },
+  {
+    "id": "q12",
+    "category": "exact_keyword",
+    "query": "How does the commercial license differ from personal use?",
+    "near": null,
+    "expected_notes": ["Teams/Commercial license.md", "Licenses and payment/Introduction to licenses and payment.md"]
+  },
+  {
+    "id": "q13",
+    "category": "exact_keyword",
+    "query": "How to configure a custom domain with Cloudflare for Obsidian Publish?",
+    "near": null,
+    "expected_notes": ["Obsidian Publish/Custom domains.md"]
+  },
+  {
+    "id": "q14",
+    "category": "exact_keyword",
+    "query": "What variables can be used in the Obsidian Web Clipper template?",
+    "near": null,
+    "expected_notes": ["Obsidian Web Clipper/Variables.md"]
+  },
+  {
+    "id": "q15",
+    "category": "exact_keyword",
+    "query": "What are the different table and kanban view layouts in Obsidian Bases?",
+    "near": null,
+    "expected_notes": ["Bases/Views.md", "Bases/Layouts/Kanban view.md", "Bases/Layouts/Table view.md"]
+  },
+  {
+    "id": "q16",
+    "category": "semantic_concept",
+    "query": "Protecting personal notes with password and encryption",
+    "near": null,
+    "expected_notes": ["Obsidian Sync/Security and privacy.md", "Obsidian/2-factor authentication.md"]
+  },
+  {
+    "id": "q17",
+    "category": "semantic_concept",
+    "query": "How do I recover an overwritten file or previous revision?",
+    "near": null,
+    "expected_notes": ["Plugins/File recovery.md", "Obsidian Sync/Version history.md"]
+  },
+  {
+    "id": "q18",
+    "category": "semantic_concept",
+    "query": "Syncing my notebook across laptop and phone without cloud services",
+    "near": null,
+    "expected_notes": ["Getting started/Sync your notes across devices.md", "Files and folders/How Obsidian stores data.md"]
+  },
+  {
+    "id": "q19",
+    "category": "semantic_concept",
+    "query": "Best practices for making periodic backups of all documents",
+    "near": null,
+    "expected_notes": ["Getting started/Back up your Obsidian files.md"]
+  },
+  {
+    "id": "q20",
+    "category": "semantic_concept",
+    "query": "Visualizing connections and clusters across the whole knowledge base",
+    "near": null,
+    "expected_notes": ["Plugins/Graph view.md"]
+  },
+  {
+    "id": "q21",
+    "category": "semantic_concept",
+    "query": "Preventing community extensions from executing harmful code",
+    "near": null,
+    "expected_notes": ["Extending Obsidian/Plugin security.md"]
+  },
+  {
+    "id": "q22",
+    "category": "semantic_concept",
+    "query": "Clipping articles and saving web content directly into markdown",
+    "near": null,
+    "expected_notes": ["Obsidian Web Clipper/Clip web pages.md", "Obsidian Web Clipper/Introduction to Obsidian Web Clipper.md"]
+  },
+  {
+    "id": "q23",
+    "category": "semantic_concept",
+    "query": "How can multiple team members edit notes in a shared repository?",
+    "near": null,
+    "expected_notes": ["Obsidian Sync/Collaborate on a shared vault.md", "Teams/Deploy Obsidian across your team.md"]
+  },
+  {
+    "id": "q24",
+    "category": "semantic_concept",
+    "query": "Infinite canvas for brainstorming and connecting visual cards",
+    "near": null,
+    "expected_notes": ["Plugins/Canvas.md"]
+  },
+  {
+    "id": "q25",
+    "category": "semantic_concept",
+    "query": "Automating timestamped diary entries and reflection logs",
+    "near": null,
+    "expected_notes": ["Plugins/Daily notes.md"]
+  },
+  {
+    "id": "q26",
+    "category": "semantic_concept",
+    "query": "Creating pre-filled boilerplate for recurring note types",
+    "near": null,
+    "expected_notes": ["Plugins/Templates.md"]
+  },
+  {
+    "id": "q27",
+    "category": "semantic_concept",
+    "query": "Migrating an existing digital notebook from Evernote",
+    "near": null,
+    "expected_notes": ["Import notes/Import from Evernote.md", "Import notes/Importer.md"]
+  },
+  {
+    "id": "q28",
+    "category": "semantic_concept",
+    "query": "Moving an existing workspace from Notion into local files",
+    "near": null,
+    "expected_notes": ["Import notes/Import from Notion.md", "Import notes/Importer.md"]
+  },
+  {
+    "id": "q29",
+    "category": "semantic_concept",
+    "query": "Switching between live preview and source code view",
+    "near": null,
+    "expected_notes": ["Editing and formatting/Views and editing mode.md"]
+  },
+  {
+    "id": "q30",
+    "category": "semantic_concept",
+    "query": "Navigating document structure with table of contents",
+    "near": null,
+    "expected_notes": ["Plugins/Outline.md"]
+  },
+  {
+    "id": "q31",
+    "category": "semantic_concept",
+    "query": "Viewing references pointing back to the current note",
+    "near": null,
+    "expected_notes": ["Plugins/Backlinks.md"]
+  },
+  {
+    "id": "q32",
+    "category": "semantic_concept",
+    "query": "Customizing appearance using community themes and styling",
+    "near": null,
+    "expected_notes": ["Extending Obsidian/Themes.md", "User interface/Appearance.md"]
+  },
+  {
+    "id": "q33",
+    "category": "semantic_concept",
+    "query": "Using keyboard command launcher to quickly run actions",
+    "near": null,
+    "expected_notes": ["Plugins/Command palette.md"]
+  },
+  {
+    "id": "q34",
+    "category": "semantic_concept",
+    "query": "Publishing selective notes to the web as a digital garden",
+    "near": null,
+    "expected_notes": ["Obsidian Publish/Introduction to Obsidian Publish.md", "Obsidian Publish/Publish your content.md"]
+  },
+  {
+    "id": "q35",
+    "category": "semantic_concept",
+    "query": "Handling sync conflicts when editing simultaneously on two devices",
+    "near": null,
+    "expected_notes": ["Obsidian Sync/Troubleshoot Obsidian Sync.md", "Obsidian Sync/Frequently asked questions.md"]
+  },
+  {
+    "id": "q36",
+    "category": "graph_boosted",
+    "query": "What are the limitations and restrictions?",
+    "near": "Obsidian Publish",
+    "expected_notes": ["Obsidian Publish/Publish limitations.md"]
+  },
+  {
+    "id": "q37",
+    "category": "graph_boosted",
+    "query": "Customizing header, navigation, and site look",
+    "near": "Obsidian Publish",
+    "expected_notes": ["Obsidian Publish/Customize your site.md"]
+  },
+  {
+    "id": "q38",
+    "category": "graph_boosted",
+    "query": "End-to-end encryption and remote storage",
+    "near": "Obsidian Sync",
+    "expected_notes": ["Obsidian Sync/Security and privacy.md", "Obsidian Sync/Upgrade Sync encryption.md"]
+  },
+  {
+    "id": "q39",
+    "category": "graph_boosted",
+    "query": "Available plans, vault size limits, and subscriptions",
+    "near": "Obsidian Sync",
+    "expected_notes": ["Obsidian Sync/Plans and storage limits.md"]
+  },
+  {
+    "id": "q40",
+    "category": "graph_boosted",
+    "query": "Card layout and visual board settings",
+    "near": "Bases",
+    "expected_notes": ["Bases/Layouts/Cards view.md", "Bases/Views.md"]
+  },
+  {
+    "id": "q41",
+    "category": "graph_boosted",
+    "query": "Formulas and functions for calculated properties",
+    "near": "Bases",
+    "expected_notes": ["Bases/Formulas.md", "Bases/Functions.md"]
+  },
+  {
+    "id": "q42",
+    "category": "graph_boosted",
+    "query": "Embedding images and media attachments",
+    "near": "Internal links",
+    "expected_notes": ["Linking notes and files/Embed files.md", "Editing and formatting/Attachments.md"]
+  },
+  {
+    "id": "q43",
+    "category": "graph_boosted",
+    "query": "Aliases and alternate display text",
+    "near": "Internal links",
+    "expected_notes": ["Linking notes and files/Aliases.md"]
+  },
+  {
+    "id": "q44",
+    "category": "graph_boosted",
+    "query": "Tracking unlinked mentions and incoming references",
+    "near": "Internal links",
+    "expected_notes": ["Plugins/Backlinks.md", "Plugins/Outgoing links.md"]
+  },
+  {
+    "id": "q45",
+    "category": "graph_boosted",
+    "query": "Local snapshots and restoring lost edits",
+    "near": "Files and folders",
+    "expected_notes": ["Plugins/File recovery.md", "Files and folders/How Obsidian stores data.md"]
+  },
+  {
+    "id": "q46",
+    "category": "graph_boosted",
+    "query": "Quick note creation with unique timestamp IDs",
+    "near": "Daily notes",
+    "expected_notes": ["Plugins/Unique note creator.md"]
+  },
+  {
+    "id": "q47",
+    "category": "graph_boosted",
+    "query": "Running headlessly via command line interface",
+    "near": "Extending Obsidian",
+    "expected_notes": ["Extending Obsidian/Obsidian CLI.md", "Extending Obsidian/Obsidian Headless.md"]
+  },
+  {
+    "id": "q48",
+    "category": "graph_boosted",
+    "query": "Selecting reader mode and extracting full text",
+    "near": "Obsidian Web Clipper",
+    "expected_notes": ["Obsidian Web Clipper/Reader.md"]
+  },
+  {
+    "id": "q49",
+    "category": "graph_boosted",
+    "query": "Filtering rules and domain matching",
+    "near": "Obsidian Web Clipper",
+    "expected_notes": ["Obsidian Web Clipper/Filters.md"]
+  },
+  {
+    "id": "q50",
+    "category": "graph_boosted",
+    "query": "Managing multiple panes, split tabs, and layout presets",
+    "near": "User interface",
+    "expected_notes": ["User interface/Tabs.md", "User interface/Workspace.md", "Plugins/Workspaces.md"]
+  }
+]
