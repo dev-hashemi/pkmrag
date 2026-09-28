@@ -46,8 +46,8 @@ flowchart TD
 ## 🚦 Project Status
 
 - **Phase 0 (`v0.0.1`):** In-process storage engine validation & CLI diagnostics (`orbit doctor`) — **Completed** ✅
-- **Phase 1 (`v0.1.0`):** Deterministic AST wikilink backbone ingestion into LadybugDB — *Next*
-- **Phase 2 (`v0.2.0`):** Hybrid vector + BM25 search with Reciprocal Rank Fusion
+- **Phase 1 (`v0.1.0`):** Deterministic AST wikilink backbone ingestion into LadybugDB — **Completed** ✅
+- **Phase 2 (`v0.2.0`):** Hybrid vector + BM25 search with Reciprocal Rank Fusion — *Next*
 - **Phase 3 (`v0.3.0`):** FastMCP server (`query_vault`, `read_note`, `find_bridges`)
 
 ---
@@ -92,15 +92,28 @@ Output:
 All systems operational. In-process engines ready for Phase 1.
 ```
 
+### Ingesting an Obsidian Vault
+Ingest notes, wikilinks, tags, and folder hierarchies into LadybugDB with incremental delta sync:
+```bash
+# Ingest vault (defaults graph database to <vault>/.orbit/graph)
+orbit ingest /path/to/vault
+
+# Force a clean rebuild
+orbit ingest /path/to/vault --rebuild
+
+# Output structured metrics in JSON
+orbit ingest /path/to/vault --json
+```
+
 ### Running Tests & Linting
 ```bash
-# Unit tests
-pytest
+# Unit & integration tests
+uv run pytest
 
 # Type checking
-mypy src tests
+uv run mypy src tests
 
 # Linting & Formatting
-ruff check .
-ruff format --check .
+uv run ruff check .
+uv run ruff format --check .
 ```

@@ -52,7 +52,7 @@ def test_cli_version() -> None:
     """Verify orbit --version command."""
     result = runner.invoke(app, ["--version"])
     assert result.exit_code == 0
-    assert "0.0.1" in result.stdout
+    assert "0.1.0" in result.stdout
 
 
 def test_cli_doctor_text() -> None:
