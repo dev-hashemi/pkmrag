@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 
 class Wikilink(BaseModel):
-    """Extracted wikilink or markdown link reference."""
+    """Extracted link reference (wikilink or markdown link)."""
 
     target: str
     anchor: str = ""
@@ -17,8 +17,33 @@ class Wikilink(BaseModel):
     raw_text: str = ""
 
 
+# Alias for app-agnostic terminology
+RawLink = Wikilink
+
+
+class ResolvedLink(BaseModel):
+    """Link resolved against a knowledge base source index."""
+
+    target_path: str
+    is_unresolved: bool
+    anchor: str = ""
+    alias: str = ""
+    is_embed: bool = False
+
+
+class SourceIndex(BaseModel):
+    """Indexed knowledge base metadata for resolving links across documents."""
+
+    paths_set: set[str] = Field(default_factory=set)
+    lower_path_to_path: dict[str, str] = Field(default_factory=dict)
+    basename_to_paths: dict[str, list[str]] = Field(default_factory=dict)
+    alias_to_path: dict[str, str] = Field(default_factory=dict)
+    file_hashes: dict[str, str] = Field(default_factory=dict)
+    file_mtimes: dict[str, float] = Field(default_factory=dict)
+
+
 class NoteMetadata(BaseModel):
-    """Metadata and extracted graph entities from a single markdown note."""
+    """Metadata and extracted graph entities from a single document/note."""
 
     path: str
     title: str
@@ -31,7 +56,7 @@ class NoteMetadata(BaseModel):
 
 
 class FolderInfo(BaseModel):
-    """Directory node representing an Obsidian folder."""
+    """Directory node representing an Obsidian or filesystem folder."""
 
     path: str
     name: str
@@ -42,6 +67,7 @@ class IngestStats(BaseModel):
     """Statistical summary of a vault graph ingestion run."""
 
     vault_path: str
+    dialect: str = "obsidian"
     notes_scanned: int = 0
     notes_added: int = 0
     notes_updated: int = 0

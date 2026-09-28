@@ -8,6 +8,7 @@ from pathlib import Path, PurePosixPath
 from typing import Optional
 
 from orbit.config import get_default_db_dir
+from orbit.dialects import KnowledgeDialect, get_default_registry
 from orbit.graph.store import GraphStore
 from orbit.models import IngestStats
 from orbit.parser.indexer import VaultIndexer
@@ -21,6 +22,7 @@ class IngestPipeline:
         vault_path: Path | str,
         db_path: Optional[Path | str] = None,
         rebuild: bool = False,
+        dialect: str | KnowledgeDialect = "auto",
     ) -> None:
         self.vault_path = Path(vault_path).resolve()
         if not self.vault_path.exists() or not self.vault_path.is_dir():
@@ -28,7 +30,14 @@ class IngestPipeline:
 
         self.db_path = Path(db_path) if db_path else get_default_db_dir(self.vault_path)
         self.rebuild = rebuild
-        self.indexer = VaultIndexer(self.vault_path)
+
+        registry = get_default_registry()
+        if isinstance(dialect, str):
+            self.dialect = registry.detect(self.vault_path, preferred=dialect)
+        else:
+            self.dialect = dialect
+
+        self.indexer = VaultIndexer(self.vault_path, dialect=self.dialect)
 
     def run(
         self,
@@ -132,6 +141,7 @@ class IngestPipeline:
 
             return IngestStats(
                 vault_path=str(self.vault_path),
+                dialect=self.dialect.name,
                 notes_scanned=len(discovered),
                 notes_added=len(added_paths),
                 notes_updated=len(modified_paths),

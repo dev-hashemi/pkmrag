@@ -238,7 +238,7 @@ def test_cli_ingest_commands(tmp_path: Path) -> None:
     # Standard run
     res = runner.invoke(app, ["ingest", str(vault)])
     assert res.exit_code == 0
-    assert "Vault Graph Ingestion" in res.stdout
+    assert "Graph Ingestion" in res.stdout
     assert "LadybugDB Graph Topology" in res.stdout
 
     # JSON output

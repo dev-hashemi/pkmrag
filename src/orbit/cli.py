@@ -134,14 +134,25 @@ def ingest(
         "--rebuild",
         help="Rebuild the entire graph from scratch, clearing existing data.",
     ),
+    dialect: str = typer.Option(
+        "auto",
+        "--dialect",
+        "-m",
+        help="Source knowledge base dialect (auto, obsidian, commonmark). Defaults to auto.",
+    ),
     json_output: bool = typer.Option(
         False,
         "--json",
         help="Output ingestion metrics in raw JSON format.",
     ),
 ) -> None:
-    """Ingest markdown notes, wikilinks, tags, and folders from an Obsidian vault into LadybugDB."""
-    pipeline = IngestPipeline(vault_path=vault_path, db_path=db_dir, rebuild=rebuild)
+    """Ingest notes, links, tags, and folders from a knowledge base into LadybugDB."""
+    pipeline = IngestPipeline(
+        vault_path=vault_path,
+        db_path=db_dir,
+        rebuild=rebuild,
+        dialect=dialect,
+    )
 
     if json_output:
         stats = pipeline.run()
@@ -150,10 +161,13 @@ def ingest(
 
     header_text = (
         f"[bold cyan]Project Orbit[/bold cyan] v[green]{__version__}[/green] "
-        "— Vault Graph Ingestion"
+        "— Knowledge Graph Ingestion"
     )
     console.print(Panel.fit(header_text, border_style="cyan"))
-    console.print(f"[dim]Vault:[/dim] [bold]{vault_path}[/bold]")
+    console.print(
+        f"[dim]Vault:[/dim] [bold]{vault_path}[/bold] "
+        f"[dim]• Dialect:[/dim] [cyan]{pipeline.dialect.name}[/cyan]"
+    )
     if rebuild:
         console.print("[yellow]Rebuild mode enabled: existing graph data wiped.[/yellow]")
 
