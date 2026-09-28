@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "project-orbit"
-version = "0.1.0"
+version = "0.2.0"
 description = "Local-first Hybrid GraphRAG retrieval engine and MCP server for linked knowledge bases"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -12,6 +12,7 @@ authors = [
     { name = "Project Orbit Contributors" }
 ]
 dependencies = [
+    "fastembed>=0.3.0",
     "ladybug>=0.20.0",
     "lancedb>=0.38.0",
     "pyarrow>=17.0.0",
@@ -53,6 +54,7 @@ disallow_incomplete_defs = true
 [[tool.mypy.overrides]]
 module = ["ladybug.*", "lancedb.*", "pyarrow.*"]
 ignore_missing_imports = true
+
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -11,15 +11,19 @@ Exposed as an MCP server — no chat UI.
 ```
 src/orbit/
   cli.py          # Typer CLI entry point
+  cli_views.py    # Rich terminal display renderers
   config.py       # Settings, defaults, env vars
   models.py       # Pydantic data models (shared across modules)
   doctor.py       # `orbit doctor` health checks
   dialects/       # Pluggable markdown dialect parsing (obsidian, commonmark)
   parser/         # Markdown parsing + vault file indexing
-  graph/          # LadybugDB graph store + schema DDL
-  ingest/         # Vault → graph ingestion pipeline
+  graph/          # LadybugDB graph store, schema DDL, and traversal
+  ingest/         # Vault → graph and vector ingestion pipeline
+  search/         # Chunking, FastEmbed, LanceDB vector store, RRF fusion, service
 tests/            # Mirrors src/orbit/ structure
+benchmarks/       # Ground-truth evaluation benchmarks
 ```
+
 
 ## Hard Rules
 
@@ -59,10 +63,12 @@ tests/            # Mirrors src/orbit/ structure
 ## Common Commands
 
 ```bash
-uv run orbit doctor          # Sanity check both DBs
-uv run orbit ingest <path>   # Ingest a vault
-uv run ruff check --fix .    # Lint
-uv run ruff format .         # Format
-uv run mypy src/             # Type check
-uv run pytest                # Test
+uv run orbit doctor                      # Sanity check both DBs
+uv run orbit ingest <path>               # Ingest a vault (all, graph, or vector)
+uv run orbit search "query" --near <note># Hybrid search with graph boost
+uv run ruff check --fix .                # Lint
+uv run ruff format .                     # Format
+uv run mypy src tests                    # Type check
+uv run pytest                            # Test
 ```
+

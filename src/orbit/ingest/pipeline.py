@@ -1,4 +1,4 @@
-"""Orchestration pipeline for incremental vault ingestion into LadybugDB."""
+"""Orchestration pipeline for incremental vault ingestion into LadybugDB & LanceDB."""
 
 from __future__ import annotations
 
@@ -7,29 +7,40 @@ from collections.abc import Callable
 from pathlib import Path, PurePosixPath
 from typing import Optional
 
-from orbit.config import get_default_db_dir
+from orbit.config import get_default_db_dir, get_default_vector_dir
 from orbit.dialects import KnowledgeDialect, get_default_registry
 from orbit.graph.store import GraphStore
 from orbit.models import IngestStats
 from orbit.parser.indexer import VaultIndexer
+from orbit.search.chunker import HierarchicalMarkdownChunker
+from orbit.search.embedder import EmbeddingProvider, FastEmbedProvider
+from orbit.search.vector_store import VectorStore
 
 
 class IngestPipeline:
-    """Coordinates indexing, delta change detection, and graph population."""
+    """Coordinates indexing, delta change detection, graph and vector population."""
 
     def __init__(
         self,
         vault_path: Path | str,
         db_path: Optional[Path | str] = None,
+        vector_dir: Optional[Path | str] = None,
         rebuild: bool = False,
         dialect: str | KnowledgeDialect = "auto",
+        target: str = "all",
+        embedder: Optional[EmbeddingProvider] = None,
     ) -> None:
         self.vault_path = Path(vault_path).resolve()
         if not self.vault_path.exists() or not self.vault_path.is_dir():
             raise FileNotFoundError(f"Vault directory does not exist: {self.vault_path}")
 
         self.db_path = Path(db_path) if db_path else get_default_db_dir(self.vault_path)
+        self.vector_dir = (
+            Path(vector_dir) if vector_dir else get_default_vector_dir(self.vault_path)
+        )
         self.rebuild = rebuild
+        self.target = target
+        self.embedder = embedder or FastEmbedProvider()
 
         registry = get_default_registry()
         if isinstance(dialect, str):
@@ -38,119 +49,173 @@ class IngestPipeline:
             self.dialect = dialect
 
         self.indexer = VaultIndexer(self.vault_path, dialect=self.dialect)
+        self.chunker = HierarchicalMarkdownChunker()
 
     def run(
         self,
+        target: Optional[str] = None,
         progress_callback: Optional[Callable[[str, int, int], None]] = None,
     ) -> IngestStats:
-        """Execute the ingestion pipeline and return summary metrics."""
+        """Execute the ingestion pipeline for graph, vector, or all targets."""
         start_time = time.perf_counter()
+        chosen_target = target or self.target
+        if chosen_target not in ("all", "graph", "vector"):
+            msg = f"Invalid target '{chosen_target}'. Must be 'all', 'graph', or 'vector'."
+            raise ValueError(msg)
 
-        # Step 1: Scan vault filesystem & index paths
         if progress_callback:
             progress_callback("Scanning vault files", 0, 1)
 
         discovered = self.indexer.scan_vault_structure()
         self.indexer.index_vault_files(discovered)
 
-        # Step 2: Open GraphStore and determine incremental delta
-        with GraphStore(self.db_path, rebuild=self.rebuild) as store:
-            existing_notes = store.get_all_notes()
+        # Statistics accumulators
+        notes_added, notes_updated, notes_unchanged, notes_deleted = 0, 0, 0, 0
+        chunks_created, chunks_deleted, total_chunks = 0, 0, 0
+        graph_stats: dict[str, int] = {}
 
+        # 1. LadybugDB Graph Ingestion
+        if chosen_target in ("all", "graph"):
+            g_add, g_upd, g_unc, g_del, graph_stats = self._run_graph_ingest(
+                discovered, progress_callback
+            )
+            notes_added, notes_updated, notes_unchanged, notes_deleted = (
+                g_add,
+                g_upd,
+                g_unc,
+                g_del,
+            )
+
+        # 2. LanceDB Vector Ingestion
+        if chosen_target in ("all", "vector"):
+            v_created, v_deleted, total_chunks = self._run_vector_ingest(
+                discovered, progress_callback
+            )
+            chunks_created, chunks_deleted = v_created, v_deleted
+            if chosen_target == "vector":
+                notes_added = len(discovered)
+
+        duration_ms = (time.perf_counter() - start_time) * 1000
+
+        return IngestStats(
+            vault_path=str(self.vault_path),
+            dialect=self.dialect.name,
+            target=chosen_target,
+            notes_scanned=len(discovered),
+            notes_added=notes_added,
+            notes_updated=notes_updated,
+            notes_unchanged=notes_unchanged,
+            notes_deleted=notes_deleted,
+            unresolved_notes=graph_stats.get("unresolved_notes", 0),
+            total_notes=graph_stats.get("notes", len(discovered)),
+            total_links=graph_stats.get("links", 0),
+            total_tags=graph_stats.get("tags", 0),
+            total_folders=graph_stats.get("folders", 0),
+            chunks_created=chunks_created,
+            chunks_deleted=chunks_deleted,
+            total_chunks=total_chunks,
+            duration_ms=round(duration_ms, 2),
+        )
+
+    def _run_graph_ingest(
+        self,
+        discovered: dict[str, Path],
+        progress_callback: Optional[Callable[[str, int, int], None]],
+    ) -> tuple[int, int, int, int, dict[str, int]]:
+        with GraphStore(self.db_path, rebuild=self.rebuild) as store:
+            existing = store.get_all_notes()
             added_paths: list[str] = []
             modified_paths: list[str] = []
             unchanged_paths: list[str] = []
             deleted_paths: list[str] = []
 
-            # Identify additions, modifications, and unchanged notes
             for rel_path in discovered:
                 file_hash = self.indexer.file_hashes.get(rel_path, "")
-                if rel_path not in existing_notes:
+                if rel_path not in existing or existing[rel_path]["is_unresolved"]:
                     added_paths.append(rel_path)
-                elif existing_notes[rel_path]["is_unresolved"]:
-                    # Previously unresolved ghost note, now realized on disk
-                    added_paths.append(rel_path)
-                elif existing_notes[rel_path]["hash"] != file_hash:
+                elif existing[rel_path]["hash"] != file_hash:
                     modified_paths.append(rel_path)
                 else:
                     unchanged_paths.append(rel_path)
 
-            # Identify deletions
-            for existing_path, meta in existing_notes.items():
-                if not meta["is_unresolved"] and existing_path not in discovered:
-                    deleted_paths.append(existing_path)
+            for p, meta in existing.items():
+                if not meta["is_unresolved"] and p not in discovered:
+                    deleted_paths.append(p)
 
-            # Step 3: Prune deleted notes
             for del_path in deleted_paths:
                 store.handle_deleted_note(del_path)
 
-            # Step 4: Ingest added and modified files
             to_process = added_paths + modified_paths
-            total_items = len(to_process)
-
+            total = len(to_process)
             for idx, rel_path in enumerate(to_process, start=1):
                 if progress_callback:
-                    progress_callback("Ingesting notes & links", idx, total_items)
-
-                # If modified, prune prior outgoing relationships
+                    progress_callback("Ingesting graph notes", idx, total)
                 if rel_path in modified_paths:
                     store.delete_outgoing_edges(rel_path)
 
-                abs_path = discovered[rel_path]
-                note_meta = self.indexer.parse_note(rel_path, abs_path)
-
-                # Upsert note node
+                note_meta = self.indexer.parse_note(rel_path, discovered[rel_path])
                 store.upsert_note(
-                    path=rel_path,
-                    title=note_meta.title,
-                    content_hash=note_meta.hash,
-                    mtime=note_meta.mtime,
-                    is_unresolved=False,
+                    rel_path, note_meta.title, note_meta.hash, note_meta.mtime, is_unresolved=False
                 )
-
-                # Reconcile previously unresolved ghost notes matching this new note
                 if rel_path in added_paths:
                     store.reconcile_ghost_notes(rel_path)
 
-                # Folder hierarchy containment
-                parent_folder = str(PurePosixPath(rel_path).parent)
-                if parent_folder and parent_folder != ".":
-                    store.add_note_contained_in(rel_path, parent_folder)
-
-                # Tags
+                parent = str(PurePosixPath(rel_path).parent)
+                if parent and parent != ".":
+                    store.add_note_contained_in(rel_path, parent)
                 for tag in note_meta.tags:
                     store.add_tagged_with(rel_path, tag)
-
-                # Wikilinks and markdown links
                 for link in note_meta.links:
-                    resolved_path, is_ghost = self.indexer.resolve_link(rel_path, link)
-                    store.add_links_to(
-                        from_path=rel_path,
-                        to_path=resolved_path,
-                        anchor=link.anchor,
-                        alias=link.alias,
-                        is_embed=link.is_embed,
-                    )
+                    res_path, _ = self.indexer.resolve_link(rel_path, link)
+                    store.add_links_to(rel_path, res_path, link.anchor, link.alias, link.is_embed)
 
-            # Step 5: Clean up any tags left orphan by modifications/deletions
             store.cleanup_orphaned_tags()
-
-            # Step 6: Compute final graph statistics
-            graph_stats = store.get_stats()
-            duration_ms = (time.perf_counter() - start_time) * 1000
-
-            return IngestStats(
-                vault_path=str(self.vault_path),
-                dialect=self.dialect.name,
-                notes_scanned=len(discovered),
-                notes_added=len(added_paths),
-                notes_updated=len(modified_paths),
-                notes_unchanged=len(unchanged_paths),
-                notes_deleted=len(deleted_paths),
-                unresolved_notes=graph_stats.get("unresolved_notes", 0),
-                total_notes=graph_stats.get("notes", 0),
-                total_links=graph_stats.get("links", 0),
-                total_tags=graph_stats.get("tags", 0),
-                total_folders=graph_stats.get("folders", 0),
-                duration_ms=round(duration_ms, 2),
+            return (
+                len(added_paths),
+                len(modified_paths),
+                len(unchanged_paths),
+                len(deleted_paths),
+                store.get_stats(),
             )
+
+    def _run_vector_ingest(
+        self,
+        discovered: dict[str, Path],
+        progress_callback: Optional[Callable[[str, int, int], None]],
+    ) -> tuple[int, int, int]:
+        with VectorStore(self.vector_dir, rebuild=self.rebuild) as vstore:
+            tracked = vstore.get_tracked_notes()
+            to_embed: list[str] = []
+            deleted: list[str] = [p for p in tracked if p not in discovered]
+
+            for rel_path, abs_path in discovered.items():
+                mtime = self.indexer.file_mtimes.get(rel_path, 0.0)
+                if rel_path not in tracked or tracked[rel_path] != mtime:
+                    to_embed.append(rel_path)
+
+            for del_path in deleted:
+                vstore.delete_note_chunks(del_path)
+
+            chunks_created = 0
+            total_items = len(to_embed)
+
+            for idx, rel_path in enumerate(to_embed, start=1):
+                if progress_callback:
+                    progress_callback("Vectorizing chunks", idx, total_items)
+                abs_path = discovered[rel_path]
+                content = abs_path.read_text(encoding="utf-8", errors="replace")
+                title = PurePosixPath(rel_path).stem
+                chunks = self.chunker.chunk_document(rel_path, title, content)
+                if chunks:
+                    texts = [c.text for c in chunks]
+                    vectors = self.embedder.embed_texts(texts)
+                    mtime = self.indexer.file_mtimes.get(rel_path, 0.0)
+                    vstore.upsert_chunks(rel_path, chunks, vectors, mtime=mtime)
+                    chunks_created += len(chunks)
+                else:
+                    vstore.delete_note_chunks(rel_path)
+
+            if to_embed or deleted:
+                vstore.create_fts_index()
+
+            return chunks_created, len(deleted), vstore.get_total_chunks()

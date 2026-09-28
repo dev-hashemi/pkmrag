@@ -64,10 +64,11 @@ class FolderInfo(BaseModel):
 
 
 class IngestStats(BaseModel):
-    """Statistical summary of a vault graph ingestion run."""
+    """Statistical summary of a vault graph and vector ingestion run."""
 
     vault_path: str
     dialect: str = "obsidian"
+    target: str = "all"
     notes_scanned: int = 0
     notes_added: int = 0
     notes_updated: int = 0
@@ -78,4 +79,36 @@ class IngestStats(BaseModel):
     total_links: int = 0
     total_tags: int = 0
     total_folders: int = 0
+    chunks_created: int = 0
+    chunks_deleted: int = 0
+    total_chunks: int = 0
     duration_ms: float = 0.0
+
+
+class ChunkMetadata(BaseModel):
+    """Segment of a note split along heading boundaries with context."""
+
+    chunk_id: str
+    note_path: str
+    note_title: str
+    heading: str = ""
+    text: str
+    chunk_index: int
+    token_count: int
+    start_char: int = 0
+    end_char: int = 0
+
+
+class SearchResult(BaseModel):
+    """Ranked search result retrieved and fused across retrieval pipelines."""
+
+    chunk_id: str
+    note_path: str
+    note_title: str
+    heading: str = ""
+    text: str
+    score: float
+    dense_score: Optional[float] = None
+    sparse_score: Optional[float] = None
+    graph_boost_factor: float = 1.0
+    hop_distance: Optional[int] = None

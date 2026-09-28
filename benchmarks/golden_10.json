@@ -1,0 +1,62 @@
+[
+  {
+    "id": "q1",
+    "query": "What embedded databases does Orbit use for storage?",
+    "near": null,
+    "expected_notes": ["Projects/Storage Layer.md", "Projects/Orbit Core.md"]
+  },
+  {
+    "id": "q2",
+    "query": "How are dense and sparse search combined in Orbit?",
+    "near": null,
+    "expected_notes": ["Concepts/Hybrid Search.md", "Concepts/Reciprocal Rank Fusion.md"]
+  },
+  {
+    "id": "q3",
+    "query": "What are the limitations of naive triple extraction in GraphRAG?",
+    "near": null,
+    "expected_notes": ["Research/GraphRAG Paradigms.md"]
+  },
+  {
+    "id": "q4",
+    "query": "How is BM25 scoring calculated?",
+    "near": null,
+    "expected_notes": ["Concepts/Lexical BM25.md"]
+  },
+  {
+    "id": "q5",
+    "query": "What are property graphs in LadybugDB?",
+    "near": null,
+    "expected_notes": ["Concepts/Property Graphs.md"]
+  },
+  {
+    "id": "q6",
+    "query": "How does reciprocal rank fusion score normalization work?",
+    "near": null,
+    "expected_notes": ["Concepts/Reciprocal Rank Fusion.md"]
+  },
+  {
+    "id": "q7",
+    "query": "What is the high-level architecture of Orbit Core?",
+    "near": null,
+    "expected_notes": ["Projects/Orbit Core.md"]
+  },
+  {
+    "id": "q8",
+    "query": "What work was done in the milestone for v0.1.0?",
+    "near": null,
+    "expected_notes": ["Daily/2026-09-27.md"]
+  },
+  {
+    "id": "q9",
+    "query": "How does dense semantic vector retrieval work?",
+    "near": null,
+    "expected_notes": ["Research/Vector Retrieval.md"]
+  },
+  {
+    "id": "q10",
+    "query": "Where are links to Distributed Cluster Spec located?",
+    "near": "Storage Layer",
+    "expected_notes": ["Projects/Storage Layer.md"]
+  }
+]

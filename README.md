@@ -47,8 +47,8 @@ flowchart TD
 
 - **Phase 0 (`v0.0.1`):** In-process storage engine validation & CLI diagnostics (`orbit doctor`) — **Completed** ✅
 - **Phase 1 (`v0.1.0`):** Deterministic AST wikilink backbone ingestion into LadybugDB — **Completed** ✅
-- **Phase 2 (`v0.2.0`):** Hybrid vector + BM25 search with Reciprocal Rank Fusion — *Next*
-- **Phase 3 (`v0.3.0`):** FastMCP server (`query_vault`, `read_note`, `find_bridges`)
+- **Phase 2 (`v0.2.0`):** Hybrid vector + BM25 search with Reciprocal Rank Fusion & graph proximity boosting — **Completed** ✅
+- **Phase 3 (`v0.3.0`):** FastMCP server (`query_vault`, `read_note`, `find_bridges`) — *Next*
 
 ---
 
@@ -73,7 +73,7 @@ orbit doctor
 Output:
 ```text
 ╭────────────────────────────────────────────────────╮
-│ Project Orbit v0.1.0 — System Health & Diagnostics │
+│ Project Orbit v0.2.0 — System Health & Diagnostics │
 ╰────────────────────────────────────────────────────╯
                  Environment Details                 
  Operating System     Linux ...
@@ -89,14 +89,17 @@ Output:
 │ LanceDB Vector Engine  │  PASS  │ 0.38.0  │   6.3ms │ Arrow-backed vector     │
 │                        │        │         │         │ index verified          │
 └────────────────────────┴────────┴─────────┴─────────┴─────────────────────────┘
-All systems operational. Engines ready for Phase 2.
+All systems operational. Engines ready for Orbit.
 ```
 
 ### Ingesting a Knowledge Base
-Ingest notes, links, tags, and folder hierarchies into LadybugDB with incremental delta sync:
+Ingest notes, links, tags, and semantic vectors with incremental delta sync:
 ```bash
-# Ingest with auto-detection (defaults to <vault>/.orbit/graph)
+# Ingest all planes (graph topology + semantic vectors)
 orbit ingest /path/to/vault
+
+# Ingest specific planes (all, graph, or vector)
+orbit ingest /path/to/vault --target vector
 
 # Explicitly choose a dialect (obsidian, commonmark)
 orbit ingest /path/to/docs --dialect commonmark
@@ -108,9 +111,31 @@ orbit ingest /path/to/vault --rebuild
 orbit ingest /path/to/vault --json
 ```
 
+### Hybrid & Graph-Boosted Search
+Find relevant note chunks combining dense semantic meaning, exact keyword match, and graph topology:
+```bash
+# Hybrid search (dense vector + sparse BM25 fused via RRF)
+orbit search "how does cache invalidation work?" --vault /path/to/vault
+
+# Graph-boosted search biased toward a specific focus note (1-2 hops away)
+orbit search "vector retrieval" --vault /path/to/vault --near "Storage Layer"
+
+# Explicit retrieval mode (hybrid, dense, or sparse)
+orbit search "database schema" --mode sparse --limit 10
+
+# Structured JSON output
+orbit search "retrieval" --json
+```
+
+### Benchmarks
+Retrieval accuracy is validated against the Golden 10 ground truth benchmark dataset (`benchmarks/golden_10.json`):
+- **Hits@1:** `90.0%`
+- **Hits@3:** `100.0%`
+- **MRR (Mean Reciprocal Rank):** `0.950`
+
 ### Running Tests & Linting
 ```bash
-# Unit & integration tests
+# Unit & integration tests + Golden 10 benchmark
 uv run pytest
 
 # Type checking
@@ -120,3 +145,4 @@ uv run mypy src tests
 uv run ruff check .
 uv run ruff format --check .
 ```
+

@@ -9,16 +9,17 @@ from typing import Any
 import ladybug
 
 from orbit.graph.schema import SCHEMA_DDL_STATEMENTS
-
-
-def _get_single_result(res: Any) -> Any:
-    return res[0] if isinstance(res, list) else res
-
-
-def _extract_row(row: Any) -> list[Any]:
-    if isinstance(row, dict):
-        return list(row.values())
-    return list(row)
+from orbit.graph.traversal import (
+    _extract_row,
+    _get_single_result,
+    get_graph_stats,
+)
+from orbit.graph.traversal import (
+    get_neighbor_hops as _get_neighbor_hops,
+)
+from orbit.graph.traversal import (
+    resolve_note_path as _resolve_note_path,
+)
 
 
 class GraphStore:
@@ -260,25 +261,15 @@ class GraphStore:
 
     def get_stats(self) -> dict[str, int]:
         """Aggregate total count metrics from the property graph."""
+        return get_graph_stats(self.conn)
 
-        def _count(query: str) -> int:
-            res = self.conn.execute(query)
-            query_res = _get_single_result(res)
-            if query_res.has_next():
-                row = _extract_row(query_res.get_next())
-                val = row[0]
-                return int(val) if val is not None else 0
-            return 0
+    def resolve_note_path(self, identifier: str) -> str | None:
+        """Resolve a note title, filename, or path to a canonical note path."""
+        return _resolve_note_path(self.conn, identifier)
 
-        return {
-            "notes": _count("MATCH (n:Note) RETURN count(n);"),
-            "unresolved_notes": _count("MATCH (n:Note {is_unresolved: true}) RETURN count(n);"),
-            "tags": _count("MATCH (t:Tag) RETURN count(t);"),
-            "folders": _count("MATCH (f:Folder) RETURN count(f);"),
-            "links": _count("MATCH ()-[r:LINKS_TO]->() RETURN count(r);"),
-            "tagged_with": _count("MATCH ()-[r:TAGGED_WITH]->() RETURN count(r);"),
-            "contained_in": _count("MATCH ()-[r:NOTE_CONTAINED_IN]->() RETURN count(r);"),
-        }
+    def get_neighbor_hops(self, focus_path: str, max_hops: int = 2) -> dict[str, int]:
+        """Find undirected graph neighbors within max_hops from focus note."""
+        return _get_neighbor_hops(self.conn, focus_path, max_hops=max_hops)
 
     def close(self) -> None:
         """Close LadybugDB connection."""
