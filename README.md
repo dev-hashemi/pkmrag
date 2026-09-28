@@ -4,9 +4,10 @@
 
 Project Orbit is an open-source, local-first retrieval engine designed for linked Markdown knowledge bases (Obsidian, personal research vaults). It combines an explicit structural property graph with an Arrow-backed vector and keyword search index, exposing contextual intelligence to frontier AI reasoning tools via the Model Context Protocol (MCP).
 
-📖 **Detailed Engineering Docs:** [Full Technical Documentation & Deep Dives](docs/README.md)
+📖 **Technical Documentation:** [System Architecture & Subsystems](docs/architecture.md)
 
 ---
+
 
 
 ## 🏛️ Architecture Overview
