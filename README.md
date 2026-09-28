@@ -2,6 +2,12 @@
 
 > **Embedded, Local-First Hybrid GraphRAG Retrieval Engine & MCP Server**
 
+[![CI](https://img.shields.io/github/actions/workflow/status/dev-hashemi/project-orbit/ci.yml?branch=main&style=flat&label=CI&logo=githubactions&logoColor=white)](https://github.com/dev-hashemi/project-orbit/actions)
+[![Python](https://img.shields.io/badge/python-%3E%3D3.11-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/downloads/)
+[![Version](https://img.shields.io/github/v/tag/dev-hashemi/project-orbit?style=flat&label=version&logo=github&logoColor=white)](https://github.com/dev-hashemi/project-orbit/releases)
+[![License](https://img.shields.io/badge/license-MIT-green?style=flat&logo=opensourceinitiative&logoColor=white)](LICENSE)
+[![Mypy](https://img.shields.io/badge/types-mypy_strict-2A6DB5?style=flat&logo=python&logoColor=white)](http://mypy-lang.org/)
+
 Project Orbit is an open-source, local-first retrieval engine designed for linked Markdown knowledge bases (Obsidian, personal research vaults). It combines an explicit structural property graph with an Arrow-backed vector and keyword search index, exposing contextual intelligence to frontier AI reasoning tools via the Model Context Protocol (MCP).
 
 📖 **Technical Documentation:** [System Architecture & Subsystems](docs/architecture.md)
