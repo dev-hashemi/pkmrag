@@ -19,8 +19,12 @@ $$\text{Client} \underset{\text{stdio}}{\overset{\text{JSON-RPC}}{\rightleftharp
 
 | Tool | Purpose | Primary Backend |
 | :--- | :--- | :--- |
-| `query_vault(query, near?, mode?, limit?)` | Semantic + BM25 keyword search with graph proximity boost | LanceDB + FastEmbed + LadybugDB |
-| `read_note(note_path, max_chars?, offset?)` | Fetch full note content with path traversal containment | Sandboxed filesystem |
+| `query_vault(query, near?, mode?, limit?, folder?, tags?)` | Hybrid search with graph boost, folder prefix, and tag filtering | LanceDB + FastEmbed + LadybugDB |
+| `read_note(note_path, max_chars?, offset?)` | Fetch note content enriched with graph context (tags, links, backlinks) | Filesystem + LadybugDB |
+| `list_notes(folder?, pattern?, limit?)` | Browse notes with folder filtering and filename pattern matching | Filesystem glob |
+| `list_tags(limit?)` | List all unique vault tags ranked by frequency | LadybugDB `Tag` nodes |
+| `search_by_tag(tag, limit?)` | Find all notes tagged with a specific tag | LadybugDB `TAGGED_WITH` |
+| `get_outline(note_path)` | Extract heading tree and line numbers for large notes | Filesystem heading parser |
 | `get_note_context(note_path)` | Inspect incoming backlinks, outgoing citations, tags, and 2-hop cluster | LadybugDB graph queries |
 | `find_bridges(source_note, target_note)` | Find shortest wikilink connection path across the vault | LadybugDB `SHORTEST` path |
 | `vault_overview(limit?)` | Bird's-eye view: total notes, links, tags, and central hub notes | LadybugDB in-degree ranking |

@@ -32,6 +32,10 @@ async def test_mcp_server_initialization_and_tool_registration(tmp_path: Path) -
     expected_tools = {
         "query_vault",
         "read_note",
+        "list_notes",
+        "list_tags",
+        "search_by_tag",
+        "get_outline",
         "get_note_context",
         "find_bridges",
         "vault_overview",
@@ -45,6 +49,16 @@ async def test_mcp_server_initialization_and_tool_registration(tmp_path: Path) -
     assert len(result.content) > 0
     text_val = result.content[0].text  # type: ignore[union-attr]
     assert "Welcome to Orbit." in text_val
+
+    # Test list_notes tool call
+    list_res = await server.call_tool("list_notes", {})
+    assert isinstance(list_res, CallToolResult)
+    assert "Readme.md" in list_res.content[0].text  # type: ignore[union-attr]
+
+    # Test get_outline tool call
+    outline_res = await server.call_tool("get_outline", {"note_path": "Readme.md"})
+    assert isinstance(outline_res, CallToolResult)
+    assert "Readme" in outline_res.content[0].text  # type: ignore[union-attr]
 
 
 @pytest.mark.anyio

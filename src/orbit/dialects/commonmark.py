@@ -5,7 +5,11 @@ from __future__ import annotations
 import posixpath
 from pathlib import Path, PurePosixPath
 
-from orbit.config import DEFAULT_IGNORED_DIRS, DEFAULT_IGNORED_FILES
+from orbit.config import (
+    DEFAULT_IGNORED_DIRS,
+    DEFAULT_IGNORED_FILES,
+    SUPPORTED_NOTE_EXTENSIONS,
+)
 from orbit.models import NoteMetadata, ResolvedLink, SourceIndex, Wikilink
 from orbit.parser.markdown import (
     extract_tags,
@@ -42,7 +46,7 @@ class CommonMarkDialect:
         return (
             file_name in DEFAULT_IGNORED_FILES
             or file_name.startswith(".")
-            or not file_name.endswith((".md", ".markdown"))
+            or not file_name.endswith(SUPPORTED_NOTE_EXTENSIONS)
         )
 
     def extract_document(

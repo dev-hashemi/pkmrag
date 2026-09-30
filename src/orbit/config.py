@@ -17,6 +17,7 @@ DEFAULT_IGNORED_DIRS: set[str] = {
     "node_modules",
     ".venv",
     "__pycache__",
+    "logseq",
 }
 
 DEFAULT_IGNORED_FILES: set[str] = {
@@ -24,6 +25,8 @@ DEFAULT_IGNORED_FILES: set[str] = {
     "desktop.ini",
     "thumbs.db",
 }
+
+SUPPORTED_NOTE_EXTENSIONS: tuple[str, ...] = (".md", ".markdown", ".mdx")
 
 
 DEFAULT_EMBEDDING_MODEL: str = "BAAI/bge-small-en-v1.5"

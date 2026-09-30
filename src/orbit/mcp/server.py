@@ -18,6 +18,12 @@ from orbit.mcp.tools import (
     execute_read_note,
     execute_vault_overview,
 )
+from orbit.mcp.tools_vault import (
+    execute_get_outline,
+    execute_list_notes,
+    execute_list_tags,
+    execute_search_by_tag,
+)
 from orbit.search.service import SearchService
 
 
@@ -43,9 +49,10 @@ def create_mcp_server(vault_path: Path | str) -> MCPServer:
         "orbit",
         instructions=(
             f"Orbit Knowledge Engine for vault '{vpath.name}'. Use 'query_vault' to search "
-            "for relevant note chunks, 'read_note' to fetch full file content, 'get_note_context' "
-            "to inspect backlinks and graph connections, 'find_bridges' to find relationship "
-            "paths between notes, and 'vault_overview' to get high-level statistics and hub notes."
+            "note chunks, 'read_note' to fetch note content with graph context, 'list_notes' "
+            "to browse files, 'list_tags' and 'search_by_tag' to navigate tags, 'get_outline' "
+            "for heading structure, 'get_note_context' for backlinks, "
+            "'find_bridges' for link paths, and 'vault_overview' for global hub statistics."
         ),
     )
 
@@ -66,6 +73,8 @@ def create_mcp_server(vault_path: Path | str) -> MCPServer:
         near: Optional[str] = None,
         mode: str = "hybrid",
         limit: int = 5,
+        folder: Optional[str] = None,
+        tags: Optional[list[str]] = None,
     ) -> str:
         """Search the vault using hybrid (semantic + keyword) retrieval with optional graph boost.
 
@@ -74,6 +83,8 @@ def create_mcp_server(vault_path: Path | str) -> MCPServer:
             near: Optional note path or title to boost nearby notes in the graph.
             mode: Retrieval mode ('hybrid', 'dense', or 'sparse').
             limit: Maximum number of snippet results to return (default 5, max 20).
+            folder: Optional folder path prefix to restrict results (e.g. 'Plugins').
+            tags: Optional list of tag names to filter results (e.g. ['api', 'guide']).
         """
         return execute_query_vault(
             search_service=search_service,
@@ -81,6 +92,8 @@ def create_mcp_server(vault_path: Path | str) -> MCPServer:
             near=near,
             mode=mode,
             limit=limit,
+            folder=folder,
+            tags=tags,
         )
 
     @mcp.tool()
@@ -89,7 +102,7 @@ def create_mcp_server(vault_path: Path | str) -> MCPServer:
         max_chars: int = 15000,
         offset: int = 0,
     ) -> str:
-        """Read the full content of a note from the vault.
+        """Read the content of a note along with its immediate graph context (tags and links).
 
         Args:
             note_path: Relative path to the markdown file within the vault.
@@ -101,6 +114,72 @@ def create_mcp_server(vault_path: Path | str) -> MCPServer:
             note_path=note_path,
             max_chars=max_chars,
             offset=offset,
+            graph_store=graph_store,
+        )
+
+    @mcp.tool()
+    def list_notes(
+        folder: Optional[str] = None,
+        pattern: Optional[str] = None,
+        limit: int = 100,
+    ) -> str:
+        """List markdown notes in the vault with optional folder and wildcard filename filtering.
+
+        Args:
+            folder: Optional relative folder path to limit listing (e.g. 'Guides' or 'Templates').
+            pattern: Optional glob pattern to match note filenames (e.g. '*plugin*.md' or 'Daily*').
+            limit: Maximum number of notes to return (default 100, max 200).
+        """
+        return execute_list_notes(
+            vault_path=vpath,
+            folder=folder,
+            pattern=pattern,
+            limit=limit,
+        )
+
+    @mcp.tool()
+    def list_tags(
+        limit: int = 50,
+    ) -> str:
+        """List all unique tags in the vault ranked by note frequency.
+
+        Args:
+            limit: Maximum number of tags to return (default 50, max 200).
+        """
+        return execute_list_tags(
+            graph_store=graph_store,
+            limit=limit,
+        )
+
+    @mcp.tool()
+    def search_by_tag(
+        tag: str,
+        limit: int = 50,
+    ) -> str:
+        """Find all notes tagged with a specific tag in the graph index.
+
+        Args:
+            tag: Tag name to search for (e.g. 'api' or '#project').
+            limit: Maximum number of matching notes to return (default 50, max 500).
+        """
+        return execute_search_by_tag(
+            graph_store=graph_store,
+            tag=tag,
+            limit=limit,
+        )
+
+    @mcp.tool()
+    def get_outline(
+        note_path: str,
+    ) -> str:
+        """Extract heading hierarchy and line numbers of a note to navigate large documents.
+
+        Args:
+            note_path: Relative path or filename of the note.
+        """
+        return execute_get_outline(
+            vault_path=vpath,
+            note_path=note_path,
         )
 
     @mcp.tool()

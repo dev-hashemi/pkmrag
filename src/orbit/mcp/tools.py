@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Optional
 
+from orbit.config import SUPPORTED_NOTE_EXTENSIONS
 from orbit.graph.paths import (
     find_shortest_bridge,
     get_note_structural_context,
@@ -20,6 +21,8 @@ def execute_query_vault(
     near: Optional[str] = None,
     mode: str = "hybrid",
     limit: int = 5,
+    folder: Optional[str] = None,
+    tags: Optional[list[str]] = None,
 ) -> str:
     """Execute hybrid search over the vault and format results as readable markdown."""
     clean_query = query.strip()
@@ -31,11 +34,20 @@ def execute_query_vault(
         near=near,
         mode=mode,
         limit=max(1, min(limit, 20)),
+        folder=folder,
+        tags=tags,
     )
 
     if not results:
-        near_msg = f" (near '{near}')" if near else ""
-        return f"No relevant note chunks found for query: '{clean_query}'{near_msg}."
+        details: list[str] = []
+        if near:
+            details.append(f"near '{near}'")
+        if folder:
+            details.append(f"in folder '{folder}'")
+        if tags:
+            details.append(f"with tags {tags}")
+        filter_msg = f" ({', '.join(details)})" if details else ""
+        return f"No relevant note chunks found for query: '{clean_query}'{filter_msg}."
 
     lines: list[str] = [f"Found {len(results)} relevant chunks in vault:\n"]
     for i, r in enumerate(results, start=1):
@@ -58,6 +70,7 @@ def execute_read_note(
     note_path: str,
     max_chars: int = 15000,
     offset: int = 0,
+    graph_store: Optional[GraphStore] = None,
 ) -> str:
     """Safely read full or partial note content, enforcing vault containment boundaries."""
     clean = note_path.strip()
@@ -74,11 +87,13 @@ def execute_read_note(
     if not target.is_relative_to(resolved_vault):
         return f"Error: Access denied. '{note_path}' is outside vault boundaries."
 
-    # Try appending .md if file not found directly
+    # Try appending supported extensions if file not found directly
     if not target.exists() and not target.suffix:
-        candidate = target.with_suffix(".md")
-        if candidate.exists() and candidate.is_relative_to(resolved_vault):
-            target = candidate
+        for ext in SUPPORTED_NOTE_EXTENSIONS:
+            candidate = target.with_suffix(ext)
+            if candidate.exists() and candidate.is_relative_to(resolved_vault):
+                target = candidate
+                break
 
     if not target.is_file():
         return f"Error: Note '{note_path}' does not exist on disk."
@@ -106,7 +121,33 @@ def execute_read_note(
         )
 
     rel_name = target.relative_to(resolved_vault).as_posix()
-    return f"# Note: {rel_name}\n\n{chunk}{footer}"
+    result = f"# Note: {rel_name}\n\n{chunk}{footer}"
+
+    if graph_store is not None:
+        try:
+            ctx = get_note_structural_context(graph_store.conn, rel_name)
+            if ctx is not None:
+                tags_str = ", ".join(f"`#{t}`" for t in ctx.tags) if ctx.tags else "None"
+                out_items = [f"`{link}`" for link in ctx.outgoing_links[:10]]
+                if len(ctx.outgoing_links) > 10:
+                    out_items.append(f"+{len(ctx.outgoing_links) - 10} more")
+                out_str = ", ".join(out_items) if out_items else "None"
+
+                back_items = [f"`{link}`" for link in ctx.backlinks[:10]]
+                if len(ctx.backlinks) > 10:
+                    back_items.append(f"+{len(ctx.backlinks) - 10} more")
+                back_str = ", ".join(back_items) if back_items else "None"
+
+                result += (
+                    f"\n\n---\n"
+                    f"**Context**: Tags: {tags_str} | "
+                    f"Outgoing ({len(ctx.outgoing_links)}): {out_str} | "
+                    f"Backlinks ({len(ctx.backlinks)}): {back_str}"
+                )
+        except Exception:
+            pass
+
+    return result
 
 
 def execute_get_note_context(

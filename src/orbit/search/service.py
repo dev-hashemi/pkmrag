@@ -7,6 +7,7 @@ from typing import Optional
 
 from orbit.config import get_default_db_dir, get_default_vector_dir
 from orbit.graph.store import GraphStore
+from orbit.graph.traversal import get_notes_by_tag
 from orbit.models import SearchResult
 from orbit.search.embedder import EmbeddingProvider, FastEmbedProvider
 from orbit.search.fusion import apply_graph_boost, build_single_mode_results, compute_rrf
@@ -51,13 +52,16 @@ class SearchService:
         near: Optional[str] = None,
         mode: str = "hybrid",
         limit: int = 5,
+        folder: Optional[str] = None,
+        tags: Optional[list[str]] = None,
     ) -> list[SearchResult]:
         """Execute search with specified mode, optional graph proximity boosting, and limit."""
         clean_query = query.strip()
         if not clean_query:
             return []
 
-        search_limit = max(limit * 3, 20)
+        has_filters = bool(folder or tags)
+        search_limit = max(limit * 5, 50) if has_filters else max(limit * 3, 20)
 
         if mode == "hybrid":
             q_vec = self.embedder.embed_query(clean_query)
@@ -82,6 +86,28 @@ class SearchService:
                 hops = gstore.get_neighbor_hops(near, max_hops=2)
                 if hops:
                     results = apply_graph_boost(results, hops)
+
+        # Folder filtering
+        if folder:
+            clean_folder = folder.strip("/").lower()
+            results = [
+                r
+                for r in results
+                if r.note_path.lower() == clean_folder
+                or r.note_path.lower().startswith(f"{clean_folder}/")
+            ]
+
+        # Tag filtering
+        if tags:
+            gstore = self._get_graph_store()
+            if gstore is not None:
+                clean_tags = [t.strip().lstrip("#").lower() for t in tags if t.strip()]
+                if clean_tags:
+                    matching_paths: set[str] = set()
+                    for t in clean_tags:
+                        matched = get_notes_by_tag(gstore.conn, t, limit=500)
+                        matching_paths.update(m["path"].lower() for m in matched)
+                    results = [r for r in results if r.note_path.lower() in matching_paths]
 
         return results[:limit]
 

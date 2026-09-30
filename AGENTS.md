@@ -2,7 +2,8 @@
 
 ## What This Is
 
-A local-first Hybrid GraphRAG engine for linked knowledge bases (Obsidian vaults).
+A local-first Hybrid GraphRAG engine for linked personal knowledge bases (PKMs).
+Obsidian serves as the primary reference dialect, with a pluggable dialect layer for CommonMark, Logseq, Foam, and other linked systems.
 3-tier architecture: deterministic graph (LadybugDB) → semantic search (LanceDB) → AI gap detection (LLM).
 Exposed as an MCP server — no chat UI.
 
@@ -49,7 +50,7 @@ benchmarks/       # Ground-truth evaluation benchmarks
 ## Architecture Decisions (Don't Undo These)
 
 - **Embedded DBs only.** LadybugDB + LanceDB + SQLite. No servers, no Docker, no network DBs.
-- **Dialect system** for markdown parsing. Obsidian-specific logic lives in `dialects/obsidian.py`, not in the core parser. New vault formats (e.g., Logseq) get a new dialect file.
+- **Dialect-agnostic core.** The property graph, vector store, and MCP tools operate on abstract knowledge primitives (Note, Tag, Folder, LINKS_TO). All syntax parsing lives in pluggable `dialects/` (Obsidian, CommonMark, Logseq). Never introduce dialect-specific branching into storage, search, or MCP tools.
 - **Incremental sync.** Ingestion compares file hashes; only changed files are reprocessed.
 - **Inferred edges are separate from ground truth.** AI-discovered relationships go in their own table/label, tagged with confidence + model + timestamp. Never pollute human-curated graph data.
 - **MCP over custom UI.** The primary interface is an MCP server (stdio + SSE), not a chat frontend.

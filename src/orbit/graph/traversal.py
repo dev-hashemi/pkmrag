@@ -52,35 +52,21 @@ def get_neighbor_hops(
     if not resolved:
         return {}
 
+    clamped_hops = max(1, min(max_hops, 5))
     hops: dict[str, int] = {resolved: 0}
-    if max_hops < 1:
-        return hops
 
-    # 1-hop undirected neighbors
-    res_1 = conn.execute(
-        "MATCH (f:Note {path: $p})-[r:LINKS_TO]-(nbr:Note) RETURN DISTINCT nbr.path;",
-        {"p": resolved},
-    )
-    query_res_1 = _get_single_result(res_1)
-    while query_res_1.has_next():
-        row = _extract_row(query_res_1.get_next())
-        nbr_path = str(row[0])
-        if nbr_path not in hops:
-            hops[nbr_path] = 1
-
-    if max_hops >= 2:
-        # 2-hop undirected neighbors
-        res_2 = conn.execute(
-            "MATCH (f:Note {path: $p})-[*2..2]-(nbr:Note) "
+    for h in range(1, clamped_hops + 1):
+        res = conn.execute(
+            f"MATCH (f:Note {{path: $p}})-[* {h}..{h}]-(nbr:Note) "
             "WHERE nbr.path <> $p RETURN DISTINCT nbr.path;",
             {"p": resolved},
         )
-        query_res_2 = _get_single_result(res_2)
-        while query_res_2.has_next():
-            row = _extract_row(query_res_2.get_next())
+        query_res = _get_single_result(res)
+        while query_res.has_next():
+            row = _extract_row(query_res.get_next())
             nbr_path = str(row[0])
             if nbr_path not in hops:
-                hops[nbr_path] = 2
+                hops[nbr_path] = h
 
     return hops
 
@@ -106,3 +92,38 @@ def get_graph_stats(conn: Any) -> dict[str, int]:
         "tagged_with": _count("MATCH ()-[r:TAGGED_WITH]->() RETURN count(r);"),
         "contained_in": _count("MATCH ()-[r:NOTE_CONTAINED_IN]->() RETURN count(r);"),
     }
+
+
+def get_all_tags(conn: Any, limit: int = 50) -> list[dict[str, Any]]:
+    """Return all tags with note counts, ordered by frequency."""
+    clamped = max(1, min(limit, 200))
+    res = conn.execute(
+        "MATCH (n:Note)-[:TAGGED_WITH]->(t:Tag) "
+        "RETURN t.name, count(n) AS cnt "
+        "ORDER BY cnt DESC LIMIT $lim;",
+        {"lim": clamped},
+    )
+    query_res = _get_single_result(res)
+    tags: list[dict[str, Any]] = []
+    while query_res.has_next():
+        row = _extract_row(query_res.get_next())
+        tags.append({"tag": str(row[0]), "notes_count": int(row[1])})
+    return tags
+
+
+def get_notes_by_tag(conn: Any, tag: str, limit: int = 50) -> list[dict[str, str]]:
+    """Return notes tagged with a specific tag."""
+    clean_tag = tag.strip().lstrip("#")
+    clamped = max(1, min(limit, 500))
+    res = conn.execute(
+        "MATCH (n:Note)-[:TAGGED_WITH]->(t:Tag {name: $tag}) "
+        "RETURN n.path, n.title "
+        "ORDER BY n.path LIMIT $lim;",
+        {"tag": clean_tag, "lim": clamped},
+    )
+    query_res = _get_single_result(res)
+    notes: list[dict[str, str]] = []
+    while query_res.has_next():
+        row = _extract_row(query_res.get_next())
+        notes.append({"path": str(row[0]), "title": str(row[1]) if row[1] else ""})
+    return notes

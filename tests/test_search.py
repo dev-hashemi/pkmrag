@@ -65,6 +65,14 @@ def test_search_service_and_incremental_indexing(tmp_path: Path) -> None:
         top_hit = boosted_hits[0]
         assert top_hit.graph_boost_factor >= 1.0
 
+        # Folder filter (should match none because files are in root)
+        folder_hits = service.search("database", folder="Guides", mode="hybrid")
+        assert len(folder_hits) == 0
+
+        # Root folder filter matches
+        root_hits = service.search("database", folder="", mode="hybrid")
+        assert len(root_hits) >= 1
+
 
 def test_cli_search_command(tmp_path: Path) -> None:
     """Verify CLI orbit search command with human and JSON output."""

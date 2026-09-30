@@ -25,12 +25,21 @@ def test_execute_read_note_valid(tmp_path: Path) -> None:
 
 
 def test_execute_read_note_auto_append_md(tmp_path: Path) -> None:
-    """Verify read_note automatically finds file if .md suffix was omitted."""
+    """Verify read_note automatically finds file if suffix was omitted (.md, .markdown, .mdx)."""
     note = tmp_path / "Architecture.md"
     note.write_text("System architecture details.", encoding="utf-8")
 
     result = execute_read_note(tmp_path, "Architecture")
     assert "System architecture details." in result
+
+    # Also verify .markdown and .mdx
+    note2 = tmp_path / "Draft.markdown"
+    note2.write_text("Draft content.", encoding="utf-8")
+    assert "Draft content." in execute_read_note(tmp_path, "Draft")
+
+    note3 = tmp_path / "Component.mdx"
+    note3.write_text("Component content.", encoding="utf-8")
+    assert "Component content." in execute_read_note(tmp_path, "Component")
 
 
 def test_execute_read_note_path_traversal_blocked(tmp_path: Path) -> None:
@@ -131,3 +140,126 @@ def test_execute_tools_with_graph(tmp_path: Path) -> None:
     assert "`#important`" in overview
 
     store.close()
+
+
+def test_execute_read_note_with_graph_context(tmp_path: Path) -> None:
+    """Verify read_note enriches output with tags and links when graph store is provided."""
+    note = tmp_path / "NoteA.md"
+    note.write_text("Note A content.", encoding="utf-8")
+
+    db_dir = tmp_path / "graph"
+    db_dir.mkdir()
+    store = GraphStore(db_dir)
+
+    create_note = (
+        "CREATE (n:Note {path: $p, title: $t, hash: $h, mtime: 1.0, is_unresolved: false});"
+    )
+    store.conn.execute(create_note, {"p": "NoteA.md", "t": "Note A", "h": "h1"})
+    store.conn.execute(create_note, {"p": "NoteB.md", "t": "Note B", "h": "h2"})
+    store.conn.execute("CREATE (t:Tag {name: 'guide'});")
+    store.conn.execute(
+        "MATCH (a:Note {path: 'NoteA.md'}), (b:Note {path: 'NoteB.md'}) "
+        "CREATE (a)-[:LINKS_TO]->(b);"
+    )
+    store.conn.execute(
+        "MATCH (a:Note {path: 'NoteA.md'}), (t:Tag {name: 'guide'}) CREATE (a)-[:TAGGED_WITH]->(t);"
+    )
+
+    res = execute_read_note(tmp_path, "NoteA.md", graph_store=store)
+    assert "**Context**:" in res
+    assert "`#guide`" in res
+    assert "Outgoing (1): `NoteB.md`" in res
+    store.close()
+
+
+def test_execute_list_notes(tmp_path: Path) -> None:
+    """Verify list_notes browsing, folder filtering, and pattern matching."""
+    from orbit.mcp.tools_vault import execute_list_notes
+
+    (tmp_path / "Root.md").write_text("Root note", encoding="utf-8")
+    (tmp_path / "Post.markdown").write_text("Markdown post", encoding="utf-8")
+    sub = tmp_path / "Guides"
+    sub.mkdir()
+    (sub / "Setup.md").write_text("Setup guide", encoding="utf-8")
+    (sub / "Config.md").write_text("Config guide", encoding="utf-8")
+    hidden = tmp_path / ".obsidian"
+    hidden.mkdir()
+    (hidden / "workspace.md").write_text("Should be ignored", encoding="utf-8")
+    logseq_dir = tmp_path / "logseq"
+    logseq_dir.mkdir()
+    (logseq_dir / "metadata.md").write_text("Logseq internal note", encoding="utf-8")
+
+    # List all
+    all_res = execute_list_notes(tmp_path)
+    assert "Root.md" in all_res
+    assert "Post.markdown" in all_res
+    assert "Guides/Setup.md" in all_res
+    assert ".obsidian" not in all_res
+    assert "logseq" not in all_res
+
+    # List with folder filter
+    folder_res = execute_list_notes(tmp_path, folder="Guides")
+    assert "Guides/Setup.md" in folder_res
+    assert "Root.md" not in folder_res
+
+    # List with pattern
+    pattern_res = execute_list_notes(tmp_path, pattern="*config*")
+    assert "Guides/Config.md" in pattern_res
+    assert "Setup.md" not in pattern_res
+
+    # List nonexistent folder
+    error_res = execute_list_notes(tmp_path, folder="NoSuchFolder")
+    assert "does not exist" in error_res
+
+
+def test_execute_tags_tools(tmp_path: Path) -> None:
+    """Verify list_tags and search_by_tag MCP tools."""
+    from orbit.mcp.tools_vault import execute_list_tags, execute_search_by_tag
+
+    db_dir = tmp_path / "graph"
+    db_dir.mkdir()
+    store = GraphStore(db_dir)
+
+    create_note = (
+        "CREATE (n:Note {path: $p, title: $t, hash: $h, mtime: 1.0, is_unresolved: false});"
+    )
+    store.conn.execute(create_note, {"p": "Note1.md", "t": "First Note", "h": "h1"})
+    store.conn.execute(create_note, {"p": "Note2.md", "t": "Second Note", "h": "h2"})
+    store.conn.execute("CREATE (t:Tag {name: 'orbit'});")
+    store.conn.execute(
+        "MATCH (a:Note {path: 'Note1.md'}), (t:Tag {name: 'orbit'}) CREATE (a)-[:TAGGED_WITH]->(t);"
+    )
+    store.conn.execute(
+        "MATCH (a:Note {path: 'Note2.md'}), (t:Tag {name: 'orbit'}) CREATE (a)-[:TAGGED_WITH]->(t);"
+    )
+
+    tags_res = execute_list_tags(store)
+    assert "`#orbit`" in tags_res
+    assert "| 2 |" in tags_res
+
+    search_res = execute_search_by_tag(store, "orbit")
+    assert "Note1.md" in search_res
+    assert "Note2.md" in search_res
+
+    not_found = execute_search_by_tag(store, "nonexistent")
+    assert "No notes found with tag `#nonexistent`" in not_found
+    store.close()
+
+
+def test_execute_get_outline(tmp_path: Path) -> None:
+    """Verify get_outline extracts headings and line numbers."""
+    from orbit.mcp.tools_vault import execute_get_outline
+
+    doc = (
+        "# Main Title\n\nIntro text.\n\n"
+        "## Sub Heading\n\nBody paragraph.\n\n"
+        "### Deep Section\n\nMore details."
+    )
+    note = tmp_path / "Document.md"
+    note.write_text(doc, encoding="utf-8")
+
+    outline = execute_get_outline(tmp_path, "Document.md")
+    assert "# Outline: Document.md" in outline
+    assert "- Main Title (line 1)" in outline
+    assert "  - Sub Heading (line 5)" in outline
+    assert "    - Deep Section (line 9)" in outline

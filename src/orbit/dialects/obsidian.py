@@ -4,7 +4,11 @@ from __future__ import annotations
 
 from pathlib import Path, PurePosixPath
 
-from orbit.config import DEFAULT_IGNORED_DIRS, DEFAULT_IGNORED_FILES
+from orbit.config import (
+    DEFAULT_IGNORED_DIRS,
+    DEFAULT_IGNORED_FILES,
+    SUPPORTED_NOTE_EXTENSIONS,
+)
 from orbit.models import NoteMetadata, ResolvedLink, SourceIndex, Wikilink
 from orbit.parser.markdown import parse_note_content
 
@@ -31,7 +35,7 @@ class ObsidianDialect:
         return (
             file_name in DEFAULT_IGNORED_FILES
             or file_name.startswith(".")
-            or not file_name.endswith(".md")
+            or not file_name.endswith(SUPPORTED_NOTE_EXTENSIONS)
         )
 
     def extract_document(

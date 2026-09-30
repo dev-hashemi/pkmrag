@@ -8,7 +8,7 @@
 [![License](https://img.shields.io/badge/license-MIT-green?style=flat&logo=opensourceinitiative&logoColor=white)](LICENSE)
 [![Mypy](https://img.shields.io/badge/types-mypy_strict-2A6DB5?style=flat&logo=python&logoColor=white)](http://mypy-lang.org/)
 
-Project Orbit is an open-source, local-first retrieval engine designed for linked Markdown knowledge bases (Obsidian, personal research vaults). It combines an explicit structural property graph with an Arrow-backed vector and keyword search index, exposing contextual intelligence to frontier AI reasoning tools via the Model Context Protocol (MCP).
+Project Orbit is an open-source, local-first retrieval engine designed for linked personal knowledge bases (PKMs). While Obsidian serves as our primary reference implementation, Orbit's core property graph, vector store, and MCP retrieval tools operate on an abstract Knowledge Model supporting any linked document system (Logseq, Foam, CommonMark docs) via pluggable dialects. It combines an explicit structural property graph with an Arrow-backed vector and keyword search index, exposing contextual intelligence to frontier AI reasoning tools via the Model Context Protocol (MCP).
 
 📖 **Technical Documentation:** [System Architecture & Subsystems](docs/architecture.md)
 
@@ -23,7 +23,7 @@ Orbit replaces brute-force triple extraction with a targeted, 3-tier discovery p
 ```mermaid
 %%{init: {'theme': 'dark', 'themeVariables': { 'darkMode': true, 'background': 'transparent', 'mainBkg': '#1e293b', 'primaryColor': '#1e293b', 'primaryBorderColor': '#3b82f6', 'primaryTextColor': '#f8fafc', 'lineColor': '#38bdf8', 'edgeLabelBackground': '#1e293b' }}}%%
 flowchart TD
-    Vault["📂 Markdown Vault (Obsidian)"]
+    Vault["📂 Linked Knowledge Base<br/><i>Obsidian, Logseq, CommonMark</i>"]
 
     Vault --> T1["🏗️ Tier 1: Deterministic Parser ($0 Cost)"]
     T1 --> BaseGraph[("LadybugDB Property Graph<br/><i>Wikilinks, Tags, Hierarchy</i>")]
@@ -149,8 +149,12 @@ orbit mcp-config /path/to/vault
 ```
 
 Exposed Tools:
-- `query_vault`: Hybrid semantic + BM25 keyword retrieval with optional graph proximity boost.
-- `read_note`: Read full or paginated note content with strict path traversal boundaries.
+- `query_vault`: Hybrid semantic + BM25 keyword retrieval with graph boost, folder, and tag filters.
+- `read_note`: Read note content enriched with graph context (tags, forward links, backlinks).
+- `list_notes`: Browse notes in the vault with optional folder filtering and filename pattern matching.
+- `list_tags`: List all unique tags in the vault ranked by note frequency.
+- `search_by_tag`: Find all notes tagged with a specific tag.
+- `get_outline`: Extract heading hierarchy and line numbers for large notes.
 - `get_note_context`: Inspect incoming backlinks, outgoing citations, tags, and 2-hop clusters.
 - `find_bridges`: Discover the shortest link path between two notes across the vault.
 - `vault_overview`: Bird's-eye view of vault notes, wikilinks, tags, and central hub notes.
