@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Optional
 
-from orbit.config import get_default_db_dir, get_default_vector_dir
+from orbit.config import settings
 from orbit.graph.store import GraphStore
 from orbit.graph.traversal import get_notes_by_tag
 from orbit.models import SearchResult
@@ -28,7 +28,7 @@ class SearchService:
         self.vector_store = (
             vector_store
             if vector_store is not None
-            else VectorStore(get_default_vector_dir(self.vault_path))
+            else VectorStore(settings.get_vector_dir(self.vault_path))
         )
         self.embedder: EmbeddingProvider = embedder if embedder is not None else FastEmbedProvider()
         self._graph_store = graph_store
@@ -37,7 +37,7 @@ class SearchService:
     def _get_graph_store(self) -> Optional[GraphStore]:
         """Lazy access or creation of GraphStore."""
         if self._graph_store is None:
-            db_dir = get_default_db_dir(self.vault_path)
+            db_dir = settings.get_db_dir(self.vault_path)
             if db_dir.exists():
                 try:
                     self._graph_store = GraphStore(db_dir, read_only=True)

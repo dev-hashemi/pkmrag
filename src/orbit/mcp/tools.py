@@ -5,13 +5,14 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Optional
 
-from orbit.config import SUPPORTED_NOTE_EXTENSIONS
+from orbit.config import settings
 from orbit.graph.paths import (
     find_shortest_bridge,
     get_note_structural_context,
     get_vault_overview,
 )
 from orbit.graph.store import GraphStore
+from orbit.graph.traversal import get_inferred_relationships
 from orbit.search.service import SearchService
 
 
@@ -89,7 +90,7 @@ def execute_read_note(
 
     # Try appending supported extensions if file not found directly
     if not target.exists() and not target.suffix:
-        for ext in SUPPORTED_NOTE_EXTENSIONS:
+        for ext in settings.supported_extensions:
             candidate = target.with_suffix(ext)
             if candidate.exists() and candidate.is_relative_to(resolved_vault):
                 target = candidate
@@ -172,6 +173,18 @@ def execute_get_note_context(
             return "*(None)*"
         return "\n".join(f"- `{item}`" for item in items[:25])
 
+    inferred_rels = get_inferred_relationships(graph_store.conn, ctx.path)
+    inferred_block = ""
+    if inferred_rels:
+        inferred_lines = ["\n\n## Inferred Relationships (AI-Discovered)"]
+        for r in inferred_rels[:15]:
+            other = r.target_path if r.source_path == ctx.path else r.source_path
+            inferred_lines.append(
+                f"- `[{r.rel_type}]` `{other}` (conf: {r.confidence:.2f}, model: {r.model})\n"
+                f"  *{r.reason}*"
+            )
+        inferred_block = "\n".join(inferred_lines)
+
     return (
         f"# Graph Context: {ctx.title}\n"
         f"- **Path**: `{ctx.path}`\n"
@@ -183,6 +196,7 @@ def execute_get_note_context(
         f"{_format_bullets(ctx.backlinks)}\n\n"
         f"## 2-Hop Cluster ({len(ctx.neighbors_2hop)})\n"
         f"{_format_bullets(ctx.neighbors_2hop)}"
+        f"{inferred_block}"
     )
 
 

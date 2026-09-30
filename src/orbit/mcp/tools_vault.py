@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 from typing import Optional
 
-from orbit.config import DEFAULT_IGNORED_DIRS, SUPPORTED_NOTE_EXTENSIONS
+from orbit.config import settings
 from orbit.graph.store import GraphStore
 from orbit.graph.traversal import get_all_tags, get_notes_by_tag
 
@@ -34,7 +34,7 @@ def execute_list_notes(
         search_root = candidate
 
     note_files: list[Path] = []
-    for ext in SUPPORTED_NOTE_EXTENSIONS:
+    for ext in settings.supported_extensions:
         note_files.extend(search_root.rglob(f"*{ext}"))
     sorted_files = sorted(set(note_files))
 
@@ -43,7 +43,7 @@ def execute_list_notes(
         f
         for f in sorted_files
         if not any(
-            part.startswith(".") or part.lower() in DEFAULT_IGNORED_DIRS
+            part.startswith(".") or part.lower() in settings.ignored_dirs
             for part in f.relative_to(resolved_vault).parts
         )
     ]
@@ -142,7 +142,7 @@ def execute_get_outline(
         return f"Error: Access denied. '{note_path}' is outside vault boundaries."
 
     if not target.exists() and not target.suffix:
-        for ext in SUPPORTED_NOTE_EXTENSIONS:
+        for ext in settings.supported_extensions:
             candidate = target.with_suffix(ext)
             if candidate.exists() and candidate.is_relative_to(resolved_vault):
                 target = candidate
@@ -170,3 +170,44 @@ def execute_get_outline(
         return f"# Outline: {rel_name}\n\nNo headings found in this note."
 
     return f"# Outline: {rel_name}\n\n" + "\n".join(headings)
+
+
+def execute_discover_gaps(
+    vault_path: Path,
+    graph_store: Optional[GraphStore],
+    threshold: float = 0.80,
+    limit: int = 10,
+) -> str:
+    """Discover unlinked note pairs exhibiting high semantic similarity (semantic gaps)."""
+    if graph_store is None:
+        return "Graph store is not available for this vault."
+
+    from orbit.discovery.engine import GapDiscoveryEngine
+
+    engine = GapDiscoveryEngine(vault_path=vault_path, graph_store=graph_store)
+    candidates = engine.find_gap_candidates(min_similarity=threshold)
+
+    if not candidates:
+        return (
+            f"No semantic gaps found with similarity >= {threshold:.2f} "
+            "(all closely related notes are already connected in the graph)."
+        )
+
+    clamped = max(1, min(limit, 50))
+    display = candidates[:clamped]
+    lines: list[str] = [f"# Discovered Semantic Gaps ({len(candidates)} candidate pairs found):\n"]
+    for c in display:
+        lines.append(
+            f"### `{c.source_path}` ↔ `{c.target_path}`\n"
+            f"- **Cosine Similarity**: {c.similarity:.4f}\n"
+            f"- **Source Excerpt**: {c.source_chunk_text[:120].strip()}...\n"
+            f"- **Target Excerpt**: {c.target_chunk_text[:120].strip()}...\n"
+        )
+
+    if len(candidates) > clamped:
+        lines.append(
+            f"\n*Showing top {clamped} of {len(candidates)} gaps. "
+            f"Run `orbit discover` via CLI to classify with LLM.*"
+        )
+
+    return "\n".join(lines)

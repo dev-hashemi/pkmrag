@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import shutil
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import lancedb
 import pyarrow as pa
 from lancedb.index import FTS
 
-from orbit.config import DEFAULT_EMBEDDING_DIM
+from orbit.config import settings
 from orbit.models import ChunkMetadata
 
 TABLE_NAME = "chunks"
@@ -22,11 +22,11 @@ class VectorStore:
     def __init__(
         self,
         db_path: Path | str,
-        dimension: int = DEFAULT_EMBEDDING_DIM,
+        dimension: Optional[int] = None,
         rebuild: bool = False,
     ) -> None:
         self.db_dir = Path(db_path).resolve()
-        self.dimension = dimension
+        self.dimension = dimension or settings.embedding_dim
 
         if rebuild and self.db_dir.exists():
             shutil.rmtree(self.db_dir, ignore_errors=True)

@@ -5,11 +5,7 @@ from __future__ import annotations
 import posixpath
 from pathlib import Path, PurePosixPath
 
-from orbit.config import (
-    DEFAULT_IGNORED_DIRS,
-    DEFAULT_IGNORED_FILES,
-    SUPPORTED_NOTE_EXTENSIONS,
-)
+from orbit.config import settings
 from orbit.models import NoteMetadata, ResolvedLink, SourceIndex, Wikilink
 from orbit.parser.markdown import (
     extract_tags,
@@ -36,7 +32,7 @@ class CommonMarkDialect:
     def should_ignore_dir(self, dir_name: str) -> bool:
         """Filter out hidden, build, and version control directories."""
         return (
-            dir_name in DEFAULT_IGNORED_DIRS
+            dir_name in settings.ignored_dirs
             or dir_name.startswith(".")
             or dir_name in {"build", "dist", "out", "_site"}
         )
@@ -44,9 +40,9 @@ class CommonMarkDialect:
     def should_ignore_file(self, file_name: str) -> bool:
         """Filter out hidden and non-markdown files."""
         return (
-            file_name in DEFAULT_IGNORED_FILES
+            file_name in settings.ignored_files
             or file_name.startswith(".")
-            or not file_name.endswith(SUPPORTED_NOTE_EXTENSIONS)
+            or not file_name.endswith(settings.supported_extensions)
         )
 
     def extract_document(

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Optional, Protocol, runtime_checkable
 
-from orbit.config import DEFAULT_EMBEDDING_DIM, DEFAULT_EMBEDDING_MODEL
+from orbit.config import settings
 
 
 @runtime_checkable
@@ -35,12 +35,12 @@ class FastEmbedProvider:
 
     def __init__(
         self,
-        model_name: str = DEFAULT_EMBEDDING_MODEL,
-        dimension: int = DEFAULT_EMBEDDING_DIM,
+        model_name: Optional[str] = None,
+        dimension: Optional[int] = None,
         batch_size: int = 64,
     ) -> None:
-        self._model_name = model_name
-        self._dimension = dimension
+        self._model_name = model_name or settings.embedding_model
+        self._dimension = dimension or settings.embedding_dim
         self.batch_size = batch_size
         self._model: Optional[Any] = None
 

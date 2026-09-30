@@ -2,9 +2,18 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, Field
+
+RelationshipType = Literal[
+    "EXTENDS",
+    "CONTRADICTS",
+    "SUPPORTS",
+    "PREREQUISITE_FOR",
+    "REFINES",
+    "NONE",
+]
 
 
 class Wikilink(BaseModel):
@@ -123,6 +132,7 @@ class NoteContext(BaseModel):
     outgoing_links: list[str] = Field(default_factory=list)
     backlinks: list[str] = Field(default_factory=list)
     neighbors_2hop: list[str] = Field(default_factory=list)
+    inferred_relationships: list[InferredRelationship] = Field(default_factory=list)
     is_unresolved: bool = False
 
 
@@ -146,3 +156,38 @@ class VaultOverview(BaseModel):
     total_tags: int
     hub_notes: list[dict[str, Any]] = Field(default_factory=list)
     top_tags: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class InferredRelationship(BaseModel):
+    """An AI-discovered relationship stored separately from human wikilinks."""
+
+    source_path: str
+    target_path: str
+    rel_type: str
+    confidence: float
+    reason: str
+    model: str = ""
+    created_at: str = ""
+
+
+class SemanticGapCandidate(BaseModel):
+    """A pair of notes that exhibit high similarity but lack a graph connection."""
+
+    source_path: str
+    target_path: str
+    similarity: float
+    source_chunk_id: str
+    target_chunk_id: str
+    source_chunk_text: str
+    target_chunk_text: str
+
+
+class DiscoveryStats(BaseModel):
+    """Summary metrics from a semantic gap discovery run."""
+
+    vault_path: str
+    total_notes_scanned: int
+    vector_candidates_found: int
+    graph_filtered_candidates: int
+    relationships_inferred: int
+    duration_ms: float

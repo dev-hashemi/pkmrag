@@ -4,11 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path, PurePosixPath
 
-from orbit.config import (
-    DEFAULT_IGNORED_DIRS,
-    DEFAULT_IGNORED_FILES,
-    SUPPORTED_NOTE_EXTENSIONS,
-)
+from orbit.config import settings
 from orbit.models import NoteMetadata, ResolvedLink, SourceIndex, Wikilink
 from orbit.parser.markdown import parse_note_content
 
@@ -28,14 +24,14 @@ class ObsidianDialect:
 
     def should_ignore_dir(self, dir_name: str) -> bool:
         """Filter out Obsidian internal folders and dot directories."""
-        return dir_name in DEFAULT_IGNORED_DIRS or dir_name.startswith(".")
+        return dir_name in settings.ignored_dirs or dir_name.startswith(".")
 
     def should_ignore_file(self, file_name: str) -> bool:
         """Filter out hidden or non-markdown files."""
         return (
-            file_name in DEFAULT_IGNORED_FILES
+            file_name in settings.ignored_files
             or file_name.startswith(".")
-            or not file_name.endswith(SUPPORTED_NOTE_EXTENSIONS)
+            or not file_name.endswith(settings.supported_extensions)
         )
 
     def extract_document(

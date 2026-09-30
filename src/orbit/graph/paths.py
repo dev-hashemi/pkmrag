@@ -44,8 +44,8 @@ def find_shortest_bridge(
 
     clamped_hops = max(1, min(max_hops, 10))
     query = (
-        f"MATCH p = (a:Note {{path: $src}})-[* SHORTEST 1..{clamped_hops}]-(b:Note {{path: $dst}}) "
-        "RETURN nodes(p) LIMIT 1;"
+        f"MATCH p = (a:Note {{path: $src}})-[:LINKS_TO* SHORTEST 1..{clamped_hops}]-"
+        "(b:Note {path: $dst}) RETURN nodes(p) LIMIT 1;"
     )
 
     try:

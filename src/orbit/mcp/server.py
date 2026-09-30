@@ -9,7 +9,7 @@ from typing import Optional
 
 from mcp.server.mcpserver import MCPServer
 
-from orbit.config import get_default_db_dir
+from orbit.config import settings
 from orbit.graph.store import GraphStore
 from orbit.mcp.tools import (
     execute_find_bridges,
@@ -19,6 +19,7 @@ from orbit.mcp.tools import (
     execute_vault_overview,
 )
 from orbit.mcp.tools_vault import (
+    execute_discover_gaps,
     execute_get_outline,
     execute_list_notes,
     execute_list_tags,
@@ -58,7 +59,7 @@ def create_mcp_server(vault_path: Path | str) -> MCPServer:
 
     # Initialize read-only search service and graph store
     search_service = SearchService(vpath)
-    db_dir = get_default_db_dir(vpath)
+    db_dir = settings.get_db_dir(vpath)
     graph_store: Optional[GraphStore] = None
     if db_dir.exists():
         try:
@@ -227,6 +228,24 @@ def create_mcp_server(vault_path: Path | str) -> MCPServer:
         """
         return execute_vault_overview(
             graph_store=graph_store,
+            limit=limit,
+        )
+
+    @mcp.tool()
+    def discover_gaps(
+        threshold: float = 0.80,
+        limit: int = 10,
+    ) -> str:
+        """Find unlinked note pairs exhibiting high semantic similarity (knowledge gaps).
+
+        Args:
+            threshold: Minimum cosine similarity threshold (default 0.80).
+            limit: Maximum candidate gap pairs to return (default 10, max 50).
+        """
+        return execute_discover_gaps(
+            vault_path=vpath,
+            graph_store=graph_store,
+            threshold=threshold,
             limit=limit,
         )
 

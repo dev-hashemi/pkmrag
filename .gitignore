@@ -51,3 +51,9 @@ htmlcov/
 *.swp
 *.swo
 .DS_Store
+
+# Secrets & Environment Variables
+.env
+.env.*
+!.env.example
+

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Optional
 
 from rich.console import Console
@@ -10,7 +12,13 @@ from rich.table import Table
 
 from orbit import __version__
 from orbit.doctor import DoctorReport
-from orbit.models import IngestStats, SearchResult
+from orbit.models import (
+    DiscoveryStats,
+    InferredRelationship,
+    IngestStats,
+    SearchResult,
+    SemanticGapCandidate,
+)
 
 
 def render_doctor_report(report: DoctorReport, console: Console) -> None:
@@ -169,3 +177,107 @@ def render_search_results(
             content = content[:597] + "..."
 
         console.print(Panel(content, title=title, border_style="blue", padding=(1, 2)))
+
+
+def render_discovery_results(
+    candidates: list[SemanticGapCandidate],
+    inferred: list[InferredRelationship],
+    stats: DiscoveryStats,
+    dry_run: bool,
+    console: Console,
+    json_output: bool = False,
+) -> None:
+    """Render discovery candidate scan or classified relationship results."""
+    if json_output:
+        dump = {
+            "vault_path": stats.vault_path,
+            "dry_run": dry_run,
+            "candidates": [c.model_dump() for c in candidates],
+            "inferred_relationships": [r.model_dump() for r in inferred],
+            "stats": stats.model_dump(),
+        }
+        console.print_json(json.dumps(dump, indent=2))
+        return
+
+    if dry_run:
+        console.print(
+            f"\n[bold yellow]🔍 Semantic Gap Discovery (DRY RUN)[/bold yellow] — "
+            f"Vault: [cyan]{stats.vault_path}[/cyan]\n"
+        )
+        if not candidates:
+            console.print("[dim green]No unlinked semantic gaps found above threshold.[/dim green]")
+            return
+
+        table = Table(title=f"Discovered {len(candidates)} Semantic Gap Candidates (Unlinked)")
+        table.add_column("Source Note", style="cyan")
+        table.add_column("Target Note", style="cyan")
+        table.add_column("Similarity", justify="center", style="magenta")
+        table.add_column("Preview", style="dim")
+
+        for c in candidates[:30]:
+            preview = (
+                f"{c.source_chunk_text[:50].strip()}... ↔ {c.target_chunk_text[:50].strip()}..."
+            )
+            table.add_row(c.source_path, c.target_path, f"{c.similarity:.4f}", preview)
+
+        console.print(table)
+        est_tokens = len(candidates) * 800
+        console.print(
+            f"\n[bold]Summary:[/bold] {len(candidates)} candidate pairs found in "
+            f"{stats.duration_ms:.1f}ms. Estimated LLM tokens: ~{est_tokens:,}. "
+            "Run without [yellow]--dry-run[/yellow] to classify."
+        )
+        return
+
+    console.print(
+        f"\n[bold green]💡 Semantic Gap Discovery Results[/bold green] — "
+        f"Vault: [cyan]{stats.vault_path}[/cyan]\n"
+    )
+
+    if not inferred:
+        console.print(
+            "[dim yellow]Evaluated candidates, but no high-confidence relationships "
+            "were inferred.[/dim yellow]"
+        )
+        return
+
+    table = Table(title=f"Synthesized {len(inferred)} Inferred Relationships (LadybugDB)")
+    table.add_column("Source Note", style="cyan")
+    table.add_column("Relationship", justify="center", style="bold green")
+    table.add_column("Target Note", style="cyan")
+    table.add_column("Confidence", justify="center", style="magenta")
+    table.add_column("Reason", style="white")
+
+    for r in inferred:
+        table.add_row(
+            r.source_path,
+            f"[:{r.rel_type}]",
+            r.target_path,
+            f"{r.confidence:.2f}",
+            r.reason,
+        )
+
+    console.print(table)
+    console.print(
+        f"\n[bold green]✓ Done![/bold green] Inferred {len(inferred)} relationships across "
+        f"{stats.total_notes_scanned} notes in {stats.duration_ms:.1f}ms."
+    )
+
+
+def render_mcp_config(vault_path: Path, console: Console) -> None:
+    """Render ready-to-use MCP configuration snippets for Claude and Cursor."""
+    resolved = vault_path.resolve()
+    repo_root = Path(__file__).resolve().parent.parent.parent
+    cfg = {
+        "mcpServers": {
+            "orbit": {
+                "command": "uv",
+                "args": ["--directory", str(repo_root), "run", "orbit", "serve", str(resolved)],
+            }
+        }
+    }
+    console.print("[bold green]Claude Desktop / Cursor Configuration:[/bold green]\n")
+    console.print_json(json.dumps(cfg, indent=2))
+    console.print("\n[bold cyan]OpenCode CLI (One-Line Setup):[/bold cyan]")
+    cmd_str = f"opencode mcp add orbit -- uv --directory {repo_root} run orbit serve {resolved}"
+    console.print(f"[white]{cmd_str}[/white]\n")

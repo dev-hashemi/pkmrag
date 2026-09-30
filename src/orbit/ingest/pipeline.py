@@ -7,7 +7,7 @@ from collections.abc import Callable
 from pathlib import Path, PurePosixPath
 from typing import Optional
 
-from orbit.config import get_default_db_dir, get_default_vector_dir
+from orbit.config import settings
 from orbit.dialects import KnowledgeDialect, get_default_registry
 from orbit.graph.store import GraphStore
 from orbit.models import IngestStats
@@ -34,9 +34,9 @@ class IngestPipeline:
         if not self.vault_path.exists() or not self.vault_path.is_dir():
             raise FileNotFoundError(f"Vault directory does not exist: {self.vault_path}")
 
-        self.db_path = Path(db_path) if db_path else get_default_db_dir(self.vault_path)
+        self.db_path = Path(db_path) if db_path else settings.get_db_dir(self.vault_path)
         self.vector_dir = (
-            Path(vector_dir) if vector_dir else get_default_vector_dir(self.vault_path)
+            Path(vector_dir) if vector_dir else settings.get_vector_dir(self.vault_path)
         )
         self.rebuild = rebuild
         self.target = target

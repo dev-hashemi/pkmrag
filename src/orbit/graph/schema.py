@@ -51,4 +51,14 @@ SCHEMA_DDL_STATEMENTS: list[str] = [
         FROM Folder TO Folder
     );
     """,
+    """
+    CREATE REL TABLE IF NOT EXISTS INFERRED_REL(
+        FROM Note TO Note,
+        rel_type STRING,
+        confidence DOUBLE,
+        reason STRING,
+        model STRING,
+        created_at STRING
+    );
+    """,
 ]

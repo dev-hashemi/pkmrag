@@ -12,7 +12,13 @@ from rich.console import Console
 from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 
 from orbit import __version__
-from orbit.cli_views import render_doctor_report, render_ingest_report, render_search_results
+from orbit.cli_views import (
+    render_discovery_results,
+    render_doctor_report,
+    render_ingest_report,
+    render_mcp_config,
+    render_search_results,
+)
 from orbit.doctor import run_diagnostics
 from orbit.ingest import IngestPipeline
 from orbit.search import SearchService
@@ -49,9 +55,7 @@ def main(
 @app.command()
 def doctor(
     json_output: bool = typer.Option(
-        False,
-        "--json",
-        help="Output diagnostics in raw JSON format.",
+        False, "--json", help="Output diagnostics in raw JSON format."
     ),
 ) -> None:
     """Verify system requirements and embedded in-process storage engines (LadybugDB & LanceDB)."""
@@ -72,7 +76,6 @@ def ingest(
         ...,
         help="Path to the Obsidian vault directory.",
         exists=True,
-        file_okay=False,
         dir_okay=True,
         resolve_path=True,
     ),
@@ -91,23 +94,19 @@ def ingest(
     vector_dir: Optional[Path] = typer.Option(
         None,
         "--vector-dir",
-        help="Custom LanceDB vector storage directory. Defaults to <vault>/.orbit/vectors.",
+        help="Custom LanceDB vector directory. Defaults to <vault>/.orbit/vectors.",
     ),
     rebuild: bool = typer.Option(
-        False,
-        "--rebuild",
-        help="Rebuild the entire graph and/or vector indices from scratch.",
+        False, "--rebuild", help="Rebuild graph and vector indices from scratch."
     ),
     dialect: str = typer.Option(
         "auto",
         "--dialect",
         "-m",
-        help="Source knowledge base dialect (auto, obsidian, commonmark). Defaults to auto.",
+        help="Source dialect (auto, obsidian, commonmark). Defaults to auto.",
     ),
     json_output: bool = typer.Option(
-        False,
-        "--json",
-        help="Output ingestion metrics in raw JSON format.",
+        False, "--json", help="Output ingestion metrics in raw JSON format."
     ),
 ) -> None:
     """Ingest notes, links, tags, and semantic vectors from a knowledge base."""
@@ -140,10 +139,7 @@ def ingest(
 
         def on_progress(phase: str, current: int, total: int) -> None:
             progress.update(
-                task_id,
-                description=f"[cyan]{phase}...",
-                total=max(total, 1),
-                completed=current,
+                task_id, description=f"[cyan]{phase}...", total=max(total, 1), completed=current
             )
 
         stats = pipeline.run(progress_callback=on_progress)
@@ -154,42 +150,27 @@ def ingest(
 
 @app.command()
 def search(
-    query: str = typer.Argument(
-        ...,
-        help="Search query string.",
-    ),
+    query: str = typer.Argument(..., help="Search query string."),
     vault_path: Path = typer.Option(
         Path.cwd(),
         "--vault",
         "-v",
-        help="Path to the Obsidian vault directory.",
+        help="Path to the Obsidian vault.",
         exists=True,
-        file_okay=False,
         dir_okay=True,
         resolve_path=True,
     ),
     near: Optional[str] = typer.Option(
-        None,
-        "--near",
-        "-n",
-        help="Note path, title, or filename to bias search results towards via graph proximity.",
+        None, "--near", "-n", help="Note path/title to bias results towards via graph proximity."
     ),
     mode: str = typer.Option(
-        "hybrid",
-        "--mode",
-        "-m",
-        help="Search mode: hybrid (default), dense (semantic), or sparse (BM25 keyword).",
+        "hybrid", "--mode", "-m", help="Search mode: hybrid (default), dense, or sparse (BM25)."
     ),
     limit: int = typer.Option(
-        5,
-        "--limit",
-        "-l",
-        help="Maximum number of search results to return.",
+        5, "--limit", "-l", help="Maximum number of search results to return."
     ),
     json_output: bool = typer.Option(
-        False,
-        "--json",
-        help="Output search results in raw JSON format.",
+        False, "--json", help="Output search results in raw JSON format."
     ),
 ) -> None:
     """Search knowledge base chunks using dense vectors, BM25, and optional graph proximity."""
@@ -208,23 +189,20 @@ def search(
 def serve(
     vault_path: Path = typer.Argument(
         ...,
-        help="Path to the indexed Obsidian vault directory.",
+        help="Path to the indexed vault directory.",
         exists=True,
-        file_okay=False,
         dir_okay=True,
         resolve_path=True,
     ),
     transport: str = typer.Option(
-        "stdio",
-        "--transport",
-        "-t",
-        help="MCP transport protocol (stdio).",
+        "stdio", "--transport", "-t", help="MCP transport protocol (stdio)."
     ),
 ) -> None:
     """Start an MCP server exposing Orbit tools over stdio to Claude and Cursor."""
     if transport != "stdio":
-        msg = f"[bold red]Unsupported transport '{transport}'. Only 'stdio' supported.[/bold red]"
-        console.print(msg)
+        console.print(
+            f"[bold red]Unsupported transport '{transport}'. Only 'stdio' supported.[/bold red]"
+        )
         sys.exit(1)
 
     from orbit.mcp import create_mcp_server
@@ -237,36 +215,57 @@ def serve(
 def mcp_config(
     vault_path: Path = typer.Argument(
         ...,
-        help="Path to the indexed Obsidian vault directory.",
+        help="Path to the indexed vault directory.",
         exists=True,
-        file_okay=False,
         dir_okay=True,
         resolve_path=True,
     ),
 ) -> None:
     """Generate ready-to-use MCP configuration snippets for Claude Desktop and Cursor."""
-    resolved = vault_path.resolve()
-    repo_root = Path(__file__).resolve().parent.parent.parent
-    cfg = {
-        "mcpServers": {
-            "orbit": {
-                "command": "uv",
-                "args": [
-                    "--directory",
-                    str(repo_root),
-                    "run",
-                    "orbit",
-                    "serve",
-                    str(resolved),
-                ],
-            }
-        }
-    }
-    console.print("[bold green]Claude Desktop / Cursor Configuration:[/bold green]\n")
-    console.print_json(json.dumps(cfg, indent=2))
-    console.print("\n[bold cyan]OpenCode CLI (One-Line Setup):[/bold cyan]")
-    cmd_str = f"opencode mcp add orbit -- uv --directory {repo_root} run orbit serve {resolved}"
-    console.print(f"[white]{cmd_str}[/white]\n")
+    render_mcp_config(vault_path, console)
+
+
+@app.command()
+def discover(
+    vault_path: Path = typer.Argument(
+        ...,
+        help="Path to the indexed vault directory.",
+        exists=True,
+        dir_okay=True,
+        resolve_path=True,
+    ),
+    threshold: float = typer.Option(
+        0.80,
+        "--threshold",
+        "-t",
+        help="Cosine similarity threshold for gap candidates (0.0 - 1.0).",
+    ),
+    limit: int = typer.Option(
+        20, "--limit", "-l", help="Maximum candidate pairs to inspect/classify."
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="Scan and list candidates without invoking LLM or storing relationships.",
+    ),
+    json_output: bool = typer.Option(False, "--json", help="Output raw JSON results."),
+) -> None:
+    """Discover semantic gaps between notes and infer conceptual relationships."""
+    from orbit.discovery import GapDiscoveryEngine
+
+    engine = GapDiscoveryEngine(vault_path)
+    try:
+        candidates, inferred, stats = engine.discover(
+            similarity_threshold=threshold,
+            limit=limit,
+            dry_run=dry_run,
+        )
+    finally:
+        engine.close()
+
+    render_discovery_results(
+        candidates, inferred, stats, dry_run=dry_run, json_output=json_output, console=console
+    )
 
 
 if __name__ == "__main__":

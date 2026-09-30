@@ -59,7 +59,10 @@ flowchart TD
 - **Phase 1 (`v0.1.0`):** Deterministic AST wikilink backbone ingestion into LadybugDB — **Completed** ✅
 - **Phase 2 (`v0.2.0`):** Hybrid vector + BM25 search with Reciprocal Rank Fusion & graph proximity boosting — **Completed** ✅
 - **Phase 3 (`v0.3.0`):** Model Context Protocol (MCP) server over stdio (`query_vault`, `read_note`, `get_note_context`, `find_bridges`, `vault_overview`) — **Completed** ✅
-- **Phase 4 (`v0.4.0`):** AI semantic gap detection & inferred relationships (`[:INFERRED_REL]`) — *Next*
+- **Phase 4 (`v0.4.0`):** AI semantic gap detection & inferred relationships (`orbit discover`, `[:INFERRED_REL]`) — **Completed** ✅
+- **Phase 5 (`v0.5.0`):** Caching & Safe Mutation Lifecycle (`append_to_note`, `create_note`, L1/L2 cache) — *Next*
+
+See the complete [Engineering Roadmap](docs/roadmap.md) for milestone progression through Phase 9 (`v0.9.0`).
 
 ---
 
@@ -138,6 +141,21 @@ orbit search "database schema" --mode sparse --limit 10
 orbit search "retrieval" --json
 ```
 
+### 🧠 Semantic Gap Discovery & Inferred Relationships
+Find unlinked note pairs exhibiting high semantic similarity and infer typed relationships via local/remote LLM:
+```bash
+# Dry run: discover and preview unlinked semantic gaps without calling LLM
+orbit discover /path/to/vault --dry-run
+
+# Run discovery with custom similarity threshold and classify via LLM
+orbit discover /path/to/vault --threshold 0.85 --limit 10
+
+# Output structured discovery results in raw JSON
+orbit discover /path/to/vault --json
+```
+
+Inferred edges are stored separately in the LadybugDB `[:INFERRED_REL]` table with confidence, model name, and rationale—preserving human-curated wikilinks.
+
 ### Model Context Protocol (MCP) Server
 Expose Orbit directly to AI assistants (**Claude Code**, **Cursor**, **Claude Desktop**) over stdio:
 ```bash
@@ -155,8 +173,9 @@ Exposed Tools:
 - `list_tags`: List all unique tags in the vault ranked by note frequency.
 - `search_by_tag`: Find all notes tagged with a specific tag.
 - `get_outline`: Extract heading hierarchy and line numbers for large notes.
-- `get_note_context`: Inspect incoming backlinks, outgoing citations, tags, and 2-hop clusters.
+- `get_note_context`: Inspect incoming backlinks, outgoing citations, tags, 2-hop clusters, and AI-inferred relationships.
 - `find_bridges`: Discover the shortest link path between two notes across the vault.
+- `discover_gaps`: Uncover unlinked note pairs with high vector similarity for bridging.
 - `vault_overview`: Bird's-eye view of vault notes, wikilinks, tags, and central hub notes.
 
 ### Benchmarks
