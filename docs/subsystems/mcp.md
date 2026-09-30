@@ -53,6 +53,17 @@ Run `orbit mcp-config <vault_path>` to generate the configuration block for your
 ### Cursor (`.cursor/mcp.json`)
 Add an entry with type `"command"`, command `"uv"`, and args matching the above.
 
+### OpenCode CLI (`opencode`)
+Add Orbit with a single native command:
+```bash
+opencode mcp add orbit -- uv --directory /absolute/path/to/project-orbit run orbit serve /absolute/path/to/your/vault
+```
+Verify connection status:
+```bash
+opencode mcp list
+# Displays: ● ✓ orbit connected
+```
+
 ---
 
 ## 🧪 Testing

@@ -73,7 +73,8 @@ def test_cli_mcp_config(tmp_path: Path) -> None:
 
     res = runner.invoke(app, ["mcp-config", str(vault)])
     assert res.exit_code == 0
-    assert "Claude Desktop / Cursor MCP Configuration Snippet" in res.output
+    assert "Claude Desktop / Cursor Configuration" in res.output
+    assert "opencode mcp add orbit" in res.output
 
     # Find and parse JSON block from output
     json_start = res.output.find("{")

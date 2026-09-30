@@ -262,8 +262,11 @@ def mcp_config(
             }
         }
     }
-    console.print("[bold green]Claude Desktop / Cursor MCP Configuration Snippet:[/bold green]\n")
+    console.print("[bold green]Claude Desktop / Cursor Configuration:[/bold green]\n")
     console.print_json(json.dumps(cfg, indent=2))
+    console.print("\n[bold cyan]OpenCode CLI (One-Line Setup):[/bold cyan]")
+    cmd_str = f"opencode mcp add orbit -- uv --directory {repo_root} run orbit serve {resolved}"
+    console.print(f"[white]{cmd_str}[/white]\n")
 
 
 if __name__ == "__main__":
