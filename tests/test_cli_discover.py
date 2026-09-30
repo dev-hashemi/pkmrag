@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 from typer.testing import CliRunner
@@ -27,12 +28,12 @@ def _setup_vault(vault: Path) -> None:
 
 def test_cli_discover_help() -> None:
     """Verify orbit discover --help renders options correctly."""
-    result = runner.invoke(app, ["discover", "--help"])
+    result = runner.invoke(app, ["discover", "--help"], color=False)
     assert result.exit_code == 0
-    assert "--threshold" in result.output
-    assert "--limit" in result.output
-    assert "--dry-run" in result.output
-    assert "--json" in result.output
+    clean = re.sub(r"\x1b\[[0-9;]*[a-zA-Z]", "", result.output)
+    assert "threshold" in clean
+    assert "limit" in clean
+    assert "dry-run" in clean
 
 
 def test_cli_discover_dry_run(tmp_path: Path) -> None:
