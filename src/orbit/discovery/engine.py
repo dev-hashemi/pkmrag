@@ -5,7 +5,7 @@ from __future__ import annotations
 import time
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
-from typing import Optional
+from typing import Callable, Optional
 
 from orbit.config import load_vault_env, settings
 from orbit.graph.store import GraphStore
@@ -146,15 +146,20 @@ class GapDiscoveryEngine:
         provider: InferenceProvider,
         min_confidence: float = 0.70,
         limit: int = 20,
+        on_progress: Optional[Callable[[int, int, str], None]] = None,
     ) -> tuple[list[InferredRelationship], int]:
         """Classify candidate pairs using InferenceProvider and persist valid edges."""
         evaluated = 0
         inferred: list[InferredRelationship] = []
+        total = min(len(candidates), limit)
 
         for cand in candidates[:limit]:
             evaluated += 1
             src_title = PurePosixPath(cand.source_path).stem
             dst_title = PurePosixPath(cand.target_path).stem
+
+            if on_progress:
+                on_progress(evaluated, total, f"Classifying: {src_title} ↔ {dst_title}")
 
             # Pass surgical excerpt (up to 1500 chars)
             res = provider.classify_relationship(
@@ -194,6 +199,9 @@ class GapDiscoveryEngine:
         limit: int = 20,
         dry_run: bool = False,
         provider: Optional[InferenceProvider] = None,
+        rpm: Optional[int] = None,
+        tpm: Optional[int] = None,
+        on_progress: Optional[Callable[[int, int, str], None]] = None,
     ) -> tuple[list[SemanticGapCandidate], list[InferredRelationship], DiscoveryStats]:
         """Orchestrate end-to-end candidate discovery and optional LLM classification."""
         start_time = time.perf_counter()
@@ -206,13 +214,28 @@ class GapDiscoveryEngine:
         eff_provider = provider or self.inference_provider
         if not dry_run and candidates:
             if eff_provider is None:
+                from orbit.inference.limiter import RateLimiter
                 from orbit.inference.provider import OpenAICompatibleProvider
 
-                eff_provider = OpenAICompatibleProvider()
+                eff_rpm = rpm if rpm is not None else settings.llm_rpm
+                eff_tpm = tpm if tpm is not None else settings.llm_tpm
+                limiter = RateLimiter(
+                    rpm=eff_rpm,
+                    tpm=eff_tpm,
+                    max_retries=settings.llm_max_retries,
+                )
+
+                def on_wait(delay: float, reason: str) -> None:
+                    if on_progress:
+                        on_progress(-1, -1, f"Rate limit wait ({reason}): {delay:.1f}s")
+
+                eff_provider = OpenAICompatibleProvider(rate_limiter=limiter, on_wait=on_wait)
+
             inferred, _ = self.evaluate_and_persist(
                 candidates,
                 provider=eff_provider,
                 limit=limit,
+                on_progress=on_progress,
             )
 
         duration_ms = (time.perf_counter() - start_time) * 1000

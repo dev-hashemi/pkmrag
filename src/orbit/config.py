@@ -31,6 +31,18 @@ class OrbitSettings(BaseSettings):
         default="gpt-4o-mini",
         validation_alias=AliasChoices("ORBIT_LLM_MODEL", "LLM_MODEL"),
     )
+    llm_rpm: int = Field(
+        default=30,
+        validation_alias=AliasChoices("ORBIT_LLM_RPM", "LLM_RPM"),
+    )
+    llm_tpm: int = Field(
+        default=8000,
+        validation_alias=AliasChoices("ORBIT_LLM_TPM", "LLM_TPM"),
+    )
+    llm_max_retries: int = Field(
+        default=3,
+        validation_alias=AliasChoices("ORBIT_LLM_MAX_RETRIES", "LLM_MAX_RETRIES"),
+    )
 
     # Search & Embeddings
     embedding_model: str = "BAAI/bge-small-en-v1.5"

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from orbit.inference.base import InferenceProvider, InferredRelationshipResult
+from orbit.inference.limiter import RateLimiter, estimate_tokens, parse_retry_after
 from orbit.inference.provider import MockInferenceProvider, OpenAICompatibleProvider
 
 __all__ = [
@@ -10,4 +11,7 @@ __all__ = [
     "InferredRelationshipResult",
     "MockInferenceProvider",
     "OpenAICompatibleProvider",
+    "RateLimiter",
+    "estimate_tokens",
+    "parse_retry_after",
 ]

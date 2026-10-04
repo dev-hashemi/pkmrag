@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import json
 import re
-from typing import Optional
+from typing import Callable, Optional
 
 import httpx
 
 from orbit.inference.base import InferredRelationshipResult
+from orbit.inference.limiter import RateLimiter, estimate_tokens, parse_retry_after
 
 SYSTEM_PROMPT = """You are an expert personal knowledge graph analyst.
 Analyze two notes from a knowledge base that are semantically similar but currently unlinked.
@@ -22,17 +22,16 @@ Available relationship types:
 - REFINES: Source note provides a specialized, more granular, or updated version of Target note.
 - NONE: The notes merely share topical vocabulary without a direct conceptual relationship.
 
-Respond strictly in valid JSON with these fields:
-{
-  "rel_type": "EXTENDS" | "CONTRADICTS" | "SUPPORTS" | "PREREQUISITE_FOR" | "REFINES" | "NONE",
-  "confidence": float between 0.0 and 1.0,
-  "reason": "1-2 concise sentences explaining why",
-  "direction": "source_to_target" | "target_to_source" | "bidirectional"
-}"""
+Respond strictly in valid JSON adhering to the provided schema with these fields:
+- rel_type: "EXTENDS" | "CONTRADICTS" | "SUPPORTS" | "PREREQUISITE_FOR" | "REFINES" | "NONE"
+- confidence: float between 0.0 and 1.0
+- reason: 1-2 concise sentences explaining why
+- direction: "source_to_target" | "target_to_source" | "bidirectional"
+"""
 
 
 class OpenAICompatibleProvider:
-    """Invokes OpenAI or OpenAI-compatible endpoints (Ollama, vLLM, LiteLLM) via HTTP."""
+    """Invokes OpenAI or OpenAI-compatible endpoints (Ollama, Groq, vLLM) with strict schema."""
 
     def __init__(
         self,
@@ -40,6 +39,8 @@ class OpenAICompatibleProvider:
         base_url: Optional[str] = None,
         model: Optional[str] = None,
         timeout: float = 30.0,
+        rate_limiter: Optional[RateLimiter] = None,
+        on_wait: Optional[Callable[[float, str], None]] = None,
     ) -> None:
         from orbit.config import settings
 
@@ -48,6 +49,16 @@ class OpenAICompatibleProvider:
         self.model = model or settings.llm_model
         self.timeout = timeout
         self.name = f"openai-compatible ({self.model})"
+        self.rate_limiter = (
+            rate_limiter
+            if rate_limiter is not None
+            else RateLimiter(
+                rpm=settings.llm_rpm,
+                tpm=settings.llm_tpm,
+                max_retries=settings.llm_max_retries,
+            )
+        )
+        self.on_wait = on_wait
 
     def classify_relationship(
         self,
@@ -56,7 +67,7 @@ class OpenAICompatibleProvider:
         target_title: str,
         target_excerpt: str,
     ) -> InferredRelationshipResult:
-        """Query LLM endpoint and parse structured JSON relationship."""
+        """Query LLM endpoint and return deterministic, schema-validated relationship."""
         user_prompt = (
             f"Note A Title: {source_title}\n"
             f"Note A Excerpt:\n{source_excerpt}\n\n"
@@ -69,70 +80,107 @@ class OpenAICompatibleProvider:
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
 
-        payload = {
-            "model": self.model,
-            "messages": [
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt},
-            ],
-            "temperature": 0.0,
-            "response_format": {"type": "json_object"},
+        prompt_tokens = estimate_tokens(user_prompt) + estimate_tokens(SYSTEM_PROMPT) + 150
+        self.rate_limiter.acquire(prompt_tokens, on_wait=self.on_wait)
+
+        strict_format = {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "inferred_relationship",
+                "strict": True,
+                "schema": InferredRelationshipResult.strict_json_schema(),
+            },
         }
 
-        try:
-            with httpx.Client(timeout=self.timeout) as client:
-                resp = client.post(
-                    f"{self.base_url}/chat/completions",
-                    headers=headers,
-                    json=payload,
+        attempt = 0
+        use_strict = True
+        max_retries = self.rate_limiter.max_retries
+
+        while attempt <= max_retries:
+            payload = {
+                "model": self.model,
+                "messages": [
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_prompt},
+                ],
+                "temperature": 0.0,
+                "response_format": strict_format if use_strict else {"type": "json_object"},
+            }
+
+            try:
+                with httpx.Client(timeout=self.timeout) as client:
+                    resp = client.post(
+                        f"{self.base_url}/chat/completions",
+                        headers=headers,
+                        json=payload,
+                    )
+
+                    if resp.status_code == 429:
+                        if attempt < max_retries:
+                            retry_after = parse_retry_after(resp)
+                            self.rate_limiter.wait_for_retry(
+                                attempt, retry_after, on_wait=self.on_wait
+                            )
+                            attempt += 1
+                            continue
+                        resp.raise_for_status()
+
+                    # Fallback to json_object if an endpoint doesn't support json_schema
+                    if resp.status_code == 400 and use_strict:
+                        use_strict = False
+                        continue
+
+                    resp.raise_for_status()
+                    data = resp.json()
+                    raw_content = data["choices"][0]["message"]["content"]
+                    return self._parse_json_result(raw_content)
+
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code == 429 and attempt < max_retries:
+                    retry_after = parse_retry_after(e.response)
+                    self.rate_limiter.wait_for_retry(attempt, retry_after, on_wait=self.on_wait)
+                    attempt += 1
+                    continue
+                return InferredRelationshipResult(
+                    rel_type="NONE",
+                    confidence=0.0,
+                    reason=f"Inference HTTP error {e.response.status_code}: {e}",
+                    direction="source_to_target",
                 )
-                resp.raise_for_status()
-                data = resp.json()
-                raw_content = data["choices"][0]["message"]["content"]
-                return self._parse_json_result(raw_content)
-        except Exception as e:
-            # Return safe NONE on HTTP or parsing failures
-            return InferredRelationshipResult(
-                rel_type="NONE",
-                confidence=0.0,
-                reason=f"Inference failed: {e}",
-                direction="source_to_target",
-            )
-
-    def _parse_json_result(self, raw_content: str) -> InferredRelationshipResult:
-        """Extract and validate JSON fields into InferredRelationshipResult."""
-        try:
-            parsed = json.loads(raw_content)
-        except json.JSONDecodeError:
-            # Fallback regex extraction if model returned wrapped markdown blocks
-            match = re.search(r"\{.*\}", raw_content, re.DOTALL)
-            if match:
-                parsed = json.loads(match.group(0))
-            else:
-                raise ValueError("No JSON object found in response")
-
-        rel_type = str(parsed.get("rel_type", "NONE")).upper().strip()
-        if rel_type not in (
-            "EXTENDS",
-            "CONTRADICTS",
-            "SUPPORTS",
-            "PREREQUISITE_FOR",
-            "REFINES",
-            "NONE",
-        ):
-            rel_type = "NONE"
-
-        confidence = max(0.0, min(float(parsed.get("confidence", 0.0)), 1.0))
-        reason = str(parsed.get("reason", "")).strip() or "No rationale provided"
-        direction = str(parsed.get("direction", "source_to_target")).strip()
-        if direction not in ("source_to_target", "target_to_source", "bidirectional"):
-            direction = "source_to_target"
+            except Exception as e:
+                return InferredRelationshipResult(
+                    rel_type="NONE",
+                    confidence=0.0,
+                    reason=f"Inference failed: {e}",
+                    direction="source_to_target",
+                )
 
         return InferredRelationshipResult(
-            rel_type=rel_type,  # type: ignore[arg-type]
-            confidence=confidence,
-            reason=reason,
-            direction=direction,  # type: ignore[arg-type]
+            rel_type="NONE",
+            confidence=0.0,
+            reason="Exceeded maximum rate limit retries (HTTP 429)",
+            direction="source_to_target",
+        )
+
+    def _parse_json_result(self, raw_content: str) -> InferredRelationshipResult:
+        """Validate JSON content directly into InferredRelationshipResult model."""
+        try:
+            return InferredRelationshipResult.model_validate_json(raw_content)
+        except Exception:
+            pass
+
+        try:
+            match = re.search(r"\{.*\}", raw_content, re.DOTALL)
+            if match:
+                return InferredRelationshipResult.model_validate_json(match.group(0))
+        except Exception:
+            pass
+
+        return InferredRelationshipResult(
+            rel_type="NONE",
+            confidence=0.0,
+            reason="Failed to validate structured JSON from model response",
+            direction="source_to_target",
         )
 
 

@@ -57,3 +57,6 @@ htmlcov/
 .env.*
 !.env.example
 
+# Scratch files
+scratch/
+

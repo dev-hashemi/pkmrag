@@ -166,12 +166,8 @@ def search(
     mode: str = typer.Option(
         "hybrid", "--mode", "-m", help="Search mode: hybrid (default), dense, or sparse (BM25)."
     ),
-    limit: int = typer.Option(
-        5, "--limit", "-l", help="Maximum number of search results to return."
-    ),
-    json_output: bool = typer.Option(
-        False, "--json", help="Output search results in raw JSON format."
-    ),
+    limit: int = typer.Option(5, "--limit", "-l", help="Maximum number of search results."),
+    json_output: bool = typer.Option(False, "--json", help="Output raw JSON results."),
 ) -> None:
     """Search knowledge base chunks using dense vectors, BM25, and optional graph proximity."""
     with SearchService(vault_path=vault_path) as service:
@@ -188,11 +184,7 @@ def search(
 @app.command()
 def serve(
     vault_path: Path = typer.Argument(
-        ...,
-        help="Path to the indexed vault directory.",
-        exists=True,
-        dir_okay=True,
-        resolve_path=True,
+        ..., help="Path to indexed vault directory.", exists=True, dir_okay=True, resolve_path=True
     ),
     transport: str = typer.Option(
         "stdio", "--transport", "-t", help="MCP transport protocol (stdio)."
@@ -214,11 +206,7 @@ def serve(
 @app.command(name="mcp-config")
 def mcp_config(
     vault_path: Path = typer.Argument(
-        ...,
-        help="Path to the indexed vault directory.",
-        exists=True,
-        dir_okay=True,
-        resolve_path=True,
+        ..., help="Path to indexed vault directory.", exists=True, dir_okay=True, resolve_path=True
     ),
 ) -> None:
     """Generate ready-to-use MCP configuration snippets for Claude Desktop and Cursor."""
@@ -228,26 +216,13 @@ def mcp_config(
 @app.command()
 def discover(
     vault_path: Path = typer.Argument(
-        ...,
-        help="Path to the indexed vault directory.",
-        exists=True,
-        dir_okay=True,
-        resolve_path=True,
+        ..., help="Path to indexed vault directory.", exists=True, dir_okay=True, resolve_path=True
     ),
-    threshold: float = typer.Option(
-        0.80,
-        "--threshold",
-        "-t",
-        help="Cosine similarity threshold for gap candidates (0.0 - 1.0).",
-    ),
-    limit: int = typer.Option(
-        20, "--limit", "-l", help="Maximum candidate pairs to inspect/classify."
-    ),
-    dry_run: bool = typer.Option(
-        False,
-        "--dry-run",
-        help="Scan and list candidates without invoking LLM or storing relationships.",
-    ),
+    threshold: float = typer.Option(0.80, "--threshold", "-t", help="Cosine similarity threshold."),
+    limit: int = typer.Option(20, "--limit", "-l", help="Maximum candidate pairs to classify."),
+    rpm: Optional[int] = typer.Option(None, "--rpm", help="Rate limit: max requests per minute."),
+    tpm: Optional[int] = typer.Option(None, "--tpm", help="Rate limit: max tokens per minute."),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Scan candidates without invoking LLM."),
     json_output: bool = typer.Option(False, "--json", help="Output raw JSON results."),
 ) -> None:
     """Discover semantic gaps between notes and infer conceptual relationships."""
@@ -255,11 +230,38 @@ def discover(
 
     engine = GapDiscoveryEngine(vault_path)
     try:
-        candidates, inferred, stats = engine.discover(
-            similarity_threshold=threshold,
-            limit=limit,
-            dry_run=dry_run,
-        )
+        if dry_run or json_output:
+            candidates, inferred, stats = engine.discover(
+                similarity_threshold=threshold, limit=limit, dry_run=dry_run, rpm=rpm, tpm=tpm
+            )
+        else:
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                BarColumn(),
+                TextColumn("{task.completed}/{task.total}"),
+                TimeElapsedColumn(),
+                console=console,
+            ) as progress:
+                t_id = progress.add_task("[cyan]Scanning for semantic gaps...", total=limit)
+
+                def on_prog(cur: int, tot: int, desc: str) -> None:
+                    style = "yellow" if cur < 0 else "cyan"
+                    progress.update(
+                        t_id,
+                        description=f"[{style}]{desc}[/{style}]",
+                        total=max(tot, 1) if tot > 0 else limit,
+                        completed=max(cur, 0),
+                    )
+
+                candidates, inferred, stats = engine.discover(
+                    similarity_threshold=threshold,
+                    limit=limit,
+                    dry_run=dry_run,
+                    rpm=rpm,
+                    tpm=tpm,
+                    on_progress=on_prog,
+                )
     finally:
         engine.close()
 
