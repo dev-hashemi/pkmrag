@@ -268,16 +268,20 @@ def render_mcp_config(vault_path: Path, console: Console) -> None:
     """Render ready-to-use MCP configuration snippets for Claude and Cursor."""
     resolved = vault_path.resolve()
     repo_root = Path(__file__).resolve().parent.parent.parent
-    cfg = {
-        "mcpServers": {
-            "orbit": {
-                "command": "uv",
-                "args": ["--directory", str(repo_root), "run", "orbit", "serve", str(resolved)],
-            }
-        }
-    }
+    is_dev = (repo_root / "pyproject.toml").is_file()
+    cmd = "uv" if is_dev else "orbit"
+    args = (
+        ["--directory", str(repo_root), "run", "orbit", "serve", str(resolved)]
+        if is_dev
+        else ["serve", str(resolved)]
+    )
+    cfg = {"mcpServers": {"orbit": {"command": cmd, "args": args}}}
     console.print("[bold green]Claude Desktop / Cursor Configuration:[/bold green]\n")
     console.print_json(json.dumps(cfg, indent=2))
+    cmd_str = (
+        f"opencode mcp add orbit -- uv --directory {repo_root} run orbit serve {resolved}"
+        if is_dev
+        else f"opencode mcp add orbit -- orbit serve {resolved}"
+    )
     console.print("\n[bold cyan]OpenCode CLI (One-Line Setup):[/bold cyan]")
-    cmd_str = f"opencode mcp add orbit -- uv --directory {repo_root} run orbit serve {resolved}"
     console.print(f"[white]{cmd_str}[/white]\n")

@@ -16,7 +16,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: uv sync --extra dev
-      - run: uv run pytest
+      - run: uv run pytest --cov=orbit --cov-report=term-missing
 
   lint:
     runs-on: ubuntu-latest

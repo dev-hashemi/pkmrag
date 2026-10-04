@@ -95,7 +95,7 @@ def execute_list_tags(
     lines.append("| Tag | Notes |")
     lines.append("| :--- | :---: |")
     for t in tags:
-        lines.append(f"| `#{t['tag']}` | {t['notes_count']} |")
+        lines.append(f"| `#{t.tag}` | {t.notes_count} |")
 
     return "\n".join(lines)
 
@@ -119,8 +119,8 @@ def execute_search_by_tag(
 
     lines: list[str] = [f"Found {len(notes)} notes tagged `#{clean_tag}`:\n"]
     for n in notes:
-        title = n["title"] or n["path"]
-        lines.append(f"- `{n['path']}` — {title}")
+        title = n.title or n.path
+        lines.append(f"- `{n.path}` — {title}")
 
     return "\n".join(lines)
 

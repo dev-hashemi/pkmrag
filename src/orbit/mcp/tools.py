@@ -245,12 +245,12 @@ def execute_vault_overview(
     overview = get_vault_overview(graph_store.conn, limit=limit)
 
     hubs_rows = (
-        "\n".join(f"| `{h['path']}` | {h['backlinks_count']} |" for h in overview.hub_notes)
+        "\n".join(f"| `{h.path}` | {h.backlinks_count} |" for h in overview.hub_notes)
         or "| *(None)* | 0 |"
     )
 
     tags_rows = (
-        "\n".join(f"| `#{t['tag']}` | {t['notes_count']} |" for t in overview.top_tags)
+        "\n".join(f"| `#{t.tag}` | {t.notes_count} |" for t in overview.top_tags)
         or "| *(None)* | 0 |"
     )
 

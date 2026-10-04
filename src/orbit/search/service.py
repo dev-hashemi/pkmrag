@@ -106,7 +106,7 @@ class SearchService:
                     matching_paths: set[str] = set()
                     for t in clean_tags:
                         matched = get_notes_by_tag(gstore.conn, t, limit=500)
-                        matching_paths.update(m["path"].lower() for m in matched)
+                        matching_paths.update(m.path.lower() for m in matched)
                     results = [r for r in results if r.note_path.lower() in matching_paths]
 
         return results[:limit]

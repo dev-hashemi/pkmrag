@@ -11,7 +11,7 @@ from orbit.graph.traversal import (
     get_neighbor_hops,
     resolve_note_path,
 )
-from orbit.models import GraphBridge, NoteContext, VaultOverview
+from orbit.models import GraphBridge, HubNote, NoteContext, TagStat, VaultOverview
 
 
 def find_shortest_bridge(
@@ -152,7 +152,7 @@ def get_vault_overview(conn: Any, limit: int = 10) -> VaultOverview:
     """Aggregate high-level graph statistics and central hub notes."""
     stats = get_graph_stats(conn)
 
-    hub_notes: list[dict[str, Any]] = []
+    hub_notes: list[HubNote] = []
     res_hubs = conn.execute(
         "MATCH (b:Note)-[:LINKS_TO]->(a:Note) "
         "WHERE a.is_unresolved = false "
@@ -164,16 +164,14 @@ def get_vault_overview(conn: Any, limit: int = 10) -> VaultOverview:
     while q_hubs.has_next():
         row = _extract_row(q_hubs.get_next())
         hub_notes.append(
-            {
-                "path": str(row[0]),
-                "title": str(row[1])
-                if row[1]
-                else str(row[0]).rsplit("/", 1)[-1].removesuffix(".md"),
-                "backlinks_count": int(row[2]),
-            }
+            HubNote(
+                path=str(row[0]),
+                title=str(row[1]) if row[1] else str(row[0]).rsplit("/", 1)[-1].removesuffix(".md"),
+                backlinks_count=int(row[2]),
+            )
         )
 
-    top_tags: list[dict[str, Any]] = []
+    top_tags: list[TagStat] = []
     res_tags = conn.execute(
         "MATCH (n:Note)-[:TAGGED_WITH]->(t:Tag) "
         "RETURN t.name, count(n) AS note_count "
@@ -184,10 +182,10 @@ def get_vault_overview(conn: Any, limit: int = 10) -> VaultOverview:
     while q_tags.has_next():
         row = _extract_row(q_tags.get_next())
         top_tags.append(
-            {
-                "tag": str(row[0]),
-                "notes_count": int(row[1]),
-            }
+            TagStat(
+                tag=str(row[0]),
+                notes_count=int(row[1]),
+            )
         )
 
     return VaultOverview(

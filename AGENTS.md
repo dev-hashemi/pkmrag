@@ -32,11 +32,12 @@ benchmarks/       # Ground-truth evaluation benchmarks
 1. **Max 300 lines per file.** If a file approaches this, split it. No exceptions.
 2. **No overengineering.** Solve the problem in front of you. Don't add abstractions for hypothetical future needs.
 3. **Simple > clever.** If a colleague can't understand it in 30 seconds, rewrite it.
-4. **Type everything.** `mypy --strict` must pass. No `Any` escapes except for third-party lib boundaries.
-5. **Pydantic for data boundaries.** All structured data crossing module boundaries uses Pydantic models defined in `models.py` (or a module-local `models.py` if domain-specific).
-6. **Tests are mandatory.** Every new module gets a corresponding `tests/test_<module>.py`. Test behavior, not implementation.
-7. **Preserve existing comments and docstrings** unless directly contradicted by the change.
-8. **Keep docs current but minimal.** Update `README.md` and `AGENTS.md` when features or layout change. Don't pad them — if it's obvious from the code, don't document it.
+4. **Prefer focused libraries over hand-rolled code.** If a well-maintained library solves the exact problem, use it — don't rewrite what's already battle-tested. But don't pull in a heavy framework for a single utility; the dependency's weight should be proportional to the value it provides.
+5. **Type everything.** `mypy --strict` must pass. No `Any` escapes except for third-party lib boundaries.
+6. **Pydantic for data boundaries.** All structured data crossing module boundaries uses Pydantic models defined in `models.py` (or a module-local `models.py` if domain-specific).
+7. **Tests are mandatory.** Every new module gets a corresponding `tests/test_<module>.py`. Test behavior, not implementation.
+8. **Preserve existing comments and docstrings** unless directly contradicted by the change.
+9. **Keep docs current but minimal.** Update `README.md` and `AGENTS.md` when features or layout change. Don't pad them — if it's obvious from the code, don't document it.
 
 ## Style
 

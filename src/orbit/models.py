@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal, Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -146,6 +146,28 @@ class GraphBridge(BaseModel):
     path: list[str] = Field(default_factory=list)
 
 
+class HubNote(BaseModel):
+    """A central note vertex ranked by inbound graph links (backlinks)."""
+
+    path: str
+    title: str
+    backlinks_count: int
+
+
+class TagStat(BaseModel):
+    """Tag frequency metric across notes in the graph."""
+
+    tag: str
+    notes_count: int
+
+
+class TagNoteRef(BaseModel):
+    """Note reference associated with a specific tag."""
+
+    path: str
+    title: str
+
+
 class VaultOverview(BaseModel):
     """High-level structural summary of vault graph and top hubs."""
 
@@ -154,8 +176,8 @@ class VaultOverview(BaseModel):
     ghost_notes: int
     total_links: int
     total_tags: int
-    hub_notes: list[dict[str, Any]] = Field(default_factory=list)
-    top_tags: list[dict[str, Any]] = Field(default_factory=list)
+    hub_notes: list[HubNote] = Field(default_factory=list)
+    top_tags: list[TagStat] = Field(default_factory=list)
 
 
 class InferredRelationship(BaseModel):

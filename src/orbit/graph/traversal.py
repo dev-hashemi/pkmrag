@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from orbit.models import InferredRelationship
+from orbit.models import InferredRelationship, TagNoteRef, TagStat
 
 
 def _get_single_result(res: Any) -> Any:
@@ -96,7 +96,7 @@ def get_graph_stats(conn: Any) -> dict[str, int]:
     }
 
 
-def get_all_tags(conn: Any, limit: int = 50) -> list[dict[str, Any]]:
+def get_all_tags(conn: Any, limit: int = 50) -> list[TagStat]:
     """Return all tags with note counts, ordered by frequency."""
     clamped = max(1, min(limit, 200))
     res = conn.execute(
@@ -106,14 +106,14 @@ def get_all_tags(conn: Any, limit: int = 50) -> list[dict[str, Any]]:
         {"lim": clamped},
     )
     query_res = _get_single_result(res)
-    tags: list[dict[str, Any]] = []
+    tags: list[TagStat] = []
     while query_res.has_next():
         row = _extract_row(query_res.get_next())
-        tags.append({"tag": str(row[0]), "notes_count": int(row[1])})
+        tags.append(TagStat(tag=str(row[0]), notes_count=int(row[1])))
     return tags
 
 
-def get_notes_by_tag(conn: Any, tag: str, limit: int = 50) -> list[dict[str, str]]:
+def get_notes_by_tag(conn: Any, tag: str, limit: int = 50) -> list[TagNoteRef]:
     """Return notes tagged with a specific tag."""
     clean_tag = tag.strip().lstrip("#")
     clamped = max(1, min(limit, 500))
@@ -124,10 +124,10 @@ def get_notes_by_tag(conn: Any, tag: str, limit: int = 50) -> list[dict[str, str
         {"tag": clean_tag, "lim": clamped},
     )
     query_res = _get_single_result(res)
-    notes: list[dict[str, str]] = []
+    notes: list[TagNoteRef] = []
     while query_res.has_next():
         row = _extract_row(query_res.get_next())
-        notes.append({"path": str(row[0]), "title": str(row[1]) if row[1] else ""})
+        notes.append(TagNoteRef(path=str(row[0]), title=str(row[1]) if row[1] else ""))
     return notes
 
 
