@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from orbit.ingest import IngestPipeline
 from orbit.search import SearchService
 
@@ -12,6 +14,7 @@ BENCHMARK_PATH = Path(__file__).resolve().parent.parent / "benchmarks" / "golden
 TEST_VAULT_PATH = Path(__file__).resolve().parent.parent / "benchmarks" / "vault"
 
 
+@pytest.mark.xdist_group("benchmark_vault")
 def test_golden_10_evaluation() -> None:
     """Evaluate retrieval accuracy on the 10 Golden Queries."""
     assert BENCHMARK_PATH.exists()
