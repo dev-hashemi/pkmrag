@@ -11,7 +11,7 @@ In `stdio` transport mode, standard input and output streams are strictly reserv
 $$\text{Client} \underset{\text{stdio}}{\overset{\text{JSON-RPC}}{\rightleftharpoons}} \text{Orbit MCP Server} \longrightarrow \begin{cases} \text{SearchService (LanceDB + FastEmbed + BM25)} \\ \text{GraphStore (LadybugDB Cypher)} \\ \text{Sandboxed Vault Filesystem} \end{cases}$$
 
 - **Stdio Stream Isolation**: All Orbit logging, Python warnings, and third-party outputs route exclusively to `sys.stderr` to prevent JSON-RPC stream corruption.
-- **Read-Only Concurrency**: Underlying LadybugDB and LanceDB instances are opened in `read_only=True` mode, preventing database lock collisions with concurrent CLI commands.
+- **Unified Store & Concurrency Lock**: Graph operations run on a shared Read-Write `GraphStore` guarded by an in-process write mutex (`threading.Lock`), ensuring instant visibility of incremental updates without transaction collisions.
 
 ---
 
@@ -19,7 +19,7 @@ $$\text{Client} \underset{\text{stdio}}{\overset{\text{JSON-RPC}}{\rightleftharp
 
 | Tool | Purpose | Primary Backend |
 | :--- | :--- | :--- |
-| `query_vault(query, near?, mode?, limit?, folder?, tags?)` | Hybrid search with graph boost, folder prefix, and tag filtering | LanceDB + FastEmbed + LadybugDB |
+| `query_vault(query, near?, mode?, limit?, folder?, tags?)` | Hybrid search with graph boost, folder prefix, and tag filtering | LanceDB + FastEmbed + LadybugDB + L1 Cache |
 | `read_note(note_path, max_chars?, offset?)` | Fetch note content enriched with graph context (tags, links, backlinks) | Filesystem + LadybugDB |
 | `list_notes(folder?, pattern?, limit?)` | Browse notes with folder filtering and filename pattern matching | Filesystem glob |
 | `list_tags(limit?)` | List all unique vault tags ranked by frequency | LadybugDB `Tag` nodes |
@@ -28,6 +28,10 @@ $$\text{Client} \underset{\text{stdio}}{\overset{\text{JSON-RPC}}{\rightleftharp
 | `get_note_context(note_path)` | Inspect incoming backlinks, outgoing citations, tags, and 2-hop cluster | LadybugDB graph queries |
 | `find_bridges(source_note, target_note)` | Find shortest wikilink connection path across the vault | LadybugDB `SHORTEST` path |
 | `vault_overview(limit?)` | Bird's-eye view: total notes, links, tags, and central hub notes | LadybugDB in-degree ranking |
+| `discover_gaps(threshold?, limit?)` | Find unlinked note pairs with high vector similarity | LanceDB ANN + LadybugDB distance |
+| `reindex_note(note_path)` | Incrementally re-index a single note after external edits (< 40ms) | LadybugDB + LanceDB + Cache Invalidation |
+| `sync_vault()` | Delta sync all modified or added notes across the vault | LadybugDB + LanceDB + Cache Invalidation |
+
 
 ---
 

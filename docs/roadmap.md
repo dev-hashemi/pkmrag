@@ -9,9 +9,9 @@ This document outlines the phased milestone progression of Project Orbit from co
 ```
 Phase 0 ──► Phase 1 ──► Phase 2 ──► Phase 3 ──► Phase 4 ──► Phase 5 ──► Phase 6 ──► Phase 7 ──► Phase 8 ──► Phase 9
 Storage     Graph       Hybrid      MCP         Semantic    Caching &   Evals       Tracing     Local       Obsidian
-Doctor      Backbone    Search      Server      Gaps        Mutations   Harness     OTel        Models      Plugin
+Doctor      Backbone    Search      Server      Gaps        Digestion   Harness     OTel        Models      Plugin
 v0.0.1      v0.1.0      v0.2.0      v0.3.0      v0.4.0      v0.5.0      v0.6.0      v0.7.0      v0.8.0      v0.9.0
-✅ Done     ✅ Done     ✅ Done     ✅ Done     🎯 Current  Planned     Planned     Planned     Planned     Optional
+✅ Done     ✅ Done     ✅ Done     ✅ Done     ✅ Done     ✅ Done     🎯 Current  Planned     Planned     Optional
 ```
 
 ---
@@ -39,35 +39,26 @@ v0.0.1      v0.1.0      v0.2.0      v0.3.0      v0.4.0      v0.5.0      v0.6.0  
 - Added `orbit serve` and `orbit mcp-config` with one-line registration for Claude Code, Cursor, and OpenCode CLI.
 - Extended dialect support to `.markdown` and `.mdx` with PKM internal folder ignore rules.
 
+### Phase 4: Semantic Gap Detection (`v0.4.0`) ✅
+- **Core Feature:** `orbit discover <path>` CLI command and MCP tool.
+- Dense ANN search in LanceDB ($\text{similarity} \ge 0.80$) + LadybugDB 2-hop graph distance filter.
+- Inferred edges written to `[:INFERRED_REL]` table with confidence, model name, and reasoning.
+
+### Phase 5: Caching & On-Demand Digestion Lifecycle (`v0.5.0`) ✅
+- **High-Performance L1 Query Cache (< 0.5ms):** SQLite WAL store, composite parameter hashing, inverted note dependency tracking (`cache_dependencies`), and LRU pruning.
+- **Sub-40ms Targeted Reindexer:** Incremental single-note AST + LanceDB vector updating without full vault scans.
+- **On-Demand MCP Digestion Tools:** Added `reindex_note` and `sync_vault` to synchronize external edits from Claude Code, Cursor, or Obsidian in real time.
+- **LadybugDB Concurrency Guard:** Unified Read-Write `GraphStore` with in-process write mutex preventing transaction errors and stale snapshots.
+
 ---
 
 ## 🎯 Current Milestone
-
-### Phase 4: Semantic Gap Detection (`v0.4.0`)
-- **Core Feature:** `orbit discover <path>` CLI command and MCP tool.
-- **Algorithm:**
-  1. Dense ANN search in LanceDB to find high-similarity pairs ($\text{cosine similarity} \ge 0.80$).
-  2. LadybugDB hop check to filter out pairs already connected within $\le 2$ hops.
-  3. Send remaining candidate pairs to a structured `InferenceProvider` to classify relationship.
-- **Schema Separation:** Write AI relationships to `INFERRED_REL` table in LadybugDB (`rel_type`, `confidence`, `reason`, `model`, `created_at`). Never pollute human ground-truth `LINKS_TO`.
-- **Classification Enum:** `EXTENDS`, `CONTRADICTS`, `SUPPORTS`, `PREREQUISITE_FOR`, `REFINES`, plus `NONE` (to eliminate forced-choice hallucinations).
-- **Architecture Abstraction:** Define `InferenceProvider` protocol upfront for painless local model drop-in during Phase 8.
-
----
-
-## 🔮 Upcoming Milestones
-
-### Phase 5: Caching & Mutation Lifecycle (`v0.5.0`)
-- **Two-Layer Query Cache:**
-  - **L1 (Exact):** SQLite hash lookup for identical query text ($< 1\text{ms}$).
-  - **L2 (Semantic):** LanceDB query vector lookup for semantically identical intent ($\ge 0.96$ similarity, $< 5\text{ms}$).
-- **Constrained Agent Mutation Tools:** Expose safe write operations via MCP (`append_to_note`, `create_note`) without unrestricted filesystem overwrite capabilities.
-- **Mutation Invalidation Lifecycle:** Atomic disk write $\to$ incremental LadybugDB/LanceDB re-index $\to$ cache eviction.
 
 ### Phase 6: Automated Evaluation Harness (`v0.6.0`)
 - **Core Feature:** `orbit eval` testing retrieval accuracy against curated golden questions.
 - **Metrics Tracked:** Context Recall, Context Precision, Mean Reciprocal Rank (MRR).
 - **CI Integration:** Automated evaluation regression gate in GitHub Actions blocking regressions on PRs.
+
 
 ### Phase 7: Observability & Tracing (`v0.7.0`)
 - **Distributed Tracing:** OpenTelemetry spans wrapping each step of `query_vault` and `orbit discover` (cache lookup, embedding, LanceDB search, LadybugDB traversal, fusion).

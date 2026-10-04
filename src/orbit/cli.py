@@ -99,6 +99,7 @@ def ingest(
     rebuild: bool = typer.Option(
         False, "--rebuild", help="Rebuild graph and vector indices from scratch."
     ),
+    clear_cache: bool = typer.Option(False, "--clear-cache", help="Purge cached search queries."),
     dialect: str = typer.Option(
         "auto",
         "--dialect",
@@ -110,6 +111,11 @@ def ingest(
     ),
 ) -> None:
     """Ingest notes, links, tags, and semantic vectors from a knowledge base."""
+    if rebuild or clear_cache:
+        from orbit.cache import CacheManager
+
+        CacheManager(vault_path).invalidate_all()
+
     pipeline = IngestPipeline(
         vault_path=vault_path,
         db_path=db_dir,
@@ -125,7 +131,7 @@ def ingest(
         sys.exit(0)
 
     if rebuild:
-        console.print("[yellow]Rebuild mode enabled: existing graph data wiped.[/yellow]")
+        console.print("[yellow]Rebuild mode enabled: existing indices and cache wiped.[/yellow]")
 
     with Progress(
         SpinnerColumn(),

@@ -213,3 +213,28 @@ class DiscoveryStats(BaseModel):
     graph_filtered_candidates: int
     relationships_inferred: int
     duration_ms: float
+
+
+class SyncResult(BaseModel):
+    """Result of a targeted note or vault synchronization operation."""
+
+    path: str
+    status: Literal["indexed", "unchanged", "deleted", "error"]
+    chunks_count: int = 0
+    links_count: int = 0
+    tags_count: int = 0
+    ghosts_reconciled: int = 0
+    cache_entries_evicted: int = 0
+    duration_ms: float = 0.0
+    error_message: Optional[str] = None
+
+
+class CacheStats(BaseModel):
+    """Metrics reflecting query cache utilization and performance."""
+
+    total_entries: int = 0
+    hits: int = 0
+    misses: int = 0
+    hit_rate: float = 0.0
+    evictions: int = 0
+    db_size_bytes: int = 0

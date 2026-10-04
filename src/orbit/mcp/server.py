@@ -9,6 +9,7 @@ from typing import Optional
 
 from mcp.server.mcpserver import MCPServer
 
+from orbit.cache import CacheManager
 from orbit.config import settings
 from orbit.graph.store import GraphStore
 from orbit.mcp.tools import (
@@ -18,6 +19,7 @@ from orbit.mcp.tools import (
     execute_read_note,
     execute_vault_overview,
 )
+from orbit.mcp.tools_sync import execute_reindex_note, execute_sync_vault
 from orbit.mcp.tools_vault import (
     execute_discover_gaps,
     execute_get_outline,
@@ -26,6 +28,7 @@ from orbit.mcp.tools_vault import (
     execute_search_by_tag,
 )
 from orbit.search.service import SearchService
+from orbit.search.vector_store import VectorStore
 
 
 def setup_stdio_logging() -> None:
@@ -53,20 +56,30 @@ def create_mcp_server(vault_path: Path | str) -> MCPServer:
             "note chunks, 'read_note' to fetch note content with graph context, 'list_notes' "
             "to browse files, 'list_tags' and 'search_by_tag' to navigate tags, 'get_outline' "
             "for heading structure, 'get_note_context' for backlinks, "
-            "'find_bridges' for link paths, and 'vault_overview' for global hub statistics."
+            "'find_bridges' for link paths, 'vault_overview' for global hub statistics, "
+            "'reindex_note' to update after edits, and 'sync_vault' for delta synchronization."
         ),
     )
 
-    # Initialize read-only search service and graph store
-    search_service = SearchService(vpath)
     db_dir = settings.get_db_dir(vpath)
+    vec_dir = settings.get_vector_dir(vpath)
+
+    # Unified read-write store shared across search and synchronization
     graph_store: Optional[GraphStore] = None
     if db_dir.exists():
         try:
-            graph_store = GraphStore(db_dir, read_only=True)
+            graph_store = GraphStore(db_dir, read_only=False)
         except Exception as e:
-            logger = logging.getLogger("orbit.mcp")
-            logger.warning("Could not open graph store in read-only mode: %s", e)
+            logging.getLogger("orbit.mcp").warning("Could not open graph store in RW mode: %s", e)
+
+    vector_store = VectorStore(vec_dir) if vec_dir.exists() else None
+    cache_manager = CacheManager(vpath)
+    search_service = SearchService(
+        vpath,
+        graph_store=graph_store,
+        vector_store=vector_store,
+        cache_manager=cache_manager,
+    )
 
     @mcp.tool()
     def query_vault(
@@ -77,16 +90,7 @@ def create_mcp_server(vault_path: Path | str) -> MCPServer:
         folder: Optional[str] = None,
         tags: Optional[list[str]] = None,
     ) -> str:
-        """Search the vault using hybrid (semantic + keyword) retrieval with optional graph boost.
-
-        Args:
-            query: The search query or question.
-            near: Optional note path or title to boost nearby notes in the graph.
-            mode: Retrieval mode ('hybrid', 'dense', or 'sparse').
-            limit: Maximum number of snippet results to return (default 5, max 20).
-            folder: Optional folder path prefix to restrict results (e.g. 'Plugins').
-            tags: Optional list of tag names to filter results (e.g. ['api', 'guide']).
-        """
+        """Search the vault using hybrid retrieval with optional graph proximity boosting."""
         return execute_query_vault(
             search_service=search_service,
             query=query,
@@ -98,18 +102,8 @@ def create_mcp_server(vault_path: Path | str) -> MCPServer:
         )
 
     @mcp.tool()
-    def read_note(
-        note_path: str,
-        max_chars: int = 15000,
-        offset: int = 0,
-    ) -> str:
-        """Read the content of a note along with its immediate graph context (tags and links).
-
-        Args:
-            note_path: Relative path to the markdown file within the vault.
-            max_chars: Maximum characters to read (supports pagination for large notes).
-            offset: Starting character offset for paginated reading.
-        """
+    def read_note(note_path: str, max_chars: int = 15000, offset: int = 0) -> str:
+        """Read note content enriched with immediate graph context (tags and links)."""
         return execute_read_note(
             vault_path=vpath,
             note_path=note_path,
@@ -120,96 +114,34 @@ def create_mcp_server(vault_path: Path | str) -> MCPServer:
 
     @mcp.tool()
     def list_notes(
-        folder: Optional[str] = None,
-        pattern: Optional[str] = None,
-        limit: int = 100,
+        folder: Optional[str] = None, pattern: Optional[str] = None, limit: int = 100
     ) -> str:
-        """List markdown notes in the vault with optional folder and wildcard filename filtering.
-
-        Args:
-            folder: Optional relative folder path to limit listing (e.g. 'Guides' or 'Templates').
-            pattern: Optional glob pattern to match note filenames (e.g. '*plugin*.md' or 'Daily*').
-            limit: Maximum number of notes to return (default 100, max 200).
-        """
-        return execute_list_notes(
-            vault_path=vpath,
-            folder=folder,
-            pattern=pattern,
-            limit=limit,
-        )
+        """List markdown notes in the vault with optional folder and wildcard filename filtering."""
+        return execute_list_notes(vault_path=vpath, folder=folder, pattern=pattern, limit=limit)
 
     @mcp.tool()
-    def list_tags(
-        limit: int = 50,
-    ) -> str:
-        """List all unique tags in the vault ranked by note frequency.
-
-        Args:
-            limit: Maximum number of tags to return (default 50, max 200).
-        """
-        return execute_list_tags(
-            graph_store=graph_store,
-            limit=limit,
-        )
+    def list_tags(limit: int = 50) -> str:
+        """List all unique tags in the vault ranked by note frequency."""
+        return execute_list_tags(graph_store=graph_store, limit=limit)
 
     @mcp.tool()
-    def search_by_tag(
-        tag: str,
-        limit: int = 50,
-    ) -> str:
-        """Find all notes tagged with a specific tag in the graph index.
-
-        Args:
-            tag: Tag name to search for (e.g. 'api' or '#project').
-            limit: Maximum number of matching notes to return (default 50, max 500).
-        """
-        return execute_search_by_tag(
-            graph_store=graph_store,
-            tag=tag,
-            limit=limit,
-        )
+    def search_by_tag(tag: str, limit: int = 50) -> str:
+        """Find all notes tagged with a specific tag in the graph index."""
+        return execute_search_by_tag(graph_store=graph_store, tag=tag, limit=limit)
 
     @mcp.tool()
-    def get_outline(
-        note_path: str,
-    ) -> str:
-        """Extract heading hierarchy and line numbers of a note to navigate large documents.
-
-        Args:
-            note_path: Relative path or filename of the note.
-        """
-        return execute_get_outline(
-            vault_path=vpath,
-            note_path=note_path,
-        )
+    def get_outline(note_path: str) -> str:
+        """Extract heading hierarchy and line numbers of a note to navigate large documents."""
+        return execute_get_outline(vault_path=vpath, note_path=note_path)
 
     @mcp.tool()
-    def get_note_context(
-        note_path: str,
-    ) -> str:
-        """Retrieve structural graph context (outgoing links, backlinks, tags, 2-hop cluster).
-
-        Args:
-            note_path: Relative path or filename of the note to inspect.
-        """
-        return execute_get_note_context(
-            graph_store=graph_store,
-            note_path=note_path,
-        )
+    def get_note_context(note_path: str) -> str:
+        """Retrieve structural graph context (outgoing links, backlinks, tags, 2-hop cluster)."""
+        return execute_get_note_context(graph_store=graph_store, note_path=note_path)
 
     @mcp.tool()
-    def find_bridges(
-        source_note: str,
-        target_note: str,
-        max_hops: int = 5,
-    ) -> str:
-        """Find the shortest sequence of wikilinks connecting two notes across the vault.
-
-        Args:
-            source_note: Starting note path or name.
-            target_note: Destination note path or name.
-            max_hops: Maximum search depth (default 5, max 10).
-        """
+    def find_bridges(source_note: str, target_note: str, max_hops: int = 5) -> str:
+        """Find the shortest sequence of wikilinks connecting two notes across the vault."""
         return execute_find_bridges(
             graph_store=graph_store,
             source_note=source_note,
@@ -218,35 +150,39 @@ def create_mcp_server(vault_path: Path | str) -> MCPServer:
         )
 
     @mcp.tool()
-    def vault_overview(
-        limit: int = 10,
-    ) -> str:
-        """Get high-level statistics, central hub notes (most backlinks), and top tags.
-
-        Args:
-            limit: Number of hub notes and tags to list (default 10).
-        """
-        return execute_vault_overview(
-            graph_store=graph_store,
-            limit=limit,
-        )
+    def vault_overview(limit: int = 10) -> str:
+        """Get high-level statistics, central hub notes (most backlinks), and top tags."""
+        return execute_vault_overview(graph_store=graph_store, limit=limit)
 
     @mcp.tool()
-    def discover_gaps(
-        threshold: float = 0.80,
-        limit: int = 10,
-    ) -> str:
-        """Find unlinked note pairs exhibiting high semantic similarity (knowledge gaps).
-
-        Args:
-            threshold: Minimum cosine similarity threshold (default 0.80).
-            limit: Maximum candidate gap pairs to return (default 10, max 50).
-        """
+    def discover_gaps(threshold: float = 0.80, limit: int = 10) -> str:
+        """Find unlinked note pairs exhibiting high semantic similarity (knowledge gaps)."""
         return execute_discover_gaps(
             vault_path=vpath,
             graph_store=graph_store,
             threshold=threshold,
             limit=limit,
+        )
+
+    @mcp.tool()
+    def reindex_note(note_path: str) -> str:
+        """Incrementally re-index a single note after external edits and evict stale cache."""
+        return execute_reindex_note(
+            vault_path=vpath,
+            note_path=note_path,
+            graph_store=graph_store,
+            vector_store=vector_store,
+            cache_manager=cache_manager,
+        )
+
+    @mcp.tool()
+    def sync_vault() -> str:
+        """Scan and incrementally synchronize all modified or newly created files across vault."""
+        return execute_sync_vault(
+            vault_path=vpath,
+            graph_store=graph_store,
+            vector_store=vector_store,
+            cache_manager=cache_manager,
         )
 
     return mcp

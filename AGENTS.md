@@ -17,11 +17,13 @@ src/orbit/
   models.py       # Pydantic data models (shared across modules)
   doctor.py       # `orbit doctor` health checks
   dialects/       # Pluggable markdown dialect parsing (obsidian, commonmark)
+  cache/          # SQLite L1 query cache and dependency tracking
   parser/         # Markdown parsing + vault file indexing
   graph/          # LadybugDB graph store, schema DDL, and traversal
-  ingest/         # Vault → graph and vector ingestion pipeline
+  ingest/         # Vault → graph and vector ingestion pipeline & single-note reindexer
   search/         # Chunking, FastEmbed, LanceDB vector store, RRF fusion, service
   mcp/            # FastMCP server, tool handlers, and stdio transport
+
 tests/            # Mirrors src/orbit/ structure
 benchmarks/       # Ground-truth evaluation benchmarks
 ```

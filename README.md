@@ -61,7 +61,9 @@ flowchart TD
 - **Phase 2 (`v0.2.0`):** Hybrid vector + BM25 search with Reciprocal Rank Fusion & graph proximity boosting — **Completed** ✅
 - **Phase 3 (`v0.3.0`):** Model Context Protocol (MCP) server over stdio (`query_vault`, `read_note`, `get_note_context`, `find_bridges`, `vault_overview`) — **Completed** ✅
 - **Phase 4 (`v0.4.0`):** AI semantic gap detection & inferred relationships (`orbit discover`, `[:INFERRED_REL]`) — **Completed** ✅
-- **Phase 5 (`v0.5.0`):** Caching & Safe Mutation Lifecycle (`append_to_note`, `create_note`, L1/L2 cache) — *Next*
+- **Phase 5 (`v0.5.0`):** High-performance L1 query caching & on-demand digestion (`reindex_note`, `sync_vault`, WAL cache) — **Completed** ✅
+- **Phase 6 (`v0.6.0`):** Automated evaluation regression harness (`orbit eval`) — *Next*
+
 
 See the complete [Engineering Roadmap](docs/roadmap.md) for milestone progression through Phase 9 (`v0.9.0`).
 
@@ -178,6 +180,9 @@ Exposed Tools:
 - `find_bridges`: Discover the shortest link path between two notes across the vault.
 - `discover_gaps`: Uncover unlinked note pairs with high vector similarity for bridging.
 - `vault_overview`: Bird's-eye view of vault notes, wikilinks, tags, and central hub notes.
+- `reindex_note`: Incrementally re-index a single note into graph and vector indices (< 40ms) after external edits.
+- `sync_vault`: Scan and incrementally synchronize all modified or newly created files across the vault.
+
 
 ### Benchmarks
 Retrieval accuracy is validated against the Golden 10 ground truth benchmark dataset (`benchmarks/golden_10.json`):

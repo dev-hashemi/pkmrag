@@ -5,10 +5,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Optional
 
+from orbit.cache import CacheManager
 from orbit.config import settings
 from orbit.graph.store import GraphStore
 from orbit.graph.traversal import get_notes_by_tag
-from orbit.models import SearchResult
+from orbit.models import CacheStats, SearchResult
 from orbit.search.embedder import EmbeddingProvider, FastEmbedProvider
 from orbit.search.fusion import apply_graph_boost, build_single_mode_results, compute_rrf
 from orbit.search.vector_store import VectorStore
@@ -23,6 +24,7 @@ class SearchService:
         vector_store: Optional[VectorStore] = None,
         embedder: Optional[EmbeddingProvider] = None,
         graph_store: Optional[GraphStore] = None,
+        cache_manager: Optional[CacheManager] = None,
     ) -> None:
         self.vault_path = Path(vault_path).resolve()
         self.vector_store = (
@@ -33,6 +35,9 @@ class SearchService:
         self.embedder: EmbeddingProvider = embedder if embedder is not None else FastEmbedProvider()
         self._graph_store = graph_store
         self._owns_graph_store = False
+        self.cache_manager = (
+            cache_manager if cache_manager is not None else CacheManager(self.vault_path)
+        )
 
     def _get_graph_store(self) -> Optional[GraphStore]:
         """Lazy access or creation of GraphStore."""
@@ -59,6 +64,18 @@ class SearchService:
         clean_query = query.strip()
         if not clean_query:
             return []
+
+        # 1. Fast L1 Cache Lookup (< 0.5ms on hit)
+        cached = self.cache_manager.get(
+            query=clean_query,
+            mode=mode,
+            near=near,
+            limit=limit,
+            folder=folder,
+            tags=tags,
+        )
+        if cached is not None:
+            return cached
 
         has_filters = bool(folder or tags)
         search_limit = max(limit * 5, 50) if has_filters else max(limit * 3, 20)
@@ -109,13 +126,35 @@ class SearchService:
                         matching_paths.update(m.path.lower() for m in matched)
                     results = [r for r in results if r.note_path.lower() in matching_paths]
 
-        return results[:limit]
+        final_results = results[:limit]
+
+        # 2. Store in L1 Cache with dependencies
+        self.cache_manager.put(
+            query=clean_query,
+            mode=mode,
+            results=final_results,
+            near=near,
+            limit=limit,
+            folder=folder,
+            tags=tags,
+        )
+
+        return final_results
+
+    def get_cache_stats(self) -> CacheStats:
+        """Fetch current query cache statistics."""
+        return self.cache_manager.get_stats()
+
+    def clear_cache(self) -> None:
+        """Purge all cached search queries."""
+        self.cache_manager.invalidate_all()
 
     def close(self) -> None:
-        """Cleanly close underlying databases."""
+        """Cleanly close underlying databases and cache."""
         if self._owns_graph_store and self._graph_store is not None:
             self._graph_store.close()
         self.vector_store.close()
+        self.cache_manager.close()
 
     def __enter__(self) -> SearchService:
         return self

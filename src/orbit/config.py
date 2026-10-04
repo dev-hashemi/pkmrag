@@ -76,6 +76,14 @@ class OrbitSettings(BaseSettings):
     vector_dir: Optional[Path] = Field(
         default=None, validation_alias=AliasChoices("ORBIT_VECTOR_DIR")
     )
+    cache_dir: Optional[Path] = Field(
+        default=None, validation_alias=AliasChoices("ORBIT_CACHE_DIR")
+    )
+
+    # Query Cache
+    cache_enabled: bool = True
+    cache_max_entries: int = 1000
+    cache_ttl_seconds: Optional[int] = None
 
     def get_db_dir(self, vault_path: Path | str) -> Path:
         """Resolve LadybugDB graph storage directory."""
@@ -88,6 +96,12 @@ class OrbitSettings(BaseSettings):
         if self.vector_dir:
             return self.vector_dir.resolve()
         return (Path(vault_path).resolve() / ".orbit" / "vectors").resolve()
+
+    def get_cache_db_path(self, vault_path: Path | str) -> Path:
+        """Resolve SQLite cache database file path."""
+        if self.cache_dir:
+            return (self.cache_dir.resolve() / "cache.db").resolve()
+        return (Path(vault_path).resolve() / ".orbit" / "cache.db").resolve()
 
 
 settings = OrbitSettings()
