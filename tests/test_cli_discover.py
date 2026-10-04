@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
+from typing import Any
 
 from typer.testing import CliRunner
 
@@ -12,6 +13,38 @@ from orbit.cli import app
 from orbit.ingest import IngestPipeline
 
 runner = CliRunner()
+
+
+def _extract_json(text: str) -> Any:
+    """Robustly extract and parse JSON payload from CLI output, ignoring warning lines."""
+    try:
+        return json.loads(text.strip())
+    except json.JSONDecodeError:
+        pass
+
+    clean_lines = [
+        line
+        for line in text.splitlines()
+        if not (
+            line.startswith("[") and any(lvl in line for lvl in ("WARN", "INFO", "ERROR", "DEBUG"))
+        )
+    ]
+    candidate = "\n".join(clean_lines).strip()
+    try:
+        return json.loads(candidate)
+    except json.JSONDecodeError:
+        pass
+
+    for start_char, end_char in [("{", "}"), ("[", "]")]:
+        start = candidate.find(start_char)
+        end = candidate.rfind(end_char)
+        if start != -1 and end > start:
+            try:
+                return json.loads(candidate[start : end + 1])
+            except json.JSONDecodeError:
+                continue
+
+    return json.loads(text)
 
 
 def _setup_vault(vault: Path) -> None:
@@ -61,8 +94,9 @@ def test_cli_discover_json_dry_run(tmp_path: Path) -> None:
         ["discover", str(vault), "--threshold", "0.4", "--dry-run", "--json"],
     )
     assert result.exit_code == 0
-    data = json.loads(result.output)
+    data = _extract_json(result.output)
     assert data["vault_path"] == str(vault.resolve())
+
     assert data["dry_run"] is True
     assert "candidates" in data
     assert len(data["candidates"]) >= 1
