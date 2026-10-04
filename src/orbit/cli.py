@@ -38,15 +38,21 @@ def version_callback(value: bool) -> None:
         raise typer.Exit()
 
 
+def _make_progress() -> Progress:
+    return Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TextColumn("{task.completed}/{task.total}"),
+        TimeElapsedColumn(),
+        console=console,
+    )
+
+
 @app.callback()
 def main(
     version: Optional[bool] = typer.Option(
-        None,
-        "--version",
-        "-v",
-        help="Show Orbit version and exit.",
-        callback=version_callback,
-        is_eager=True,
+        None, "--version", "-v", help="Show version.", callback=version_callback, is_eager=True
     ),
 ) -> None:
     """Project Orbit CLI root callback."""
@@ -64,9 +70,8 @@ def doctor(
 
     if json_output:
         console.print_json(report.model_dump_json())
-        sys.exit(0 if report.all_passed else 1)
-
-    render_doctor_report(report, console)
+    else:
+        render_doctor_report(report, console)
     sys.exit(0 if report.all_passed else 1)
 
 
@@ -101,10 +106,7 @@ def ingest(
     ),
     clear_cache: bool = typer.Option(False, "--clear-cache", help="Purge cached search queries."),
     dialect: str = typer.Option(
-        "auto",
-        "--dialect",
-        "-m",
-        help="Source dialect (auto, obsidian, commonmark). Defaults to auto.",
+        "auto", "--dialect", "-m", help="Source dialect (auto, obsidian, commonmark)."
     ),
     json_output: bool = typer.Option(
         False, "--json", help="Output ingestion metrics in raw JSON format."
@@ -133,14 +135,7 @@ def ingest(
     if rebuild:
         console.print("[yellow]Rebuild mode enabled: existing indices and cache wiped.[/yellow]")
 
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        BarColumn(),
-        TextColumn("{task.completed}/{task.total}"),
-        TimeElapsedColumn(),
-        console=console,
-    ) as progress:
+    with _make_progress() as progress:
         task_id = progress.add_task("[cyan]Ingesting vault...", total=100)
 
         def on_progress(phase: str, current: int, total: int) -> None:
@@ -205,8 +200,7 @@ def serve(
 
     from orbit.mcp import create_mcp_server
 
-    server = create_mcp_server(vault_path)
-    server.run(transport="stdio")
+    create_mcp_server(vault_path).run(transport="stdio")
 
 
 @app.command(name="mcp-config")
@@ -217,6 +211,32 @@ def mcp_config(
 ) -> None:
     """Generate ready-to-use MCP configuration snippets for Claude Desktop and Cursor."""
     render_mcp_config(vault_path, console)
+
+
+@app.command()
+def eval(
+    vault_path: Optional[Path] = typer.Argument(
+        None, help="Path to vault (defaults to benchmarks/vault)."
+    ),
+    benchmark: Optional[Path] = typer.Option(
+        None, "-b", "--benchmark", help="Benchmark JSON (defaults to golden_10.json)."
+    ),
+    min_mrr: float = typer.Option(0.80, "--min-mrr", help="Minimum required MRR score."),
+    min_recall: float = typer.Option(0.80, "--min-recall", help="Minimum required Recall@5."),
+    json_output: bool = typer.Option(False, "--json", help="Output raw JSON evaluation report."),
+) -> None:
+    """Evaluate retrieval engine accuracy against ground truth benchmarks."""
+    from orbit.eval import EvaluationHarness, render_eval_report
+
+    harness = EvaluationHarness(vault_path=vault_path, benchmark_path=benchmark)
+    report = harness.run(min_mrr=min_mrr, min_recall=min_recall)
+
+    if json_output:
+        console.print_json(report.model_dump_json())
+    else:
+        render_eval_report(report, console, min_mrr=min_mrr, min_recall=min_recall)
+
+    sys.exit(0 if report.passed else 1)
 
 
 @app.command()
@@ -241,14 +261,7 @@ def discover(
                 similarity_threshold=threshold, limit=limit, dry_run=dry_run, rpm=rpm, tpm=tpm
             )
         else:
-            with Progress(
-                SpinnerColumn(),
-                TextColumn("[progress.description]{task.description}"),
-                BarColumn(),
-                TextColumn("{task.completed}/{task.total}"),
-                TimeElapsedColumn(),
-                console=console,
-            ) as progress:
+            with _make_progress() as progress:
                 t_id = progress.add_task("[cyan]Scanning for semantic gaps...", total=limit)
 
                 def on_prog(cur: int, tot: int, desc: str) -> None:

@@ -22,10 +22,13 @@ src/orbit/
   graph/          # LadybugDB graph store, schema DDL, and traversal
   ingest/         # Vault → graph and vector ingestion pipeline & single-note reindexer
   search/         # Chunking, FastEmbed, LanceDB vector store, RRF fusion, service
+  inference/      # LLM inference client and token-bucket rate limiter
+  discovery/      # Semantic gap discovery and relationship inference engine
+  eval/           # Retrieval evaluation harness and IR metrics (MRR, Recall, MAP)
   mcp/            # FastMCP server, tool handlers, and stdio transport
 
 tests/            # Mirrors src/orbit/ structure
-benchmarks/       # Ground-truth evaluation benchmarks
+benchmarks/       # Ground-truth evaluation benchmarks (golden_10, vault)
 ```
 
 
@@ -71,6 +74,8 @@ benchmarks/       # Ground-truth evaluation benchmarks
 uv run orbit doctor                      # Sanity check both DBs
 uv run orbit ingest <path>               # Ingest a vault (all, graph, or vector)
 uv run orbit search "query" --near <note># Hybrid search with graph boost
+uv run orbit discover <path>             # Discover semantic gaps and infer relationships
+uv run orbit eval                        # Automated IR retrieval evaluation against golden benchmark
 uv run orbit serve <path>                # Start stdio MCP server for Claude/Cursor
 uv run orbit mcp-config <path>           # Output MCP JSON client configuration
 uv run ruff check --fix .                # Lint

@@ -11,7 +11,7 @@ Phase 0 ──► Phase 1 ──► Phase 2 ──► Phase 3 ──► Phase 4 
 Storage     Graph       Hybrid      MCP         Semantic    Caching &   Evals       Tracing     Local       Obsidian
 Doctor      Backbone    Search      Server      Gaps        Digestion   Harness     OTel        Models      Plugin
 v0.0.1      v0.1.0      v0.2.0      v0.3.0      v0.4.0      v0.5.0      v0.6.0      v0.7.0      v0.8.0      v0.9.0
-✅ Done     ✅ Done     ✅ Done     ✅ Done     ✅ Done     ✅ Done     🎯 Current  Planned     Planned     Optional
+✅ Done     ✅ Done     ✅ Done     ✅ Done     ✅ Done     ✅ Done     ✅ Done     🎯 Current  Planned     Optional
 ```
 
 ---
@@ -50,15 +50,15 @@ v0.0.1      v0.1.0      v0.2.0      v0.3.0      v0.4.0      v0.5.0      v0.6.0  
 - **On-Demand MCP Digestion Tools:** Added `reindex_note` and `sync_vault` to synchronize external edits from Claude Code, Cursor, or Obsidian in real time.
 - **LadybugDB Concurrency Guard:** Unified Read-Write `GraphStore` with in-process write mutex preventing transaction errors and stale snapshots.
 
+### Phase 6: Automated Evaluation Harness (`v0.6.0`) ✅
+- **In-Process Deterministic IR Evaluation:** `orbit eval` testing retrieval accuracy against curated golden benchmarks with zero LLM API dependency.
+- **Metrics Tracked:** Mean Reciprocal Rank (MRR), Context Recall@K, Context Precision@K, MAP@K, Hits@K, and Multi-Hop Completeness.
+- **In-Repo Golden Benchmark:** 12-note reference vault with multi-hop wikilinks and golden queries in `benchmarks/`.
+- **CI Quality Gating:** Integrated into GitHub Actions workflow blocking regressions on pull requests (`MRR >= 0.80`, `Recall@5 >= 0.80`).
+
 ---
 
 ## 🎯 Current Milestone
-
-### Phase 6: Automated Evaluation Harness (`v0.6.0`)
-- **Core Feature:** `orbit eval` testing retrieval accuracy against curated golden questions.
-- **Metrics Tracked:** Context Recall, Context Precision, Mean Reciprocal Rank (MRR).
-- **CI Integration:** Automated evaluation regression gate in GitHub Actions blocking regressions on PRs.
-
 
 ### Phase 7: Observability & Tracing (`v0.7.0`)
 - **Distributed Tracing:** OpenTelemetry spans wrapping each step of `query_vault` and `orbit discover` (cache lookup, embedding, LanceDB search, LadybugDB traversal, fusion).

@@ -5,22 +5,17 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
 from orbit.ingest import IngestPipeline
 from orbit.search import SearchService
 
 BENCHMARK_PATH = Path(__file__).resolve().parent.parent / "benchmarks" / "golden_10.json"
-TEST_VAULT_PATH = Path("/home/ali/Vaults/orbit-test-vault")
+TEST_VAULT_PATH = Path(__file__).resolve().parent.parent / "benchmarks" / "vault"
 
 
-@pytest.mark.skipif(
-    not TEST_VAULT_PATH.exists(),
-    reason="Test vault /home/ali/Vaults/orbit-test-vault not found",
-)
 def test_golden_10_evaluation() -> None:
     """Evaluate retrieval accuracy on the 10 Golden Queries."""
     assert BENCHMARK_PATH.exists()
+    assert TEST_VAULT_PATH.exists()
     dataset = json.loads(BENCHMARK_PATH.read_text(encoding="utf-8"))
 
     # Ensure test vault is indexed

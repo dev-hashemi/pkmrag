@@ -3,7 +3,7 @@
 > **Embedded, Local-First Hybrid GraphRAG Retrieval Engine & MCP Server**
 
 [![CI](https://img.shields.io/github/actions/workflow/status/dev-hashemi/project-orbit/ci.yml?branch=main&style=flat&label=CI&logo=githubactions&logoColor=white)](https://github.com/dev-hashemi/project-orbit/actions)
-[![Coverage](https://img.shields.io/badge/coverage-87%25-brightgreen?style=flat&logo=pytest)](https://github.com/dev-hashemi/project-orbit)
+[![Coverage](https://img.shields.io/badge/coverage-89%25-brightgreen?style=flat&logo=pytest)](https://github.com/dev-hashemi/project-orbit)
 [![Python](https://img.shields.io/badge/python-%3E%3D3.12-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![Version](https://img.shields.io/github/v/tag/dev-hashemi/project-orbit?style=flat&label=version&logo=github&logoColor=white)](https://github.com/dev-hashemi/project-orbit/releases)
 [![License](https://img.shields.io/badge/license-MIT-green?style=flat&logo=opensourceinitiative&logoColor=white)](LICENSE)
@@ -62,7 +62,8 @@ flowchart TD
 - **Phase 3 (`v0.3.0`):** Model Context Protocol (MCP) server over stdio (`query_vault`, `read_note`, `get_note_context`, `find_bridges`, `vault_overview`) — **Completed** ✅
 - **Phase 4 (`v0.4.0`):** AI semantic gap detection & inferred relationships (`orbit discover`, `[:INFERRED_REL]`) — **Completed** ✅
 - **Phase 5 (`v0.5.0`):** High-performance L1 query caching & on-demand digestion (`reindex_note`, `sync_vault`, WAL cache) — **Completed** ✅
-- **Phase 6 (`v0.6.0`):** Automated evaluation regression harness (`orbit eval`) — *Next*
+- **Phase 6 (`v0.6.0`):** Automated evaluation regression harness (`orbit eval`) — **Completed** ✅
+- **Phase 7 (`v0.7.0`):** Observability & distributed tracing (OpenTelemetry spans, token auditing) — *Next*
 
 
 See the complete [Engineering Roadmap](docs/roadmap.md) for milestone progression through Phase 9 (`v0.9.0`).
@@ -184,11 +185,27 @@ Exposed Tools:
 - `sync_vault`: Scan and incrementally synchronize all modified or newly created files across the vault.
 
 
+### 🎯 Retrieval Evaluation & Quality Gates
+Guard against retrieval regressions with deterministic, zero-cost Information Retrieval (IR) evaluations run directly in CLI or CI:
+```bash
+# Run default evaluation against in-repo Golden 10 benchmark
+orbit eval
+
+# Enforce strict quality gates in CI (exit code 1 if thresholds fail)
+orbit eval --min-mrr 0.85 --min-recall 0.80
+
+# Machine-readable JSON output for automated CI reporting
+orbit eval --json
+```
+
 ### Benchmarks
-Retrieval accuracy is validated against the Golden 10 ground truth benchmark dataset (`benchmarks/golden_10.json`):
+Retrieval accuracy is validated against the in-repo Golden 10 ground truth benchmark dataset (`benchmarks/golden_10.json`):
+- **MRR (Mean Reciprocal Rank):** `0.950` (Target $\ge 0.80$)
+- **Context Recall@5:** `0.950` (Target $\ge 0.80$)
 - **Hits@1:** `90.0%`
 - **Hits@3:** `100.0%`
-- **MRR (Mean Reciprocal Rank):** `0.950`
+- **Hits@5:** `100.0%`
+- **Mean Average Precision (MAP@5):** `0.925`
 
 ### Running Tests & Linting
 ```bash
