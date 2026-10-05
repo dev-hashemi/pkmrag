@@ -59,12 +59,32 @@ uv run orbit eval --json
 uv run orbit eval /path/to/vault -b /path/to/benchmark.json
 ```
 
-### Metrics Explained
+### 📊 Metrics Explained
 
-- **MRR (Mean Reciprocal Rank):** $\frac{1}{|Q|} \sum_{i=1}^{|Q|} \frac{1}{\text{rank}_i}$. Measures how quickly the first relevant note appears.
-- **Context Recall@K:** Fraction of required ground-truth notes retrieved in the top $K$ results. Crucial for multi-hop retrieval queries.
-- **Context Precision@K:** Fraction of retrieved top $K$ notes that are relevant to the query.
-- **MAP@K (Mean Average Precision):** Rewards ranking relevant notes higher throughout the top $K$ slots.
-- **Multi-Hop Completeness:** Fraction of multi-target queries where *all* expected ground-truth notes were retrieved within top $K$.
+Orbit's evaluation harness tracks two classes of metrics: **Quality Gates** (strict pass/fail thresholds that block CI) and **Informational Telemetry** (diagnostic metrics for ranking distribution).
+
+| Metric | Type | What It Measures | How It Is Interpreted |
+| :--- | :---: | :--- | :--- |
+| **Mean Reciprocal Rank (MRR)** | **Quality Gate** | **Position of the first hit.** $\frac{1}{\|Q\|} \sum \frac{1}{\text{rank}_i}$. | A score of `1.0` means the right note was ranked #1 on every query. `0.950` means 9 out of 10 queries had the right note at #1, and 1 at #2. |
+| **Context Recall@5** | **Quality Gate** | **Completeness of context.** Fraction of all ground-truth notes retrieved within top 5. | Crucial for multi-hop questions. If an answer requires Note A and Note B, both must appear in top 5 to get full recall. |
+| **Hits@1, 3, 5** | Telemetry | **Top-K Hit Rate.** Percentage of queries where at least one correct note appeared in the top $K$. | `Hits@1 = 90%` means 9/10 top results were relevant. `Hits@3 = 100%` means zero questions completely missed the top 3. |
+| **Context Precision@5** | Telemetry | **Signal-to-noise ratio.** Fraction of the 5 retrieved notes that are relevant. | Naturally low (~`0.20`–`0.25`) because Orbit retrieves 5 notes (`limit=5`), but most queries only have 1 correct answer note ($\frac{1}{5} = 20\%$). |
+| **MAP@5** | Telemetry | **Mean Average Precision.** Evaluates how high relevant notes are ranked throughout the list. | Penalizes placing relevant notes low in the list (e.g., at #4 or #5). Our score of `0.925` shows heavy front-loading. |
+| **Multi-Hop Completeness** | Telemetry | **Complete multi-note chains.** Percentage of multi-target queries where *100%* of required notes were retrieved. | Assesses whether interconnected notes were both surfaced to supply complete context to downstream LLM reasoning. |
+
+---
+
+## ❓ Frequently Asked Questions
+
+### Do I need to run `orbit ingest` before `orbit eval`?
+**No.** `EvaluationHarness` is completely self-contained. It inspects the target vault and automatically executes `IngestPipeline` on demand. On the first run, it builds the graph and vector indices; on subsequent runs, it uses the cached indices to run the evaluation in **~20ms**.
+
+### Does `orbit eval` evaluate LLM gap detection (`orbit discover`)?
+**No.** `orbit eval` is strictly focused on the **Tier 1 & Tier 2 deterministic retrieval backbone** (LadybugDB graph + LanceDB vectors + BM25 keyword search + RRF fusion). 
+
+Gap detection (Tier 3) requires LLM inference (calling Gemini, Claude, or local Ollama). Leaving LLM generation out of `orbit eval` ensures CI runs are:
+- **100% Deterministic:** Zero test flakiness or non-reproducible scores.
+- **$0 Cost:** Runs without paid API tokens.
+- **Offline & Fast:** Completes in milliseconds on headless GitHub Actions runners.
 
 
