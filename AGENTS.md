@@ -64,7 +64,7 @@ benchmarks/       # Ground-truth evaluation benchmarks (golden_10, vault)
 
 ## When Adding New Features
 
-1. Check which phase it belongs to in the roadmap (README or companion doc).
+1. Ensure new functionality aligns with the architectural design and existing subsystems.
 2. Put code in the right subpackage. Create a new one if needed — flat files over deep nesting.
 3. Add CLI commands in `cli.py` using Typer. Keep handlers thin — delegate to engine modules.
 4. Wire up tests before marking done.

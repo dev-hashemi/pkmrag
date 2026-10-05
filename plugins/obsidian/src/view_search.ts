@@ -9,7 +9,7 @@ export class ProximitySearchDrawer {
   private containerEl!: HTMLElement;
   private resultsEl!: HTMLElement;
   private inputEl!: HTMLInputElement;
-  private searchTimer: ReturnType<typeof setTimeout> | null = null;
+  private searchTimer: number | null = null;
   private isOpen = false;
 
   constructor(
@@ -30,13 +30,12 @@ export class ProximitySearchDrawer {
     });
 
     const searchBox = this.containerEl.createDiv({
-      cls: "orbit-search-box",
-      attr: { style: "display: none;" },
+      cls: "orbit-search-box orbit-hidden",
     });
 
     toggleBtn.onclick = () => {
       this.isOpen = !this.isOpen;
-      searchBox.style.display = this.isOpen ? "block" : "none";
+      searchBox.toggleClass("orbit-hidden", !this.isOpen);
       if (this.isOpen) {
         this.inputEl.focus();
       } else {
@@ -52,14 +51,14 @@ export class ProximitySearchDrawer {
     });
 
     this.inputEl.oninput = () => {
-      if (this.searchTimer) clearTimeout(this.searchTimer);
+      if (this.searchTimer) window.clearTimeout(this.searchTimer);
       const query = this.inputEl.value.trim();
       if (!query) {
         this.resultsEl.empty();
         return;
       }
 
-      this.searchTimer = setTimeout(() => this.executeSearch(query), 350);
+      this.searchTimer = window.setTimeout(() => this.executeSearch(query), 350);
     };
 
     this.resultsEl = searchBox.createDiv({ cls: "orbit-search-results" });

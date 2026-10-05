@@ -110,9 +110,9 @@ export default class OrbitInsightsPlugin extends Plugin {
           return;
         }
         const timer = this.debounceMap.get(file.path);
-        if (timer) clearTimeout(timer);
+        if (timer) window.clearTimeout(timer);
 
-        const newTimer = setTimeout(async () => {
+        const newTimer = window.setTimeout(async () => {
           this.debounceMap.delete(file.path);
           try {
             await this.client.reindexNote(file.path);
@@ -148,7 +148,7 @@ export default class OrbitInsightsPlugin extends Plugin {
       this.eventSource = null;
     }
     for (const timer of this.debounceMap.values()) {
-      clearTimeout(timer);
+      window.clearTimeout(timer);
     }
     this.debounceMap.clear();
   }
@@ -273,4 +273,4 @@ export default class OrbitInsightsPlugin extends Plugin {
   }
 }
 
-type ReturnJS_Timeout = ReturnType<typeof setTimeout>;
+type ReturnJS_Timeout = number;

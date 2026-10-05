@@ -1,4 +1,4 @@
-"""Comprehensive unit and integration tests for Phase 1 vault graph ingestion."""
+"""Comprehensive unit and integration tests for vault graph ingestion."""
 
 from __future__ import annotations
 

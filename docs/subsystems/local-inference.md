@@ -1,6 +1,6 @@
 # Local Model Inference (Ollama & FastEmbed)
 
-Orbit is built from the ground up as a **local-first** knowledge retrieval engine. Phase 8 enables completely offline semantic gap detection and relationship inference using local models via Ollama, complementing Orbit's already 100% local in-process embedding engine.
+Orbit is built from the ground up as a **local-first** knowledge retrieval engine. It enables completely offline semantic gap detection and relationship inference using local models via Ollama, complementing Orbit's already 100% local in-process embedding engine.
 
 ---
 

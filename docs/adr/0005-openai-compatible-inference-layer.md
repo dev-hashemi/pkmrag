@@ -7,7 +7,7 @@
 ---
 
 ## Context
-Phase 4 introduced AI-powered semantic gap detection and relationship inference. We evaluated two architectural directions for LLM invocation:
+When introducing AI-powered semantic gap detection and relationship inference, we evaluated two architectural directions for LLM invocation:
 1. **Multi-framework meta-libraries (e.g. LangChain, LlamaIndex, LiteLLM):** Large dependency trees, frequent breaking changes, heavy startup overhead.
 2. **Lightweight HTTP Client over Standard OpenAI Specification:** A minimal in-process HTTP client implementing OpenAI-compatible JSON REST endpoints with custom token-bucket rate limiting.
 

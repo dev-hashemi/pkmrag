@@ -7,7 +7,7 @@
 ---
 
 ## Context
-Phase 5 originally proposed adding file mutation tools (`append_to_note`, `create_note`) and a two-tier L1 exact + L2 semantic query cache to Orbit.
+Early designs proposed adding file mutation tools (`append_to_note`, `create_note`) and a two-tier L1 exact + L2 semantic query cache to Orbit.
 
 During architectural analysis, two core tensions emerged:
 1. **Scope Tension (File Editing vs. Digestion Engine):** Frontier AI tools (Claude Code, Cursor) and humans (Obsidian) already possess mature, diff-aware, git-integrated file editors. Adding text editing tools to Orbit would introduce redundant, fragile editing primitives prone to corrupting YAML frontmatter and formatting, while failing to catch human edits in Obsidian.

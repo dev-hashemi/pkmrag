@@ -54,26 +54,6 @@ flowchart TD
 
 ---
 
-## 🚦 Project Status
-
-- **Phase 0 (`v0.0.1`):** In-process storage engine validation & CLI diagnostics (`orbit doctor`) — **Completed** ✅
-- **Phase 1 (`v0.1.0`):** Deterministic AST wikilink backbone ingestion into LadybugDB — **Completed** ✅
-- **Phase 2 (`v0.2.0`):** Hybrid vector + BM25 search with Reciprocal Rank Fusion & graph proximity boosting — **Completed** ✅
-- **Phase 3 (`v0.3.0`):** Model Context Protocol (MCP) server over stdio (`query_vault`, `read_note`, `get_note_context`, `find_bridges`, `vault_overview`) — **Completed** ✅
-- **Phase 4 (`v0.4.0`):** AI semantic gap detection & inferred relationships (`orbit discover`, `[:INFERRED_REL]`) — **Completed** ✅
-- **Phase 5 (`v0.5.0`):** High-performance L1 query caching & on-demand digestion (`reindex_note`, `sync_vault`, WAL cache) — **Completed** ✅
-- **Phase 6 (`v0.6.0`):** Automated evaluation regression harness (`orbit eval`) — **Completed** ✅
-- **Phase 7 (`v0.7.0`):** Observability & distributed tracing (OpenTelemetry spans, token auditing, `--trace`) — **Completed** ✅
-- **Phase 8 (`v0.8.0`):** Local model inference & Ollama ergonomics (offline AI, validation retry, rate-limit bypass) — **Completed** ✅
-- **Phase 9a (`v0.9.0`):** HTTP & SSE server transport, REST API plane, Bearer auth & reactive event streaming — **Completed** ✅
-- **Phase 9b (`v0.9.1`):** Obsidian desktop plugin MVP ("Orbit Insights" sidebar panel, save auto-sync) — **Completed** ✅
-- **Phase 9c (`v0.9.2`):** Obsidian desktop plugin polish (editor gutter indicators & dismissed memory) — *Optional*
-
-
-See the complete [Engineering Roadmap](docs/roadmap.md) for milestone progression through Phase 9 (`v0.9.x`).
-
----
-
 ## 🛠️ Quickstart
 
 ### Prerequisites
