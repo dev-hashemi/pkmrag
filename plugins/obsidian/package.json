@@ -1,0 +1,28 @@
+{
+  "name": "orbit-insights",
+  "version": "0.9.1",
+  "description": "Local-first Hybrid GraphRAG insights and contradiction warnings for Obsidian.",
+  "main": "main.js",
+  "type": "module",
+  "scripts": {
+    "build": "node esbuild.config.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "esbuild tests/client.test.ts --bundle --platform=node --external:obsidian --format=esm --outfile=dist/test.mjs && node --test dist/test.mjs"
+  },
+  "keywords": [
+    "obsidian",
+    "obsidian-plugin",
+    "graphrag",
+    "pkm",
+    "knowledge-graph"
+  ],
+  "author": "Project Orbit Contributors",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.8.0",
+    "builtin-modules": "^3.3.0",
+    "esbuild": "^0.24.0",
+    "obsidian": "^1.7.2",
+    "typescript": "^5.6.3"
+  }
+}

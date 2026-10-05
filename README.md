@@ -66,10 +66,11 @@ flowchart TD
 - **Phase 7 (`v0.7.0`):** Observability & distributed tracing (OpenTelemetry spans, token auditing, `--trace`) — **Completed** ✅
 - **Phase 8 (`v0.8.0`):** Local model inference & Ollama ergonomics (offline AI, validation retry, rate-limit bypass) — **Completed** ✅
 - **Phase 9a (`v0.9.0`):** HTTP & SSE server transport, REST API plane, Bearer auth & reactive event streaming — **Completed** ✅
-- **Phase 9b (`v0.9.1`):** Obsidian desktop plugin MVP (insights sidebar panel, file save auto-sync) — *Next*
+- **Phase 9b (`v0.9.1`):** Obsidian desktop plugin MVP ("Orbit Insights" sidebar panel, save auto-sync) — **Completed** ✅
+- **Phase 9c (`v0.9.2`):** Obsidian desktop plugin polish (editor gutter indicators & dismissed memory) — *Optional*
 
 
-See the complete [Engineering Roadmap](docs/roadmap.md) for milestone progression through Phase 9 (`v0.9.0`).
+See the complete [Engineering Roadmap](docs/roadmap.md) for milestone progression through Phase 9 (`v0.9.x`).
 
 ---
 

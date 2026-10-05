@@ -81,12 +81,16 @@ v0.0.1      v0.1.0      v0.2.0      v0.3.0      v0.4.0      v0.5.0      v0.6.0  
 
 ---
 
-## 🎯 Current Milestone
+### Phase 9b: Obsidian Plugin MVP (`v0.9.1`) ✅
+- **Editor Integration:** Native TypeScript desktop plugin connecting to Orbit's HTTP/SSE daemon.
+- **"Orbit Insights" Sidebar Panel:** Cards for missing links, contradiction warnings with LLM quotes, and structural note context.
+- **Human-in-the-Loop:** `[+ Link]` writes wikilinks at active cursor; never mutates notes silently.
+- **Zero-Config Token Discovery:** Auto-reads `.orbit/server_token` from active vault filesystem.
+- **Auto-Sync on File Save:** Obsidian `vault.on('modify')` hook triggering debounced (1500ms) background reindexing (< 40ms).
 
-### Phase 9b: Obsidian Plugin MVP (`v0.9.1`)
-- **Editor Integration:** Lightweight TypeScript desktop plugin connecting to Orbit's HTTP/SSE daemon.
-- **"Orbit Insights" Sidebar Panel:** Cards for missing links, contradiction warnings, and structural note context.
-- **Auto-Sync on File Save:** Obsidian `vault.on('modify')` hook triggering sub-40ms single-note reindexing.
+---
+
+## 🎯 Current Milestone
 
 ### Phase 9c: Obsidian Plugin Polish (`v0.9.2` — Optional)
 - **Editor Gutter Icons:** Subtle inline markers next to headings with unlinked semantic connections.
