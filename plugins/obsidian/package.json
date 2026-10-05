@@ -1,6 +1,6 @@
 {
   "name": "orbit-insights",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "description": "Local-first Hybrid GraphRAG insights and contradiction warnings for Obsidian.",
   "main": "main.js",
   "type": "module",
@@ -19,6 +19,8 @@
   "author": "Project Orbit Contributors",
   "license": "MIT",
   "devDependencies": {
+    "@codemirror/state": "^6.4.0",
+    "@codemirror/view": "^6.35.0",
     "@types/node": "^22.8.0",
     "builtin-modules": "^3.3.0",
     "esbuild": "^0.24.0",

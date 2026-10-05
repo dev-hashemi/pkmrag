@@ -2,6 +2,13 @@
  * Data models and configuration interfaces for Orbit Insights Obsidian Plugin.
  */
 
+export interface DismissedSuggestion {
+  sourcePath: string;
+  targetPath: string;
+  targetTitle: string;
+  dismissedAt: number;
+}
+
 export interface OrbitPluginSettings {
   serverUrl: string;
   authToken: string;
@@ -9,6 +16,8 @@ export interface OrbitPluginSettings {
   autoRefreshOnNoteOpen: boolean;
   similarityThreshold: number;
   maxSuggestions: number;
+  showInlineIndicators: boolean;
+  dismissedSuggestions: Record<string, DismissedSuggestion>;
 }
 
 export const DEFAULT_SETTINGS: OrbitPluginSettings = {
@@ -18,6 +27,8 @@ export const DEFAULT_SETTINGS: OrbitPluginSettings = {
   autoRefreshOnNoteOpen: true,
   similarityThreshold: 0.75,
   maxSuggestions: 5,
+  showInlineIndicators: true,
+  dismissedSuggestions: {},
 };
 
 export interface HealthResponse {
@@ -83,6 +94,11 @@ export interface SearchResult {
   heading: string;
   content: string;
   score: number;
+}
+
+export interface SearchResponse {
+  results: SearchResult[];
+  count: number;
 }
 
 export interface VaultOverview {

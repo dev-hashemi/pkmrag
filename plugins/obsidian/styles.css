@@ -13,11 +13,7 @@
   border-bottom: 1px solid var(--background-modifier-border);
 }
 
-.orbit-header-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+.orbit-header-top { display: flex; justify-content: space-between; align-items: center; }
 
 .orbit-header-title {
   font-weight: var(--font-bold);
@@ -28,20 +24,11 @@
   text-overflow: ellipsis;
 }
 
-.orbit-header-actions {
-  display: flex;
-  gap: 6px;
-}
+.orbit-header-actions { display: flex; gap: 6px; }
 
-.orbit-sync-status {
-  font-size: 11px;
-  color: var(--text-muted);
-  margin-top: 4px;
-}
+.orbit-sync-status { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
 
-.orbit-section {
-  margin-bottom: 20px;
-}
+.orbit-section { margin-bottom: 20px; }
 
 .orbit-section-header {
   display: flex;
@@ -64,13 +51,9 @@
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.orbit-card:hover {
-  border-color: var(--interactive-accent);
-}
+.orbit-card:hover { border-color: var(--interactive-accent); }
 
-.orbit-card-contradiction {
-  border-left: 4px solid var(--text-warning, #f59f00);
-}
+.orbit-card-contradiction { border-left: 4px solid var(--text-warning, #f59f00); }
 
 .orbit-card-header {
   display: flex;
@@ -86,9 +69,7 @@
   text-decoration: none;
 }
 
-.orbit-card-target:hover {
-  text-decoration: underline;
-}
+.orbit-card-target:hover { text-decoration: underline; }
 
 .orbit-badge {
   display: inline-block;
@@ -110,31 +91,10 @@
   color: var(--text-accent);
 }
 
-.orbit-card-reason {
-  font-size: 12px;
-  color: var(--text-muted);
-  line-height: 1.4;
-  margin: 6px 0;
-}
-
-.orbit-card-actions {
-  display: flex;
-  gap: 6px;
-  margin-top: 8px;
-}
-
-.orbit-btn-sm {
-  font-size: 11px;
-  padding: 2px 8px;
-  height: 24px;
-  cursor: pointer;
-}
-
-.orbit-chip-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
+.orbit-card-reason { font-size: 12px; color: var(--text-muted); line-height: 1.4; margin: 6px 0; }
+.orbit-card-actions { display: flex; gap: 6px; margin-top: 8px; }
+.orbit-btn-sm { font-size: 11px; padding: 2px 8px; height: 24px; cursor: pointer; }
+.orbit-chip-container { display: flex; flex-wrap: wrap; gap: 4px; }
 
 .orbit-chip {
   display: inline-flex;
@@ -148,13 +108,160 @@
   cursor: pointer;
 }
 
-.orbit-chip:hover {
-  background: var(--background-modifier-hover);
+.orbit-chip:hover { background: var(--background-modifier-hover); }
+.orbit-empty-state { color: var(--text-faint); font-style: italic; font-size: 12px; padding: 8px 0; }
+
+/* CodeMirror 6 Inline Heading Indicators */
+.orbit-inline-indicator {
+  display: inline-block;
+  cursor: pointer;
+  font-size: 11px;
+  margin-left: 8px;
+  opacity: 0.65;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  user-select: none;
 }
 
-.orbit-empty-state {
-  color: var(--text-faint);
-  font-style: italic;
+.orbit-inline-indicator:hover {
+  opacity: 1;
+  transform: scale(1.15);
+}
+
+.orbit-inline-warning {
+  filter: drop-shadow(0 0 2px rgba(245, 159, 0, 0.4));
+}
+
+/* Offline Recovery Panel */
+.orbit-offline-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 24px 12px;
+}
+
+.orbit-offline-icon {
+  font-size: 32px;
+  margin-bottom: 12px;
+}
+
+.orbit-offline-title {
+  margin: 0 0 8px 0;
+  font-size: var(--font-ui-medium);
+  color: var(--text-normal);
+}
+
+.orbit-offline-desc {
   font-size: 12px;
-  padding: 8px 0;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin-bottom: 16px;
+}
+
+.orbit-code-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: var(--background-secondary-alt);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  padding: 6px 8px;
+  margin-bottom: 16px;
+  font-family: var(--font-monospace);
+  font-size: 11px;
+}
+
+.orbit-copy-btn {
+  font-size: 10px;
+  padding: 2px 6px;
+  cursor: pointer;
+}
+
+.orbit-offline-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Proximity Search Drawer */
+.orbit-search-container {
+  margin-bottom: 16px;
+}
+
+.orbit-search-toggle {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 6px;
+}
+
+.orbit-search-btn {
+  background: transparent;
+  border: 1px solid var(--background-modifier-border);
+}
+
+.orbit-search-box {
+  background: var(--background-secondary-alt);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  padding: 8px;
+  margin-bottom: 12px;
+}
+
+.orbit-search-input {
+  width: 100%;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+  margin-bottom: 8px;
+}
+
+.orbit-search-results {
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.orbit-search-card {
+  margin-bottom: 6px;
+  padding: 6px 8px;
+}
+
+/* Dismissed Suggestions Drawer */
+.orbit-dismissed-drawer {
+  margin-top: 10px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--background-modifier-border);
+}
+
+.orbit-dismissed-toggle {
+  font-size: 11px;
+  color: var(--text-faint);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.orbit-dismissed-toggle:hover {
+  color: var(--text-muted);
+}
+
+.orbit-dismissed-list {
+  margin-top: 6px;
+}
+
+.orbit-dismissed-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 0;
+  font-size: 11px;
+}
+
+.orbit-dismissed-title {
+  color: var(--text-muted);
+  text-decoration: line-through;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
 }

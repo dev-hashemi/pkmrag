@@ -126,5 +126,30 @@ export class OrbitSettingTab extends PluginSettingTab {
             await this.plugin.saveSettings();
           })
       );
+
+    new Setting(containerEl)
+      .setName("Show Inline Heading Indicators")
+      .setDesc("Display subtle link/contradiction indicators next to Markdown headings in the editor")
+      .addToggle((toggle) =>
+        toggle.setValue(this.plugin.settings.showInlineIndicators).onChange(async (val) => {
+          this.plugin.settings.showInlineIndicators = val;
+          await this.plugin.saveSettings();
+        })
+      );
+
+    containerEl.createEl("h3", { text: "Knowledge Governance & Memory" });
+
+    const dismissedCount = Object.keys(this.plugin.settings.dismissedSuggestions || {}).length;
+    new Setting(containerEl)
+      .setName("Dismissed Suggestions Memory")
+      .setDesc(`${dismissedCount} suggestion${dismissedCount === 1 ? "" : "s"} currently hidden by negative feedback`)
+      .addButton((btn) =>
+        btn.setButtonText("Reset All Dismissed").onClick(async () => {
+          this.plugin.settings.dismissedSuggestions = {};
+          await this.plugin.saveSettings();
+          new Notice("Reset all dismissed suggestions.");
+          this.display();
+        })
+      );
   }
 }

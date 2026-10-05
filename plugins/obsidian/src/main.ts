@@ -4,8 +4,14 @@
 
 import { MarkdownView, Notice, Plugin, TFile, WorkspaceLeaf } from "obsidian";
 import { OrbitClient } from "./client";
+import { createOrbitEditorExtension } from "./extension";
 import { OrbitSettingTab } from "./settings";
-import { DEFAULT_SETTINGS, OrbitPluginSettings } from "./types";
+import {
+  DEFAULT_SETTINGS,
+  InferredRelationship,
+  OrbitPluginSettings,
+  SemanticGapCandidate,
+} from "./types";
 import { OrbitInsightsView, VIEW_TYPE_ORBIT_INSIGHTS } from "./view";
 
 export default class OrbitInsightsPlugin extends Plugin {
@@ -14,6 +20,8 @@ export default class OrbitInsightsPlugin extends Plugin {
   private statusBarEl!: HTMLElement;
   private eventSource: EventSource | null = null;
   private debounceMap: Map<string, ReturnJS_Timeout> = new Map();
+  private activeInsights: Map<string, { gapsCount: number; hasContradiction: boolean }> =
+    new Map();
 
   async onload(): Promise<void> {
     await this.loadSettings();
@@ -53,6 +61,9 @@ export default class OrbitInsightsPlugin extends Plugin {
       callback: () => this.refreshActiveView(),
     });
 
+    // Register CodeMirror 6 Editor Extension
+    this.registerEditorExtension(createOrbitEditorExtension(this));
+
     this.addCommand({
       id: "sync-orbit-vault",
       name: "Sync Vault Index (Incremental)",
@@ -65,6 +76,30 @@ export default class OrbitInsightsPlugin extends Plugin {
           const msg = err instanceof Error ? err.message : String(err);
           new Notice(`Orbit Sync Failed: ${msg}`);
         }
+      },
+    });
+
+    this.addCommand({
+      id: "toggle-orbit-inline-indicators",
+      name: "Toggle Inline Heading Indicators",
+      callback: async () => {
+        this.settings.showInlineIndicators = !this.settings.showInlineIndicators;
+        await this.saveSettings();
+        new Notice(
+          `Orbit: Inline indicators ${this.settings.showInlineIndicators ? "enabled" : "disabled"}`
+        );
+        this.app.workspace.updateOptions();
+      },
+    });
+
+    this.addCommand({
+      id: "clear-orbit-dismissed",
+      name: "Clear Dismissed Suggestions",
+      callback: async () => {
+        this.settings.dismissedSuggestions = {};
+        await this.saveSettings();
+        new Notice("Orbit: Cleared all dismissed suggestions.");
+        this.refreshActiveView();
       },
     });
 
@@ -173,6 +208,28 @@ export default class OrbitInsightsPlugin extends Plugin {
     const wikilink = `[[${targetTitle}]]`;
     editor.replaceSelection(wikilink);
     new Notice(`Inserted link to ${wikilink}`);
+  }
+
+  setActiveInsights(
+    path: string,
+    gaps: SemanticGapCandidate[],
+    inferences: InferredRelationship[]
+  ): void {
+    const dismissed = this.settings.dismissedSuggestions || {};
+    const visibleCount = gaps.filter(
+      (g) => !dismissed[`${g.source_path}::${g.target_path}`]
+    ).length;
+    const hasContra = inferences.some((i) => i.rel_type === "CONTRADICTS");
+    this.activeInsights.set(path, { gapsCount: visibleCount, hasContradiction: hasContra });
+    this.app.workspace.updateOptions();
+  }
+
+  getActiveGapsCount(path: string): number {
+    return this.activeInsights.get(path)?.gapsCount || 0;
+  }
+
+  hasActiveContradiction(path: string): boolean {
+    return this.activeInsights.get(path)?.hasContradiction || false;
   }
 
   private async checkConnection(): Promise<void> {

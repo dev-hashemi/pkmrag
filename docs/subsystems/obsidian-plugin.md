@@ -26,6 +26,27 @@ The plugin intercepts Obsidian's `vault.on('modify')` event with a **1500ms debo
 ### 1.4 Live Reactive Event Stream
 The plugin subscribes to Orbit's Server-Sent Events stream (`GET /api/v1/events`). When an external tool or CLI run updates the vault index, open sidebar tabs automatically refresh.
 
+### 1.5 CodeMirror 6 Inline Heading Indicators
+- **Unobtrusive Ambient Awareness:** Lightweight CodeMirror 6 `ViewPlugin` renders subtle indicators next to document headings:
+  - `🔗 N` indicates *N* unlinked semantic link recommendations available for this note.
+  - `⚠️` alerts to detected logical contradictions or conflicts with other notes in the vault.
+- **Direct Interaction:** Clicking any indicator smoothly reveals the Orbit Insights sidebar panel and refreshes live recommendations for the active note. Configurable via plugin settings.
+
+### 1.6 Proximity Search Drawer (Concept Explorer)
+- **Anchored Graph Search:** Accessible via the `🔍 Explore Concepts` drawer in the sidebar or command palette (`Orbit: Proximity Search & Reference`).
+- **Context-Aware Fusion:** Dispatches hybrid semantic and graph traversal anchored to the active note (`POST /api/v1/search` with `--near <note>`), returning dense/sparse fusion scores and textual snippets.
+- **1-Click Reference Insertion:** Inserts a markdown link or quote reference to the target note directly at your current cursor position.
+
+### 1.7 Knowledge Governance & Persistent Dismissal Memory
+- **Persistent Feedback:** Dismissed suggestions are recorded in plugin data (`dismissedSuggestions` in `data.json`) keyed by `source_path` and `target_title`, preventing dismissed links from recurring across sessions.
+- **Transparent Recovery:** A collapsible "Dismissed Suggestions" drawer in the sidebar displays previously dismissed items with single-click `[Restore]` buttons.
+- **Global Reset:** A "Reset All Dismissed Suggestions" action in Plugin Settings lets users flush negative feedback when restructuring their vault.
+
+### 1.8 Graceful Offline Recovery Panel
+- **Helpful Onboarding:** If the background Orbit daemon is not running, the sidebar displays an onboarding card rather than a raw error.
+- **Click-to-Copy CLI Command:** One-click copy for `uv run orbit serve . -t http --port 3747`.
+- **Immediate Reconnection:** "Retry Connection" button tests connectivity and auto-populates insights once the daemon is up.
+
 ---
 
 ## 2. Installation & Quickstart
@@ -62,12 +83,15 @@ The plugin source code lives under `plugins/obsidian/`:
 plugins/obsidian/
   src/
     client.ts        # Typed HTTP/SSE API client
+    extension.ts     # CodeMirror 6 inline heading indicator extension
     main.ts          # Plugin lifecycle & event debouncers
-    settings.ts      # Settings tab with connection test
+    settings.ts      # Settings tab with connection test & governance
     types.ts         # TypeScript interfaces matching Orbit REST API
     view.ts          # "Orbit Insights" ItemView sidebar panel
+    view_offline.ts  # Friendly offline recovery card & onboarding
+    view_search.ts   # Proximity concept explorer & reference insertion
   tests/
-    client.test.ts   # Client unit tests
+    client.test.ts   # Client and storage unit tests
   manifest.json      # Obsidian metadata
   package.json       # Node package configuration
   tsconfig.json      # TypeScript compiler options

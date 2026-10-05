@@ -63,3 +63,103 @@ test("OrbitClient autoDiscoverVaultToken handles missing file gracefully", async
   assert.equal(tok, null);
   assert.equal(client.settings.authToken, "");
 });
+
+test("OrbitClient searchVault dispatches POST request with query and near note", async () => {
+  const client = new OrbitClient({
+    ...DEFAULT_SETTINGS,
+    serverUrl: "http://127.0.0.1:3747",
+    authToken: "search_token_123",
+  });
+
+  const originalFetch = globalThis.fetch;
+  let interceptedUrl = "";
+  let interceptedInit: RequestInit | undefined;
+
+  globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    interceptedUrl = String(input);
+    interceptedInit = init;
+    return new Response(
+      JSON.stringify({
+        query: "distributed consensus",
+        results: [
+          {
+            title: "Paxos Algorithm",
+            score: 0.94,
+            chunk_text: "Paxos is a family of protocols for reaching consensus...",
+            metadata: { path: "distributed/paxos.md" },
+          },
+        ],
+      }),
+      { status: 200, headers: { "Content-Type": "application/json" } }
+    );
+  };
+
+  try {
+    const results = await client.searchVault("distributed consensus", "raft.md", 5);
+    assert.equal(interceptedUrl, "http://127.0.0.1:3747/api/v1/search");
+    assert.equal(interceptedInit?.method, "POST");
+    const sentBody = JSON.parse(String(interceptedInit?.body));
+    assert.deepEqual(sentBody, {
+      query: "distributed consensus",
+      limit: 5,
+      near: "raft.md",
+    });
+    const headers = interceptedInit?.headers as Record<string, string>;
+    assert.equal(headers["Authorization"], "Bearer search_token_123");
+
+    assert.equal(results.length, 1);
+    assert.equal(results[0].title, "Paxos Algorithm");
+    assert.equal(results[0].score, 0.94);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("OrbitClient searchVault throws error on non-200 response", async () => {
+  const client = new OrbitClient({ ...DEFAULT_SETTINGS });
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async (): Promise<Response> => {
+    return new Response("Internal Server Error", { status: 500 });
+  };
+
+  try {
+    await assert.rejects(
+      async () => {
+        await client.searchVault("query");
+      },
+      {
+        message: "Search failed with HTTP 500",
+      }
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Dismissed suggestions filter removes dismissed items matching source and target", () => {
+  const dismissed = [
+    {
+      source_path: "notes/raft.md",
+      target_title: "Byzantine Generals",
+      dismissed_at: "2026-10-05T12:00:00Z",
+    },
+  ];
+
+  const suggestions = [
+    { target_title: "Paxos", target_path: "notes/paxos.md" },
+    { target_title: "Byzantine Generals", target_path: "notes/byzantine.md" },
+  ];
+
+  const sourcePath = "notes/raft.md";
+  const filtered = suggestions.filter(
+    (s) =>
+      !dismissed.some(
+        (d) => d.source_path === sourcePath && d.target_title === s.target_title
+      )
+  );
+
+  assert.equal(filtered.length, 1);
+  assert.equal(filtered[0].target_title, "Paxos");
+});
+

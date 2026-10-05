@@ -249,6 +249,16 @@ Example trace tree output:
 - **Context Tokens Saved:** Quantifies tokens saved by graph topology pruning in `orbit discover`.
 - **Remote OTLP Exporter:** Optional live trace streaming to Langfuse, Jaeger, or Datadog via `.env`.
 
+### 💎 Obsidian Desktop Plugin (`orbit-insights`)
+Native desktop integration bringing Orbit's GraphRAG engine directly into your markdown editing flow:
+- **Orbit Insights Sidebar:** Real-time semantic gap recommendations, contradiction warnings with LLM citations, and structural graph context.
+- **CodeMirror 6 Inline Indicators:** Ambient visual widgets on headings (`🔗 N`, `⚠️`) without document clutter; clicking opens the sidebar panel.
+- **Proximity Concept Explorer:** Context-anchored hybrid retrieval drawer (`--near <note>`) directly within the editor with 1-click reference insertion.
+- **Knowledge Governance:** Persistent negative feedback cache preventing dismissed links from recurring; transparent restoration drawer and global reset.
+- **Zero-Config Token Security:** Automatically discovers `.orbit/server_token` from active vault.
+- **Live Reactive Updates:** Subscribes to Server-Sent Events (`/api/v1/events`) for background indexing updates.
+See [docs/subsystems/obsidian-plugin.md](file:///home/ali/projects/my/project-orbit/docs/subsystems/obsidian-plugin.md) for installation and developer guides.
+
 ### Running Tests & Linting
 ```bash
 # Unit & integration tests + Golden 10 benchmark

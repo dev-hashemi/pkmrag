@@ -8,6 +8,8 @@ import {
   HealthResponse,
   NoteContext,
   OrbitPluginSettings,
+  SearchResponse,
+  SearchResult,
   SemanticGapCandidate,
   SyncResult,
 } from "./types";
@@ -136,6 +138,36 @@ export class OrbitClient {
       throw new Error(`Vault sync failed with HTTP ${res.status}`);
     }
     const data = await res.json();
+    return data.results || [];
+  }
+
+  /**
+   * Search knowledge base chunks biased by graph proximity to an anchor note.
+   */
+  async searchVault(
+    query: string,
+    near?: string,
+    limit?: number
+  ): Promise<SearchResult[]> {
+    const base = this.settings.serverUrl.replace(/\/+$/, "");
+    const url = `${base}/api/v1/search`;
+    const payload: Record<string, unknown> = {
+      query: query.trim(),
+      limit: limit || 5,
+    };
+    if (near) {
+      payload.near = near;
+    }
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: this.getHeaders(),
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      throw new Error(`Search failed with HTTP ${res.status}`);
+    }
+    const data = (await res.json()) as SearchResponse;
     return data.results || [];
   }
 

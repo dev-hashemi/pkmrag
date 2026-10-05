@@ -5,6 +5,8 @@
 import { ItemView, WorkspaceLeaf } from "obsidian";
 import type OrbitInsightsPlugin from "./main";
 import { NoteContext, SemanticGapCandidate } from "./types";
+import { renderOfflineView } from "./view_offline";
+import { ProximitySearchDrawer } from "./view_search";
 
 export const VIEW_TYPE_ORBIT_INSIGHTS = "orbit-insights-view";
 
@@ -13,10 +15,10 @@ export class OrbitInsightsView extends ItemView {
   private currentNotePath: string | null = null;
   private context: NoteContext | null = null;
   private gaps: SemanticGapCandidate[] = [];
-  private dismissedGaps: Set<string> = new Set();
   private lastUpdated: Date | null = null;
   private isLoading = false;
   private errorMessage: string | null = null;
+  private showDismissed = false;
 
   constructor(leaf: WorkspaceLeaf, plugin: OrbitInsightsPlugin) {
     super(leaf);
@@ -58,6 +60,7 @@ export class OrbitInsightsView extends ItemView {
       this.context = ctx;
       this.gaps = gaps;
       this.lastUpdated = new Date();
+      this.plugin.setActiveInsights(notePath, gaps, ctx?.inferred_relationships || []);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       this.errorMessage = message;
@@ -94,9 +97,8 @@ export class OrbitInsightsView extends ItemView {
     headerEl.createDiv({ cls: "orbit-sync-status", text: statusText });
 
     if (this.errorMessage) {
-      container.createDiv({
-        cls: "orbit-card orbit-card-contradiction",
-        text: `Error: ${this.errorMessage}`,
+      renderOfflineView(container, this.plugin, () => {
+        if (this.currentNotePath) this.loadInsightsForNote(this.currentNotePath);
       });
       return;
     }
@@ -109,6 +111,9 @@ export class OrbitInsightsView extends ItemView {
       return;
     }
 
+    // Proximity Concept Explorer Search Drawer
+    new ProximitySearchDrawer(container, this.plugin, () => this.currentNotePath);
+
     // 1. Missing Links Section (Semantic Gaps)
     this.renderGapsSection(container);
 
@@ -120,9 +125,11 @@ export class OrbitInsightsView extends ItemView {
   }
 
   private renderGapsSection(container: HTMLElement): void {
+    const dismissed = this.plugin.settings.dismissedSuggestions || {};
     const visibleGaps = this.gaps.filter(
-      (g) => !this.dismissedGaps.has(g.source_path + "->" + g.target_path)
+      (g) => !dismissed[`${g.source_path}::${g.target_path}`]
     );
+
     const sec = container.createDiv({ cls: "orbit-section" });
     sec.createDiv({
       cls: "orbit-section-header",
@@ -131,42 +138,91 @@ export class OrbitInsightsView extends ItemView {
 
     if (visibleGaps.length === 0) {
       sec.createDiv({ cls: "orbit-empty-state", text: "No unlinked semantic gaps detected." });
-      return;
+    } else {
+      for (const gap of visibleGaps) {
+        this.renderGapCard(sec, gap);
+      }
     }
 
-    for (const gap of visibleGaps) {
-      const isTarget = gap.source_path === this.currentNotePath;
-      const otherTitle = isTarget ? gap.target_title : gap.source_title;
-      const otherPath = isTarget ? gap.target_path : gap.source_path;
+    // Dismissed Drawer
+    this.renderDismissedDrawer(sec);
+  }
 
-      const card = sec.createDiv({ cls: "orbit-card" });
-      const cardHead = card.createDiv({ cls: "orbit-card-header" });
-      const targetLink = cardHead.createEl("a", {
-        cls: "orbit-card-target",
-        text: otherTitle || otherPath.replace(/\.md$/, ""),
-      });
-      targetLink.onclick = () => this.app.workspace.openLinkText(otherPath, "");
+  private renderGapCard(sec: HTMLElement, gap: SemanticGapCandidate): void {
+    const isTarget = gap.source_path === this.currentNotePath;
+    const otherTitle = isTarget ? gap.target_title : gap.source_title;
+    const otherPath = isTarget ? gap.target_path : gap.source_path;
 
-      const pct = Math.round(gap.similarity * 100);
-      cardHead.createSpan({ cls: "orbit-badge", text: `${pct}% similar` });
+    const card = sec.createDiv({ cls: "orbit-card" });
+    const cardHead = card.createDiv({ cls: "orbit-card-header" });
+    const targetLink = cardHead.createEl("a", {
+      cls: "orbit-card-target",
+      text: otherTitle || otherPath.replace(/\.md$/, ""),
+    });
+    targetLink.onclick = () => this.app.workspace.openLinkText(otherPath, "");
 
-      card.createDiv({
-        cls: "orbit-card-reason",
-        text: `Graph distance: ${gap.hops} hops away with high semantic proximity.`,
-      });
+    const pct = Math.round(gap.similarity * 100);
+    cardHead.createSpan({ cls: "orbit-badge", text: `${pct}% similar` });
 
-      const actions = card.createDiv({ cls: "orbit-card-actions" });
-      const insertBtn = actions.createEl("button", {
-        cls: "orbit-btn-sm mod-cta",
-        text: "+ Link",
-      });
-      insertBtn.onclick = () => this.plugin.insertLink(otherTitle || otherPath.replace(/\.md$/, ""));
+    card.createDiv({
+      cls: "orbit-card-reason",
+      text: `Graph distance: ${gap.hops} hops away with high semantic proximity.`,
+    });
 
-      const dismissBtn = actions.createEl("button", { cls: "orbit-btn-sm", text: "Dismiss" });
-      dismissBtn.onclick = () => {
-        this.dismissedGaps.add(gap.source_path + "->" + gap.target_path);
-        this.render();
+    const actions = card.createDiv({ cls: "orbit-card-actions" });
+    const insertBtn = actions.createEl("button", {
+      cls: "orbit-btn-sm mod-cta",
+      text: "+ Link",
+    });
+    insertBtn.onclick = () => this.plugin.insertLink(otherTitle || otherPath.replace(/\.md$/, ""));
+
+    const dismissBtn = actions.createEl("button", { cls: "orbit-btn-sm", text: "Dismiss" });
+    dismissBtn.onclick = async () => {
+      const key = `${gap.source_path}::${gap.target_path}`;
+      if (!this.plugin.settings.dismissedSuggestions) {
+        this.plugin.settings.dismissedSuggestions = {};
+      }
+      this.plugin.settings.dismissedSuggestions[key] = {
+        sourcePath: gap.source_path,
+        targetPath: gap.target_path,
+        targetTitle: otherTitle,
+        dismissedAt: Date.now(),
       };
+      await this.plugin.saveSettings();
+      this.render();
+    };
+  }
+
+  private renderDismissedDrawer(sec: HTMLElement): void {
+    const dismissed = this.plugin.settings.dismissedSuggestions || {};
+    const noteDismissed = Object.entries(dismissed).filter(([_, item]) =>
+      this.currentNotePath && (item.sourcePath === this.currentNotePath || item.targetPath === this.currentNotePath)
+    );
+
+    if (noteDismissed.length === 0) return;
+
+    const drawer = sec.createDiv({ cls: "orbit-dismissed-drawer" });
+    const toggleBtn = drawer.createEl("a", {
+      cls: "orbit-dismissed-toggle",
+      text: `${this.showDismissed ? "▾ Hide" : "▸ Show"} ${noteDismissed.length} dismissed`,
+    });
+    toggleBtn.onclick = () => {
+      this.showDismissed = !this.showDismissed;
+      this.render();
+    };
+
+    if (this.showDismissed) {
+      const listEl = drawer.createDiv({ cls: "orbit-dismissed-list" });
+      for (const [key, item] of noteDismissed) {
+        const row = listEl.createDiv({ cls: "orbit-dismissed-row" });
+        row.createSpan({ cls: "orbit-dismissed-title", text: item.targetTitle || item.targetPath });
+        const restoreBtn = row.createEl("button", { cls: "orbit-btn-sm", text: "Restore" });
+        restoreBtn.onclick = async () => {
+          delete this.plugin.settings.dismissedSuggestions[key];
+          await this.plugin.saveSettings();
+          this.render();
+        };
+      }
     }
   }
 

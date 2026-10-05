@@ -90,11 +90,11 @@ v0.0.1      v0.1.0      v0.2.0      v0.3.0      v0.4.0      v0.5.0      v0.6.0  
 
 ---
 
-## 🎯 Current Milestone
-
-### Phase 9c: Obsidian Plugin Polish (`v0.9.2` — Optional)
-- **Editor Gutter Icons:** Subtle inline markers next to headings with unlinked semantic connections.
-- **Dismissed Suggestion Memory:** Negative feedback cache preventing dismissed links from reappearing.
+### Phase 9c: Obsidian Plugin Polish & Knowledge Governance (`v0.9.2`) ✅
+- **CodeMirror 6 Inline Indicators:** Ambient visual widgets on headings (`🔗 N`, `⚠️`) without document clutter; clicking opens the sidebar panel.
+- **Knowledge Governance & Dismissed Memory:** Persistent dismissal cache preventing rejected suggestions from recurring; transparent restoration drawer and global reset.
+- **Proximity Concept Explorer:** Context-anchored hybrid retrieval drawer (`--near <note>`) directly within the editor with 1-click reference insertion.
+- **Graceful Offline Recovery:** User-friendly onboarding card with 1-click copyable CLI startup command (`uv run orbit serve . -t http --port 3747`) and immediate reconnect polling.
 
 ---
 
