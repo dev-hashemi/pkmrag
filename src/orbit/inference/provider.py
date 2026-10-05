@@ -9,6 +9,7 @@ import httpx
 
 from orbit.inference.base import InferredRelationshipResult
 from orbit.inference.limiter import RateLimiter, estimate_tokens, parse_retry_after
+from orbit.telemetry import trace_span
 
 SYSTEM_PROMPT = """You are an expert personal knowledge graph analyst.
 Analyze two notes from a knowledge base that are semantically similar but currently unlinked.
@@ -59,6 +60,8 @@ class OpenAICompatibleProvider:
             )
         )
         self.on_wait = on_wait
+        self.total_prompt_tokens = 0
+        self.total_completion_tokens = 0
 
     def classify_relationship(
         self,
@@ -83,84 +86,107 @@ class OpenAICompatibleProvider:
         prompt_tokens = estimate_tokens(user_prompt) + estimate_tokens(SYSTEM_PROMPT) + 150
         self.rate_limiter.acquire(prompt_tokens, on_wait=self.on_wait)
 
-        strict_format = {
-            "type": "json_schema",
-            "json_schema": {
-                "name": "inferred_relationship",
-                "strict": True,
-                "schema": InferredRelationshipResult.strict_json_schema(),
-            },
-        }
-
-        attempt = 0
-        use_strict = True
-        max_retries = self.rate_limiter.max_retries
-
-        while attempt <= max_retries:
-            payload = {
+        with trace_span(
+            "llm.classify_relationship",
+            attributes={
                 "model": self.model,
-                "messages": [
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": user_prompt},
-                ],
-                "temperature": 0.0,
-                "response_format": strict_format if use_strict else {"type": "json_object"},
+                "source.title": source_title,
+                "target.title": target_title,
+            },
+        ) as span:
+            strict_format = {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "inferred_relationship",
+                    "strict": True,
+                    "schema": InferredRelationshipResult.strict_json_schema(),
+                },
             }
 
-            try:
-                with httpx.Client(timeout=self.timeout) as client:
-                    resp = client.post(
-                        f"{self.base_url}/chat/completions",
-                        headers=headers,
-                        json=payload,
+            attempt = 0
+            use_strict = True
+            max_retries = self.rate_limiter.max_retries
+
+            while attempt <= max_retries:
+                payload = {
+                    "model": self.model,
+                    "messages": [
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    "temperature": 0.0,
+                    "response_format": strict_format if use_strict else {"type": "json_object"},
+                }
+
+                try:
+                    with httpx.Client(timeout=self.timeout) as client:
+                        resp = client.post(
+                            f"{self.base_url}/chat/completions",
+                            headers=headers,
+                            json=payload,
+                        )
+
+                        if resp.status_code == 429:
+                            if attempt < max_retries:
+                                retry_after = parse_retry_after(resp)
+                                self.rate_limiter.wait_for_retry(
+                                    attempt, retry_after, on_wait=self.on_wait
+                                )
+                                attempt += 1
+                                continue
+                            resp.raise_for_status()
+
+                        # Fallback to json_object if an endpoint doesn't support json_schema
+                        if resp.status_code == 400 and use_strict:
+                            use_strict = False
+                            continue
+
+                        resp.raise_for_status()
+                        data = resp.json()
+
+                        usage = data.get("usage", {})
+                        p_tok = int(usage.get("prompt_tokens", 0))
+                        c_tok = int(usage.get("completion_tokens", 0))
+                        t_tok = int(usage.get("total_tokens", p_tok + c_tok))
+                        self.total_prompt_tokens += p_tok
+                        self.total_completion_tokens += c_tok
+                        span.set_attribute("gen_ai.usage.prompt_tokens", p_tok)
+                        span.set_attribute("gen_ai.usage.completion_tokens", c_tok)
+                        span.set_attribute("tokens.prompt", p_tok)
+                        span.set_attribute("tokens.completion", c_tok)
+                        span.set_attribute("tokens.total", t_tok)
+
+                        raw_content = data["choices"][0]["message"]["content"]
+                        res = self._parse_json_result(raw_content)
+                        span.set_attribute("rel_type", res.rel_type)
+                        return res
+
+                except httpx.HTTPStatusError as e:
+                    if e.response.status_code == 429 and attempt < max_retries:
+                        retry_after = parse_retry_after(e.response)
+                        self.rate_limiter.wait_for_retry(attempt, retry_after, on_wait=self.on_wait)
+                        attempt += 1
+                        continue
+                    return InferredRelationshipResult(
+                        rel_type="NONE",
+                        confidence=0.0,
+                        reason=f"Inference HTTP error {e.response.status_code}: {e}",
+                        direction="source_to_target",
+                    )
+                except Exception as e:
+                    return InferredRelationshipResult(
+                        rel_type="NONE",
+                        confidence=0.0,
+                        reason=f"Inference failed: {e}",
+                        direction="source_to_target",
                     )
 
-                    if resp.status_code == 429:
-                        if attempt < max_retries:
-                            retry_after = parse_retry_after(resp)
-                            self.rate_limiter.wait_for_retry(
-                                attempt, retry_after, on_wait=self.on_wait
-                            )
-                            attempt += 1
-                            continue
-                        resp.raise_for_status()
-
-                    # Fallback to json_object if an endpoint doesn't support json_schema
-                    if resp.status_code == 400 and use_strict:
-                        use_strict = False
-                        continue
-
-                    resp.raise_for_status()
-                    data = resp.json()
-                    raw_content = data["choices"][0]["message"]["content"]
-                    return self._parse_json_result(raw_content)
-
-            except httpx.HTTPStatusError as e:
-                if e.response.status_code == 429 and attempt < max_retries:
-                    retry_after = parse_retry_after(e.response)
-                    self.rate_limiter.wait_for_retry(attempt, retry_after, on_wait=self.on_wait)
-                    attempt += 1
-                    continue
-                return InferredRelationshipResult(
-                    rel_type="NONE",
-                    confidence=0.0,
-                    reason=f"Inference HTTP error {e.response.status_code}: {e}",
-                    direction="source_to_target",
-                )
-            except Exception as e:
-                return InferredRelationshipResult(
-                    rel_type="NONE",
-                    confidence=0.0,
-                    reason=f"Inference failed: {e}",
-                    direction="source_to_target",
-                )
-
-        return InferredRelationshipResult(
-            rel_type="NONE",
-            confidence=0.0,
-            reason="Exceeded maximum rate limit retries (HTTP 429)",
-            direction="source_to_target",
-        )
+            return InferredRelationshipResult(
+                rel_type="NONE",
+                confidence=0.0,
+                reason="Exceeded maximum rate limit retries (HTTP 429)",
+                direction="source_to_target",
+            )
 
     def _parse_json_result(self, raw_content: str) -> InferredRelationshipResult:
         """Validate JSON content directly into InferredRelationshipResult model."""

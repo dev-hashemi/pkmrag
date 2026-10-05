@@ -56,13 +56,15 @@ v0.0.1      v0.1.0      v0.2.0      v0.3.0      v0.4.0      v0.5.0      v0.6.0  
 - **In-Repo Golden Benchmark:** 12-note reference vault with multi-hop wikilinks and golden queries in `benchmarks/`.
 - **CI Quality Gating:** Integrated into GitHub Actions workflow blocking regressions on pull requests (`MRR >= 0.80`, `Recall@5 >= 0.80`).
 
+### Phase 7: Observability & Tracing (`v0.7.0`) ✅
+- **Distributed Tracing:** OpenTelemetry spans wrapping each step of `query_vault`, `orbit search`, and `orbit discover` (cache lookup, embedding, LanceDB search, LadybugDB traversal, fusion).
+- **In-Terminal Visual Breakdown:** `orbit search --trace` renders a color-coded Rich waterfall tree with latency thresholds and attribute badges.
+- **Token & Cost Auditing:** Track prompt/completion token consumption per inference call and quantify context tokens saved by graph topology pruning (`tokens_saved_by_graph`).
+- **Zero-Daemon Local Inspection:** In-memory span recording with zero background process overhead; optional OTLP HTTP export to Langfuse/Jaeger.
+
 ---
 
 ## 🎯 Current Milestone
-
-### Phase 7: Observability & Tracing (`v0.7.0`)
-- **Distributed Tracing:** OpenTelemetry spans wrapping each step of `query_vault` and `orbit discover` (cache lookup, embedding, LanceDB search, LadybugDB traversal, fusion).
-- **Token & Cost Auditing:** Track prompt/completion token consumption and latency metrics per query.
 
 ### Phase 8: Local Model Inference (`v0.8.0`)
 - **Local Fallback:** Implement `OllamaProvider` adhering to Phase 4's `InferenceProvider` protocol.

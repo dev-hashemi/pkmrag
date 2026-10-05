@@ -16,6 +16,7 @@ from orbit.graph.traversal import (
 from orbit.inference.base import InferenceProvider
 from orbit.models import DiscoveryStats, InferredRelationship, SemanticGapCandidate
 from orbit.search.vector_store import VectorStore
+from orbit.telemetry import trace_span
 
 
 class GapDiscoveryEngine:
@@ -76,64 +77,74 @@ class GapDiscoveryEngine:
         # candidate_map: (note_a, note_b) -> (max_sim, chunk_a_id, chunk_b_id, text_a, text_b)
         best_pair_matches: dict[tuple[str, str], tuple[float, str, str, str, str]] = {}
 
-        for i in range(total_chunks):
-            v_i = vectors[i]
-            note_i = note_paths[i]
-            id_i = ids[i]
-            text_i = texts[i]
+        with trace_span("gap.vector_ann", attributes={"similarity_threshold": threshold}):
+            for i in range(total_chunks):
+                v_i = vectors[i]
+                note_i = note_paths[i]
+                id_i = ids[i]
+                text_i = texts[i]
 
-            # Search LanceDB for top 20 nearest neighbors using cosine metric
-            matches = (
-                self.vector_store.table.search(v_i).distance_type("cosine").limit(20).to_list()
-            )
+                # Search LanceDB for top 20 nearest neighbors using cosine metric
+                matches = (
+                    self.vector_store.table.search(v_i).distance_type("cosine").limit(20).to_list()
+                )
 
-            for m in matches:
-                note_j = str(m.get("note_path", ""))
-                if not note_j or note_j == note_i:
-                    continue  # Skip self-note chunks
+                for m in matches:
+                    note_j = str(m.get("note_path", ""))
+                    if not note_j or note_j == note_i:
+                        continue  # Skip self-note chunks
 
-                dist = float(m.get("_distance", 1.0))
-                sim = 1.0 - dist
-                if sim < threshold:
-                    continue
+                    dist = float(m.get("_distance", 1.0))
+                    sim = 1.0 - dist
+                    if sim < threshold:
+                        continue
 
-                id_j = str(m.get("id", ""))
-                text_j = str(m.get("text", ""))
+                    id_j = str(m.get("id", ""))
+                    text_j = str(m.get("text", ""))
 
-                # Canonical pair key (min, max) to eliminate bidirectional duplicates
-                pair_key = (min(note_i, note_j), max(note_i, note_j))
-                if pair_key not in best_pair_matches or sim > best_pair_matches[pair_key][0]:
-                    if note_i == pair_key[0]:
-                        best_pair_matches[pair_key] = (sim, id_i, id_j, text_i, text_j)
-                    else:
-                        best_pair_matches[pair_key] = (sim, id_j, id_i, text_j, text_i)
+                    # Canonical pair key (min, max) to eliminate bidirectional duplicates
+                    pair_key = (min(note_i, note_j), max(note_i, note_j))
+                    if pair_key not in best_pair_matches or sim > best_pair_matches[pair_key][0]:
+                        if note_i == pair_key[0]:
+                            best_pair_matches[pair_key] = (sim, id_i, id_j, text_i, text_j)
+                        else:
+                            best_pair_matches[pair_key] = (sim, id_j, id_i, text_j, text_i)
 
         # Step 2: Filter out note pairs already connected in LadybugDB within max_hops
         # or already evaluated in INFERRED_REL
         filtered_candidates: list[SemanticGapCandidate] = []
         hop_cache: dict[str, dict[str, int]] = {}
 
-        for (src, dst), (sim, c_src, c_dst, t_src, t_dst) in best_pair_matches.items():
-            if src not in hop_cache:
-                hop_cache[src] = self.graph_store.get_neighbor_hops(src, max_hops=hops)
+        with trace_span(
+            "gap.graph_filter",
+            attributes={"max_hops": hops, "raw_candidates": len(best_pair_matches)},
+        ) as filter_span:
+            for (src, dst), (sim, c_src, c_dst, t_src, t_dst) in best_pair_matches.items():
+                if src not in hop_cache:
+                    hop_cache[src] = self.graph_store.get_neighbor_hops(src, max_hops=hops)
 
-            if dst in hop_cache[src]:
-                continue  # Already connected within max_hops via LINKS_TO
+                if dst in hop_cache[src]:
+                    continue  # Already connected within max_hops via LINKS_TO
 
-            # Check if an inferred relationship already exists in the graph
-            if has_inferred_relationship(self.graph_store.conn, src, dst):
-                continue  # Already evaluated
+                # Check if an inferred relationship already exists in the graph
+                if has_inferred_relationship(self.graph_store.conn, src, dst):
+                    continue  # Already evaluated
 
-            filtered_candidates.append(
-                SemanticGapCandidate(
-                    source_path=src,
-                    target_path=dst,
-                    similarity=round(sim, 4),
-                    source_chunk_id=c_src,
-                    target_chunk_id=c_dst,
-                    source_chunk_text=t_src,
-                    target_chunk_text=t_dst,
+                filtered_candidates.append(
+                    SemanticGapCandidate(
+                        source_path=src,
+                        target_path=dst,
+                        similarity=round(sim, 4),
+                        source_chunk_id=c_src,
+                        target_chunk_id=c_dst,
+                        source_chunk_text=t_src,
+                        target_chunk_text=t_dst,
+                    )
                 )
+
+            filter_span.set_attribute("candidates.count", len(filtered_candidates))
+            filter_span.set_attribute(
+                "pruned_by_graph", len(best_pair_matches) - len(filtered_candidates)
             )
 
         # Sort descending by similarity
@@ -205,50 +216,59 @@ class GapDiscoveryEngine:
     ) -> tuple[list[SemanticGapCandidate], list[InferredRelationship], DiscoveryStats]:
         """Orchestrate end-to-end candidate discovery and optional LLM classification."""
         start_time = time.perf_counter()
-        candidates = self.find_gap_candidates(
-            min_similarity=similarity_threshold,
-            max_hops=max_hops,
-        )
-
-        inferred: list[InferredRelationship] = []
-        eff_provider = provider or self.inference_provider
-        if not dry_run and candidates:
-            if eff_provider is None:
-                from orbit.inference.limiter import RateLimiter
-                from orbit.inference.provider import OpenAICompatibleProvider
-
-                eff_rpm = rpm if rpm is not None else settings.llm_rpm
-                eff_tpm = tpm if tpm is not None else settings.llm_tpm
-                limiter = RateLimiter(
-                    rpm=eff_rpm,
-                    tpm=eff_tpm,
-                    max_retries=settings.llm_max_retries,
-                )
-
-                def on_wait(delay: float, reason: str) -> None:
-                    if on_progress:
-                        on_progress(-1, -1, f"Rate limit wait ({reason}): {delay:.1f}s")
-
-                eff_provider = OpenAICompatibleProvider(rate_limiter=limiter, on_wait=on_wait)
-
-            inferred, _ = self.evaluate_and_persist(
-                candidates,
-                provider=eff_provider,
-                limit=limit,
-                on_progress=on_progress,
+        with trace_span("orbit.discover", attributes={"limit": limit, "dry_run": dry_run}) as span:
+            candidates = self.find_gap_candidates(
+                min_similarity=similarity_threshold,
+                max_hops=max_hops,
             )
 
-        duration_ms = (time.perf_counter() - start_time) * 1000
+            inferred: list[InferredRelationship] = []
+            eff_provider = provider or self.inference_provider
+            if not dry_run and candidates:
+                if eff_provider is None:
+                    from orbit.inference.limiter import RateLimiter
+                    from orbit.inference.provider import OpenAICompatibleProvider
 
-        stats = DiscoveryStats(
-            vault_path=str(self.vault_path),
-            total_notes_scanned=self.graph_store.get_stats().get("notes", 0),
-            vector_candidates_found=len(candidates),
-            graph_filtered_candidates=len(candidates),
-            relationships_inferred=len(inferred),
-            duration_ms=round(duration_ms, 2),
-        )
+                    eff_rpm = rpm if rpm is not None else settings.llm_rpm
+                    eff_tpm = tpm if tpm is not None else settings.llm_tpm
+                    limiter = RateLimiter(
+                        rpm=eff_rpm,
+                        tpm=eff_tpm,
+                        max_retries=settings.llm_max_retries,
+                    )
 
-        return candidates, inferred, stats
+                    def on_wait(delay: float, reason: str) -> None:
+                        if on_progress:
+                            on_progress(-1, -1, f"Rate limit wait ({reason}): {delay:.1f}s")
+
+                    eff_provider = OpenAICompatibleProvider(rate_limiter=limiter, on_wait=on_wait)
+
+                inferred, _ = self.evaluate_and_persist(
+                    candidates,
+                    provider=eff_provider,
+                    limit=limit,
+                    on_progress=on_progress,
+                )
+
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            p_tok = int(getattr(eff_provider, "total_prompt_tokens", 0) or 0)
+            c_tok = int(getattr(eff_provider, "total_completion_tokens", 0) or 0)
+            span.set_attribute("discovery.candidates", len(candidates))
+            span.set_attribute("discovery.inferred", len(inferred))
+            span.set_attribute("gen_ai.usage.prompt_tokens", p_tok)
+            span.set_attribute("gen_ai.usage.completion_tokens", c_tok)
+
+            stats = DiscoveryStats(
+                vault_path=str(self.vault_path),
+                total_notes_scanned=self.graph_store.get_stats().get("notes", 0),
+                vector_candidates_found=len(candidates),
+                graph_filtered_candidates=len(candidates),
+                relationships_inferred=len(inferred),
+                duration_ms=round(duration_ms, 2),
+                prompt_tokens=p_tok,
+                completion_tokens=c_tok,
+            )
+
+            return candidates, inferred, stats
 
     run_discovery = discover

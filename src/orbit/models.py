@@ -213,6 +213,9 @@ class DiscoveryStats(BaseModel):
     graph_filtered_candidates: int
     relationships_inferred: int
     duration_ms: float
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    tokens_saved_by_graph: int = 0
 
 
 class SyncResult(BaseModel):

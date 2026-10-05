@@ -15,6 +15,7 @@ from orbit.parser.indexer import VaultIndexer
 from orbit.search.chunker import HierarchicalMarkdownChunker
 from orbit.search.embedder import EmbeddingProvider, FastEmbedProvider
 from orbit.search.vector_store import VectorStore
+from orbit.telemetry import trace_span
 
 
 class IngestPipeline:
@@ -63,39 +64,45 @@ class IngestPipeline:
             msg = f"Invalid target '{chosen_target}'. Must be 'all', 'graph', or 'vector'."
             raise ValueError(msg)
 
-        if progress_callback:
-            progress_callback("Scanning vault files", 0, 1)
+        with trace_span("orbit.ingest", attributes={"target": chosen_target}) as span:
+            if progress_callback:
+                progress_callback("Scanning vault files", 0, 1)
 
-        discovered = self.indexer.scan_vault_structure()
-        self.indexer.index_vault_files(discovered)
+            with trace_span("ingest.scan_files"):
+                discovered = self.indexer.scan_vault_structure()
+                self.indexer.index_vault_files(discovered)
 
-        # Statistics accumulators
-        notes_added, notes_updated, notes_unchanged, notes_deleted = 0, 0, 0, 0
-        chunks_created, chunks_deleted, total_chunks = 0, 0, 0
-        graph_stats: dict[str, int] = {}
+            span.set_attribute("notes.scanned", len(discovered))
 
-        # 1. LadybugDB Graph Ingestion
-        if chosen_target in ("all", "graph"):
-            g_add, g_upd, g_unc, g_del, graph_stats = self._run_graph_ingest(
-                discovered, progress_callback
-            )
-            notes_added, notes_updated, notes_unchanged, notes_deleted = (
-                g_add,
-                g_upd,
-                g_unc,
-                g_del,
-            )
+            # Statistics accumulators
+            notes_added, notes_updated, notes_unchanged, notes_deleted = 0, 0, 0, 0
+            chunks_created, chunks_deleted, total_chunks = 0, 0, 0
+            graph_stats: dict[str, int] = {}
 
-        # 2. LanceDB Vector Ingestion
-        if chosen_target in ("all", "vector"):
-            v_created, v_deleted, total_chunks = self._run_vector_ingest(
-                discovered, progress_callback
-            )
-            chunks_created, chunks_deleted = v_created, v_deleted
-            if chosen_target == "vector":
-                notes_added = len(discovered)
+            # 1. LadybugDB Graph Ingestion
+            if chosen_target in ("all", "graph"):
+                with trace_span("ingest.graph_sync"):
+                    g_add, g_upd, g_unc, g_del, graph_stats = self._run_graph_ingest(
+                        discovered, progress_callback
+                    )
+                    notes_added, notes_updated, notes_unchanged, notes_deleted = (
+                        g_add,
+                        g_upd,
+                        g_unc,
+                        g_del,
+                    )
 
-        duration_ms = (time.perf_counter() - start_time) * 1000
+            # 2. LanceDB Vector Ingestion
+            if chosen_target in ("all", "vector"):
+                with trace_span("ingest.vector_sync"):
+                    v_created, v_deleted, total_chunks = self._run_vector_ingest(
+                        discovered, progress_callback
+                    )
+                    chunks_created, chunks_deleted = v_created, v_deleted
+                    if chosen_target == "vector":
+                        notes_added = len(discovered)
+
+            duration_ms = (time.perf_counter() - start_time) * 1000
 
         return IngestStats(
             vault_path=str(self.vault_path),

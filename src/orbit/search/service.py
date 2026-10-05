@@ -13,6 +13,7 @@ from orbit.models import CacheStats, SearchResult
 from orbit.search.embedder import EmbeddingProvider, FastEmbedProvider
 from orbit.search.fusion import apply_graph_boost, build_single_mode_results, compute_rrf
 from orbit.search.vector_store import VectorStore
+from orbit.telemetry import trace_span
 
 
 class SearchService:
@@ -66,80 +67,104 @@ class SearchService:
             return []
 
         # 1. Fast L1 Cache Lookup (< 0.5ms on hit)
-        cached = self.cache_manager.get(
-            query=clean_query,
-            mode=mode,
-            near=near,
-            limit=limit,
-            folder=folder,
-            tags=tags,
-        )
-        if cached is not None:
-            return cached
+        with trace_span(
+            "orbit.search",
+            attributes={"query": clean_query, "mode": mode, "limit": limit, "near": near or ""},
+        ) as root_span:
+            with trace_span("cache.lookup") as c_span:
+                cached = self.cache_manager.get(
+                    query=clean_query,
+                    mode=mode,
+                    near=near,
+                    limit=limit,
+                    folder=folder,
+                    tags=tags,
+                )
+                if cached is not None:
+                    c_span.set_attribute("cache.hit", True)
+                    root_span.set_attribute("cache.hit", True)
+                    return cached
+                c_span.set_attribute("cache.hit", False)
+                root_span.set_attribute("cache.hit", False)
 
-        has_filters = bool(folder or tags)
-        search_limit = max(limit * 5, 50) if has_filters else max(limit * 3, 20)
+            has_filters = bool(folder or tags)
+            search_limit = max(limit * 5, 50) if has_filters else max(limit * 3, 20)
 
-        if mode == "hybrid":
-            q_vec = self.embedder.embed_query(clean_query)
-            dense_docs = self.vector_store.search_dense(q_vec, limit=search_limit)
-            sparse_docs = self.vector_store.search_sparse(clean_query, limit=search_limit)
-            results = compute_rrf(dense_docs, sparse_docs)
-        elif mode == "dense":
-            q_vec = self.embedder.embed_query(clean_query)
-            dense_docs = self.vector_store.search_dense(q_vec, limit=search_limit)
-            results = build_single_mode_results(dense_docs, mode="dense")
-        elif mode == "sparse":
-            sparse_docs = self.vector_store.search_sparse(clean_query, limit=search_limit)
-            results = build_single_mode_results(sparse_docs, mode="sparse")
-        else:
-            msg = f"Unknown search mode '{mode}'. Choose 'hybrid', 'dense', or 'sparse'."
-            raise ValueError(msg)
+            if mode == "hybrid":
+                with trace_span(
+                    "embed.query", attributes={"query.length": len(clean_query)}
+                ) as e_span:
+                    q_vec = self.embedder.embed_query(clean_query)
+                    e_span.set_attribute("query.dim", len(q_vec))
+                with trace_span("lancedb.dense_search", attributes={"limit": search_limit}):
+                    dense_docs = self.vector_store.search_dense(q_vec, limit=search_limit)
+                with trace_span("lancedb.sparse_search", attributes={"limit": search_limit}):
+                    sparse_docs = self.vector_store.search_sparse(clean_query, limit=search_limit)
+                with trace_span("rrf.fuse", attributes={"k": 60}):
+                    results = compute_rrf(dense_docs, sparse_docs)
+            elif mode == "dense":
+                with trace_span(
+                    "embed.query", attributes={"query.length": len(clean_query)}
+                ) as e_span:
+                    q_vec = self.embedder.embed_query(clean_query)
+                    e_span.set_attribute("query.dim", len(q_vec))
+                with trace_span("lancedb.dense_search", attributes={"limit": search_limit}):
+                    dense_docs = self.vector_store.search_dense(q_vec, limit=search_limit)
+                results = build_single_mode_results(dense_docs, mode="dense")
+            elif mode == "sparse":
+                with trace_span("lancedb.sparse_search", attributes={"limit": search_limit}):
+                    sparse_docs = self.vector_store.search_sparse(clean_query, limit=search_limit)
+                results = build_single_mode_results(sparse_docs, mode="sparse")
+            else:
+                msg = f"Unknown search mode '{mode}'. Choose 'hybrid', 'dense', or 'sparse'."
+                raise ValueError(msg)
 
-        # Proximity graph boost if --near specified
-        if near:
-            gstore = self._get_graph_store()
-            if gstore is not None:
-                hops = gstore.get_neighbor_hops(near, max_hops=2)
-                if hops:
-                    results = apply_graph_boost(results, hops)
+            # Proximity graph boost if --near specified
+            if near:
+                with trace_span("ladybug.proximity_boost", attributes={"near": near}):
+                    gstore = self._get_graph_store()
+                    if gstore is not None:
+                        hops = gstore.get_neighbor_hops(near, max_hops=2)
+                        if hops:
+                            results = apply_graph_boost(results, hops)
 
-        # Folder filtering
-        if folder:
-            clean_folder = folder.strip("/").lower()
-            results = [
-                r
-                for r in results
-                if r.note_path.lower() == clean_folder
-                or r.note_path.lower().startswith(f"{clean_folder}/")
-            ]
+            # Folder filtering
+            if folder:
+                clean_folder = folder.strip("/").lower()
+                results = [
+                    r
+                    for r in results
+                    if r.note_path.lower() == clean_folder
+                    or r.note_path.lower().startswith(f"{clean_folder}/")
+                ]
 
-        # Tag filtering
-        if tags:
-            gstore = self._get_graph_store()
-            if gstore is not None:
-                clean_tags = [t.strip().lstrip("#").lower() for t in tags if t.strip()]
-                if clean_tags:
-                    matching_paths: set[str] = set()
-                    for t in clean_tags:
-                        matched = get_notes_by_tag(gstore.conn, t, limit=500)
-                        matching_paths.update(m.path.lower() for m in matched)
-                    results = [r for r in results if r.note_path.lower() in matching_paths]
+            # Tag filtering
+            if tags:
+                gstore = self._get_graph_store()
+                if gstore is not None:
+                    clean_tags = [t.strip().lstrip("#").lower() for t in tags if t.strip()]
+                    if clean_tags:
+                        matching_paths: set[str] = set()
+                        for t in clean_tags:
+                            matched = get_notes_by_tag(gstore.conn, t, limit=500)
+                            matching_paths.update(m.path.lower() for m in matched)
+                        results = [r for r in results if r.note_path.lower() in matching_paths]
 
-        final_results = results[:limit]
+            final_results = results[:limit]
 
-        # 2. Store in L1 Cache with dependencies
-        self.cache_manager.put(
-            query=clean_query,
-            mode=mode,
-            results=final_results,
-            near=near,
-            limit=limit,
-            folder=folder,
-            tags=tags,
-        )
+            # 2. Store in L1 Cache with dependencies
+            with trace_span("cache.store"):
+                self.cache_manager.put(
+                    query=clean_query,
+                    mode=mode,
+                    results=final_results,
+                    near=near,
+                    limit=limit,
+                    folder=folder,
+                    tags=tags,
+                )
 
-        return final_results
+            return final_results
 
     def get_cache_stats(self) -> CacheStats:
         """Fetch current query cache statistics."""

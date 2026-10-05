@@ -85,6 +85,18 @@ class OrbitSettings(BaseSettings):
     cache_max_entries: int = 1000
     cache_ttl_seconds: Optional[int] = None
 
+    # Observability & Distributed Tracing
+    tracing_enabled: bool = Field(
+        default=False, validation_alias=AliasChoices("ORBIT_TRACING", "TRACING_ENABLED")
+    )
+    otlp_endpoint: Optional[str] = Field(
+        default=None, validation_alias=AliasChoices("OTEL_EXPORTER_OTLP_ENDPOINT")
+    )
+    otlp_headers: Optional[str] = Field(
+        default=None, validation_alias=AliasChoices("OTEL_EXPORTER_OTLP_HEADERS")
+    )
+    service_name: str = "project-orbit"
+
     def get_db_dir(self, vault_path: Path | str) -> Path:
         """Resolve LadybugDB graph storage directory."""
         if self.db_dir:

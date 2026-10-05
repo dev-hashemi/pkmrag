@@ -18,6 +18,7 @@ from orbit.parser.indexer import VaultIndexer
 from orbit.search.chunker import HierarchicalMarkdownChunker
 from orbit.search.embedder import EmbeddingProvider, FastEmbedProvider
 from orbit.search.vector_store import VectorStore
+from orbit.telemetry import trace_span
 
 
 class SingleNoteReindexer:
@@ -97,111 +98,119 @@ class SingleNoteReindexer:
                 error_message=f"Path '{norm_rel}' is in a protected or ignored directory.",
             )
 
-        gstore = self._get_graph_store()
-        vstore = self._get_vector_store()
+        with trace_span("orbit.reindex", attributes={"path": norm_rel}) as span:
+            gstore = self._get_graph_store()
+            vstore = self._get_vector_store()
 
-        with self._write_lock:
-            existing_notes = gstore.get_all_notes()
-            is_unres = bool(existing_notes.get(norm_rel, {}).get("is_unresolved", False))
-            was_new = norm_rel not in existing_notes or is_unres
+            with self._write_lock:
+                existing_notes = gstore.get_all_notes()
+                is_unres = bool(existing_notes.get(norm_rel, {}).get("is_unresolved", False))
+                was_new = norm_rel not in existing_notes or is_unres
 
-            # Handle deletion
-            if not abs_path.is_file():
-                if norm_rel in existing_notes:
-                    gstore.handle_deleted_note(norm_rel)
-                    vstore.delete_note_chunks(norm_rel)
-                    evicted = self.cache_manager.invalidate_notes([norm_rel])
-                    duration = round((time.perf_counter() - t0) * 1000, 2)
+                # Handle deletion
+                if not abs_path.is_file():
+                    if norm_rel in existing_notes:
+                        span.set_attribute("status", "deleted")
+                        gstore.handle_deleted_note(norm_rel)
+                        vstore.delete_note_chunks(norm_rel)
+                        evicted = self.cache_manager.invalidate_notes([norm_rel])
+                        duration = round((time.perf_counter() - t0) * 1000, 2)
+                        return SyncResult(
+                            path=norm_rel,
+                            status="deleted",
+                            cache_entries_evicted=evicted,
+                            duration_ms=duration,
+                        )
+                    span.set_attribute("status", "error")
                     return SyncResult(
                         path=norm_rel,
-                        status="deleted",
-                        cache_entries_evicted=evicted,
-                        duration_ms=duration,
+                        status="error",
+                        error_message=f"File '{norm_rel}' does not exist on disk.",
                     )
-                return SyncResult(
-                    path=norm_rel,
-                    status="error",
-                    error_message=f"File '{norm_rel}' does not exist on disk.",
-                )
 
-            # Parse content and AST
-            try:
-                content = abs_path.read_text(encoding="utf-8", errors="replace")
-                mtime = abs_path.stat().st_mtime
-                content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()
-                note_meta = self.dialect.extract_document(norm_rel, content, mtime, content_hash)
-            except Exception as e:
-                return SyncResult(
-                    path=norm_rel,
-                    status="error",
-                    error_message=f"Failed to read/parse note '{norm_rel}': {e}",
-                )
+                # Parse content and AST
+                try:
+                    content = abs_path.read_text(encoding="utf-8", errors="replace")
+                    mtime = abs_path.stat().st_mtime
+                    content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()
+                    note_meta = self.dialect.extract_document(
+                        norm_rel, content, mtime, content_hash
+                    )
+                except Exception as e:
+                    span.set_attribute("status", "error")
+                    return SyncResult(
+                        path=norm_rel,
+                        status="error",
+                        error_message=f"Failed to read/parse note '{norm_rel}': {e}",
+                    )
 
-            # 1. Update LadybugDB Graph
-            gstore.delete_outgoing_edges(norm_rel)
-            gstore.upsert_note(
-                norm_rel,
-                note_meta.title,
-                note_meta.hash,
-                note_meta.mtime,
-                is_unresolved=False,
-            )
-            if was_new:
-                gstore.reconcile_ghost_notes(norm_rel)
-
-            parent = str(PurePosixPath(norm_rel).parent)
-            if parent and parent != ".":
-                gstore.add_note_contained_in(norm_rel, parent)
-
-            for tag in note_meta.tags:
-                gstore.add_tagged_with(norm_rel, tag)
-
-            src_index = self._build_source_index(existing_notes)
-            src_index.paths_set.add(norm_rel)
-            src_index.lower_path_to_path[norm_rel.lower()] = norm_rel
-            src_index.basename_to_paths.setdefault(PurePosixPath(norm_rel).stem.lower(), []).append(
-                norm_rel
-            )
-
-            for link in note_meta.links:
-                res_link = self.dialect.resolve_link(norm_rel, link, src_index)
-                gstore.add_links_to(
+                # 1. Update LadybugDB Graph
+                gstore.delete_outgoing_edges(norm_rel)
+                gstore.upsert_note(
                     norm_rel,
-                    res_link.target_path,
-                    res_link.anchor,
-                    res_link.alias,
-                    res_link.is_embed,
+                    note_meta.title,
+                    note_meta.hash,
+                    note_meta.mtime,
+                    is_unresolved=False,
                 )
+                if was_new:
+                    gstore.reconcile_ghost_notes(norm_rel)
 
-            # 2. Update LanceDB Chunks
-            chunks = self.chunker.chunk_document(norm_rel, note_meta.title, content)
-            chunks_created = 0
-            if chunks:
-                texts = [c.text for c in chunks]
-                vectors = self.embedder.embed_texts(texts)
-                vstore.upsert_chunks(norm_rel, chunks, vectors, mtime=note_meta.mtime)
-                chunks_created = len(chunks)
-            else:
-                vstore.delete_note_chunks(norm_rel)
+                parent = str(PurePosixPath(norm_rel).parent)
+                if parent and parent != ".":
+                    gstore.add_note_contained_in(norm_rel, parent)
 
-            # 3. Cache Eviction
-            if was_new:
-                self.cache_manager.invalidate_all()
-                evicted = 0
-            else:
-                evicted = self.cache_manager.invalidate_notes([norm_rel])
+                for tag in note_meta.tags:
+                    gstore.add_tagged_with(norm_rel, tag)
 
-        duration = round((time.perf_counter() - t0) * 1000, 2)
-        return SyncResult(
-            path=norm_rel,
-            status="indexed",
-            chunks_count=chunks_created,
-            links_count=len(note_meta.links),
-            tags_count=len(note_meta.tags),
-            ghosts_reconciled=1 if was_new else 0,
-            cache_entries_evicted=evicted,
-            duration_ms=duration,
-        )
+                src_index = self._build_source_index(existing_notes)
+                src_index.paths_set.add(norm_rel)
+                src_index.lower_path_to_path[norm_rel.lower()] = norm_rel
+                src_index.basename_to_paths.setdefault(
+                    PurePosixPath(norm_rel).stem.lower(), []
+                ).append(norm_rel)
+
+                for link in note_meta.links:
+                    res_link = self.dialect.resolve_link(norm_rel, link, src_index)
+                    gstore.add_links_to(
+                        norm_rel,
+                        res_link.target_path,
+                        res_link.anchor,
+                        res_link.alias,
+                        res_link.is_embed,
+                    )
+
+                # 2. Update LanceDB Chunks
+                chunks = self.chunker.chunk_document(norm_rel, note_meta.title, content)
+                chunks_created = 0
+                if chunks:
+                    texts = [c.text for c in chunks]
+                    vectors = self.embedder.embed_texts(texts)
+                    vstore.upsert_chunks(norm_rel, chunks, vectors, mtime=note_meta.mtime)
+                    chunks_created = len(chunks)
+                else:
+                    vstore.delete_note_chunks(norm_rel)
+
+                # 3. Cache Eviction
+                if was_new:
+                    self.cache_manager.invalidate_all()
+                    evicted = 0
+                else:
+                    evicted = self.cache_manager.invalidate_notes([norm_rel])
+
+            duration = round((time.perf_counter() - t0) * 1000, 2)
+            span.set_attribute("status", "indexed")
+            span.set_attribute("chunks_count", chunks_created)
+            return SyncResult(
+                path=norm_rel,
+                status="indexed",
+                chunks_count=chunks_created,
+                links_count=len(note_meta.links),
+                tags_count=len(note_meta.tags),
+                ghosts_reconciled=1 if was_new else 0,
+                cache_entries_evicted=evicted,
+                duration_ms=duration,
+            )
 
     def sync_vault_delta(self) -> list[SyncResult]:
         """Scan vault files and reindex any modified, newly added, or deleted files."""

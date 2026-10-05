@@ -49,6 +49,14 @@ def _make_progress() -> Progress:
     )
 
 
+def _display_trace_if_active() -> None:
+    from orbit.telemetry import get_memory_collector, render_trace_tree
+
+    collector = get_memory_collector()
+    if collector:
+        render_trace_tree(collector.get_spans(), console)
+
+
 @app.callback()
 def main(
     version: Optional[bool] = typer.Option(
@@ -60,9 +68,7 @@ def main(
 
 @app.command()
 def doctor(
-    json_output: bool = typer.Option(
-        False, "--json", help="Output diagnostics in raw JSON format."
-    ),
+    json_output: bool = typer.Option(False, "--json", help="Output diagnostics in raw JSON."),
 ) -> None:
     """Verify system requirements and embedded in-process storage engines (LadybugDB & LanceDB)."""
     with console.status("[bold blue]Running Project Orbit diagnostics...[/bold blue]"):
@@ -77,42 +83,22 @@ def doctor(
 
 @app.command()
 def ingest(
-    vault_path: Path = typer.Argument(
-        ...,
-        help="Path to the Obsidian vault directory.",
-        exists=True,
-        dir_okay=True,
-        resolve_path=True,
-    ),
-    target: str = typer.Option(
-        "all",
-        "--target",
-        "-t",
-        help="Ingestion target plane: all, graph, or vector. Defaults to all.",
-    ),
-    db_dir: Optional[Path] = typer.Option(
-        None,
-        "--db-dir",
-        "-d",
-        help="Custom LadybugDB database directory. Defaults to <vault>/.orbit/graph.",
-    ),
-    vector_dir: Optional[Path] = typer.Option(
-        None,
-        "--vector-dir",
-        help="Custom LanceDB vector directory. Defaults to <vault>/.orbit/vectors.",
-    ),
-    rebuild: bool = typer.Option(
-        False, "--rebuild", help="Rebuild graph and vector indices from scratch."
-    ),
+    vault_path: Path = typer.Argument(..., help="Path to vault.", exists=True, resolve_path=True),
+    target: str = typer.Option("all", "--target", "-t", help="Target: all, graph, or vector."),
+    db_dir: Optional[Path] = typer.Option(None, "--db-dir", "-d", help="Custom LadybugDB dir."),
+    vector_dir: Optional[Path] = typer.Option(None, "--vector-dir", help="Custom LanceDB dir."),
+    rebuild: bool = typer.Option(False, "--rebuild", help="Rebuild indices from scratch."),
     clear_cache: bool = typer.Option(False, "--clear-cache", help="Purge cached search queries."),
-    dialect: str = typer.Option(
-        "auto", "--dialect", "-m", help="Source dialect (auto, obsidian, commonmark)."
-    ),
-    json_output: bool = typer.Option(
-        False, "--json", help="Output ingestion metrics in raw JSON format."
-    ),
+    dialect: str = typer.Option("auto", "--dialect", "-m", help="Source dialect (auto, obsidian)."),
+    trace: bool = typer.Option(False, "--trace", help="Display visual execution trace tree."),
+    json_output: bool = typer.Option(False, "--json", help="Output metrics in raw JSON format."),
 ) -> None:
     """Ingest notes, links, tags, and semantic vectors from a knowledge base."""
+    if trace:
+        from orbit.telemetry import setup_telemetry
+
+        setup_telemetry(enable_memory_collector=True)
+
     if rebuild or clear_cache:
         from orbit.cache import CacheManager
 
@@ -147,30 +133,26 @@ def ingest(
         progress.update(task_id, description="[bold green]Ingestion complete!")
 
     render_ingest_report(stats, console)
+    if trace:
+        _display_trace_if_active()
 
 
 @app.command()
 def search(
     query: str = typer.Argument(..., help="Search query string."),
-    vault_path: Path = typer.Option(
-        Path.cwd(),
-        "--vault",
-        "-v",
-        help="Path to the Obsidian vault.",
-        exists=True,
-        dir_okay=True,
-        resolve_path=True,
-    ),
-    near: Optional[str] = typer.Option(
-        None, "--near", "-n", help="Note path/title to bias results towards via graph proximity."
-    ),
-    mode: str = typer.Option(
-        "hybrid", "--mode", "-m", help="Search mode: hybrid (default), dense, or sparse (BM25)."
-    ),
+    vault_path: Path = typer.Option(Path.cwd(), "--vault", "-v", help="Vault directory."),
+    near: Optional[str] = typer.Option(None, "--near", "-n", help="Note for graph bias."),
+    mode: str = typer.Option("hybrid", "--mode", "-m", help="Search mode: hybrid, dense, sparse."),
     limit: int = typer.Option(5, "--limit", "-l", help="Maximum number of search results."),
+    trace: bool = typer.Option(False, "--trace", help="Display visual execution trace tree."),
     json_output: bool = typer.Option(False, "--json", help="Output raw JSON results."),
 ) -> None:
     """Search knowledge base chunks using dense vectors, BM25, and optional graph proximity."""
+    if trace:
+        from orbit.telemetry import setup_telemetry
+
+        setup_telemetry(enable_memory_collector=True)
+
     with SearchService(vault_path=vault_path) as service:
         results = service.search(query=query, near=near, mode=mode, limit=limit)
 
@@ -180,16 +162,14 @@ def search(
         sys.exit(0)
 
     render_search_results(results, query=query, near=near, mode=mode, console=console)
+    if trace:
+        _display_trace_if_active()
 
 
 @app.command()
 def serve(
-    vault_path: Path = typer.Argument(
-        ..., help="Path to indexed vault directory.", exists=True, dir_okay=True, resolve_path=True
-    ),
-    transport: str = typer.Option(
-        "stdio", "--transport", "-t", help="MCP transport protocol (stdio)."
-    ),
+    vault_path: Path = typer.Argument(..., help="Vault directory.", exists=True, resolve_path=True),
+    transport: str = typer.Option("stdio", "--transport", "-t", help="MCP transport (stdio)."),
 ) -> None:
     """Start an MCP server exposing Orbit tools over stdio to Claude and Cursor."""
     if transport != "stdio":
@@ -205,9 +185,7 @@ def serve(
 
 @app.command(name="mcp-config")
 def mcp_config(
-    vault_path: Path = typer.Argument(
-        ..., help="Path to indexed vault directory.", exists=True, dir_okay=True, resolve_path=True
-    ),
+    vault_path: Path = typer.Argument(..., help="Vault directory.", exists=True, resolve_path=True),
 ) -> None:
     """Generate ready-to-use MCP configuration snippets for Claude Desktop and Cursor."""
     render_mcp_config(vault_path, console)
@@ -216,10 +194,10 @@ def mcp_config(
 @app.command()
 def eval(
     vault_path: Optional[Path] = typer.Argument(
-        None, help="Path to vault (defaults to benchmarks/vault)."
+        None, help="Vault dir (defaults to benchmarks/vault)."
     ),
     benchmark: Optional[Path] = typer.Option(
-        None, "-b", "--benchmark", help="Benchmark JSON (defaults to golden_10.json)."
+        None, "-b", "--benchmark", help="Benchmark JSON file."
     ),
     min_mrr: float = typer.Option(0.80, "--min-mrr", help="Minimum required MRR score."),
     min_recall: float = typer.Option(0.80, "--min-recall", help="Minimum required Recall@5."),
@@ -241,17 +219,21 @@ def eval(
 
 @app.command()
 def discover(
-    vault_path: Path = typer.Argument(
-        ..., help="Path to indexed vault directory.", exists=True, dir_okay=True, resolve_path=True
-    ),
+    vault_path: Path = typer.Argument(..., help="Vault directory.", exists=True, resolve_path=True),
     threshold: float = typer.Option(0.80, "--threshold", "-t", help="Cosine similarity threshold."),
     limit: int = typer.Option(20, "--limit", "-l", help="Maximum candidate pairs to classify."),
     rpm: Optional[int] = typer.Option(None, "--rpm", help="Rate limit: max requests per minute."),
     tpm: Optional[int] = typer.Option(None, "--tpm", help="Rate limit: max tokens per minute."),
     dry_run: bool = typer.Option(False, "--dry-run", help="Scan candidates without invoking LLM."),
+    trace: bool = typer.Option(False, "--trace", help="Display visual execution trace tree."),
     json_output: bool = typer.Option(False, "--json", help="Output raw JSON results."),
 ) -> None:
     """Discover semantic gaps between notes and infer conceptual relationships."""
+    if trace:
+        from orbit.telemetry import setup_telemetry
+
+        setup_telemetry(enable_memory_collector=True)
+
     from orbit.discovery import GapDiscoveryEngine
 
     engine = GapDiscoveryEngine(vault_path)
@@ -287,6 +269,8 @@ def discover(
     render_discovery_results(
         candidates, inferred, stats, dry_run=dry_run, json_output=json_output, console=console
     )
+    if trace:
+        _display_trace_if_active()
 
 
 if __name__ == "__main__":

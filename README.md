@@ -63,7 +63,8 @@ flowchart TD
 - **Phase 4 (`v0.4.0`):** AI semantic gap detection & inferred relationships (`orbit discover`, `[:INFERRED_REL]`) — **Completed** ✅
 - **Phase 5 (`v0.5.0`):** High-performance L1 query caching & on-demand digestion (`reindex_note`, `sync_vault`, WAL cache) — **Completed** ✅
 - **Phase 6 (`v0.6.0`):** Automated evaluation regression harness (`orbit eval`) — **Completed** ✅
-- **Phase 7 (`v0.7.0`):** Observability & distributed tracing (OpenTelemetry spans, token auditing) — *Next*
+- **Phase 7 (`v0.7.0`):** Observability & distributed tracing (OpenTelemetry spans, token auditing, `--trace`) — **Completed** ✅
+- **Phase 8 (`v0.8.0`):** Production hardening & stress testing — *Next*
 
 
 See the complete [Engineering Roadmap](docs/roadmap.md) for milestone progression through Phase 9 (`v0.9.0`).
@@ -206,6 +207,33 @@ Retrieval accuracy is validated against the in-repo Golden 10 ground truth bench
 - **Hits@3:** `100.0%`
 - **Hits@5:** `100.0%`
 - **Mean Average Precision (MAP@5):** `0.925`
+
+### 🔭 Observability & Distributed Tracing
+Inspect query execution timelines and token consumption in real time with OpenTelemetry-instrumented spans:
+```bash
+# Visualize execution trace tree in terminal
+orbit search "hybrid retrieval" --trace
+
+# Inspect note proximity biasing trace
+orbit search "storage" --near "LadybugDB.md" --trace
+```
+
+Example trace tree output:
+```text
+╭───────── Trace ID: 66d44d13f5b480b5... ─────────╮
+│ 🛰️ Trace: orbit.search  645.03ms (MISS, hybrid) │
+│ ├── cache.lookup    0.10ms (MISS)               │
+│ ├── embed.query  599.49ms (384-dim)             │
+│ ├── lancedb.dense_search   14.98ms              │
+│ ├── lancedb.sparse_search    9.27ms             │
+│ ├── rrf.fuse    0.22ms                          │
+│ └── cache.store   19.94ms                       │
+╰─────────────────────────────────────────────────╯
+```
+- **Zero Daemons Required:** Spans are collected in-memory and rendered locally.
+- **LLM Token Auditing:** Tracks prompt and completion tokens per inference call.
+- **Context Tokens Saved:** Quantifies tokens saved by graph topology pruning in `orbit discover`.
+- **Remote OTLP Exporter:** Optional live trace streaming to Langfuse, Jaeger, or Datadog via `.env`.
 
 ### Running Tests & Linting
 ```bash
