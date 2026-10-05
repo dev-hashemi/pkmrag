@@ -9,13 +9,11 @@
 [![License](https://img.shields.io/badge/license-MIT-green?style=flat&logo=opensourceinitiative&logoColor=white)](LICENSE)
 [![Mypy](https://img.shields.io/badge/types-mypy_strict-2A6DB5?style=flat&logo=python&logoColor=white)](http://mypy-lang.org/)
 
-Project Orbit is an open-source, local-first retrieval engine designed for linked personal knowledge bases (PKMs). While Obsidian serves as our primary reference implementation, Orbit's core property graph, vector store, and MCP retrieval tools operate on an abstract Knowledge Model supporting any linked document system (Logseq, Foam, CommonMark docs) via pluggable dialects. It combines an explicit structural property graph with an Arrow-backed vector and keyword search index, exposing contextual intelligence to frontier AI reasoning tools via the Model Context Protocol (MCP).
+Project Orbit is an open-source, local-first retrieval engine designed for linked personal knowledge bases (PKMs). While Obsidian serves as our primary reference dialect, Orbit operates on an abstract knowledge model supporting any linked document system (Logseq, Foam, CommonMark docs) via pluggable dialects. It combines an explicit structural property graph with an Arrow-backed vector and keyword search index, exposing contextual intelligence to frontier AI reasoning tools via the Model Context Protocol (MCP).
 
 📖 **Technical Documentation:** [System Architecture & Subsystems](docs/architecture.md)
 
 ---
-
-
 
 ## 🏛️ Architecture Overview
 
@@ -48,207 +46,170 @@ flowchart TD
 
 ## 🚀 Key Architectural Principles
 
-- **Zero-Daemon, In-Process Storage:** Runs entirely in-process using embedded C++ and Apache Arrow engines (**LadybugDB** for property graph traversals, **LanceDB** for hybrid vector/BM25 search). No background Docker containers, no JVM overhead, sub-millisecond query latency.
-- **Model Context Protocol (MCP):** Acts as a high-precision retrieval data plane for agents (**Claude Code, Cursor, Claude Desktop**) via standardized tool schemas without requiring direct filesystem access.
-- **Scientific Quality Gating:** Benchmark regressions (Context Recall, Context Precision, MRR) measured automatically with automated evaluation suites.
+- **Zero-Daemon, Embedded Storage:** Runs entirely in-process using embedded C++ and Apache Arrow engines: **LadybugDB** for property graph traversals, **LanceDB** for hybrid vector/BM25 search, and **SQLite WAL** for sub-0.5ms L1 query caching. No Docker, no network databases.
+- **Dialect-Agnostic Core:** Storage, retrieval, and MCP tools operate on abstract knowledge primitives (`Note`, `Tag`, `Folder`, `LINKS_TO`). Syntax parsing is completely encapsulated in pluggable dialects.
+- **Model Context Protocol (MCP):** Serves as a high-precision retrieval data plane for AI agents (**Claude Code**, **Cursor**, **OpenCode**) without exposing raw filesystem mutation risks.
+- **Scientific Quality Gating:** Retrieval accuracy is benchmarked with zero-cost IR metrics (MRR, Context Recall@5) guarding against semantic regressions.
 
 ---
 
 ## 🛠️ Quickstart
 
-### Prerequisites
-- Python `>= 3.11`
-- `uv` package manager
-
-### Installation
+### 1. Installation
 ```bash
-# Install in editable mode
+# Requires Python >= 3.12 and uv
 uv pip install -e .
 ```
 
-### Verification & Diagnostics
-Run the diagnostic smoke test to verify in-process C++ and Arrow bindings:
+### 2. Verify Storage & Engine Health
 ```bash
 orbit doctor
 ```
-
-Output:
 ```text
 ╭────────────────────────────────────────────────────╮
-│ Project Orbit v0.2.0 — System Health & Diagnostics │
+│ Project Orbit v0.9.0 — System Health & Diagnostics │
 ╰────────────────────────────────────────────────────╯
-                 Environment Details                 
- Operating System     Linux ...
- Architecture         x86_64
- Python Version       3.12.3
-
                        In-Process Data Plane Verification                       
-┏━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ Component              ┃ Status ┃ Version ┃ Latency ┃ Verification Details    ┃
-┡━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━┩
-│ LadybugDB Property Gr… │  PASS  │ 0.20.4  │   0.3ms │ In-memory Cypher read/  │
-│                        │        │         │         │ write verified (HEALTHY)│
-│ LanceDB Vector Engine  │  PASS  │ 0.38.0  │   6.3ms │ Arrow-backed vector     │
-│                        │        │         │         │ index verified          │
-└────────────────────────┴────────┴─────────┴─────────┴─────────────────────────┘
+┏━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Component              ┃ Status  ┃ Version ┃ Latency ┃ Verification Details  ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━┩
+│ LadybugDB Property     │  PASS   │ 0.20.4  │   0.3ms │ Cypher transactional  │
+│ Graph                  │         │         │         │ read/write verified   │
+│ LanceDB Vector Engine  │  PASS   │ 0.38.0  │   6.3ms │ Arrow-backed vector   │
+│                        │         │         │         │ index verified        │
+│ Ollama Local Engine    │  PASS   │ 0.3.14  │   1.2ms │ Local daemon detected │
+└────────────────────────┴─────────┴─────────┴─────────┴───────────────────────┘
 All systems operational. Engines ready for Orbit.
 ```
 
-### Ingesting a Knowledge Base
-Ingest notes, links, tags, and semantic vectors with incremental delta sync:
+### 3. Ingest and Search in 30 Seconds
 ```bash
-# Ingest all planes (graph topology + semantic vectors)
 orbit ingest /path/to/vault
-
-# Ingest specific planes (all, graph, or vector)
-orbit ingest /path/to/vault --target vector
-
-# Explicitly choose a dialect (obsidian, commonmark)
-orbit ingest /path/to/docs --dialect commonmark
-
-# Force a clean rebuild
-orbit ingest /path/to/vault --rebuild
-
-# Output structured metrics in JSON
-orbit ingest /path/to/vault --json
+orbit search "how does cache invalidation work?" --near "Cache Architecture.md"
 ```
 
-### Hybrid & Graph-Boosted Search
-Find relevant note chunks combining dense semantic meaning, exact keyword match, and graph topology:
+---
+
+## 🔍 Core Capabilities
+
+### Ingestion & Incremental Synchronization
+Ingest notes, links, tags, and semantic vectors with SHA-256 delta sync:
 ```bash
-# Hybrid search (dense vector + sparse BM25 fused via RRF)
-orbit search "how does cache invalidation work?" --vault /path/to/vault
+orbit ingest /path/to/vault                           # Ingest graph topology + semantic vectors
+orbit ingest /path/to/vault --target vector           # Target specific plane (all, graph, or vector)
+orbit ingest /path/to/docs --dialect commonmark       # Explicitly select markdown dialect
+orbit ingest /path/to/vault --rebuild                 # Force a clean rebuild
+```
 
-# Graph-boosted search biased toward a specific focus note (1-2 hops away)
-orbit search "vector retrieval" --vault /path/to/vault --near "Storage Layer"
-
-# Explicit retrieval mode (hybrid, dense, or sparse)
-orbit search "database schema" --mode sparse --limit 10
-
-# Structured JSON output
-orbit search "retrieval" --json
+### Hybrid & Graph-Boosted Retrieval
+Combines dense semantic similarity (`BAAI/bge-small-en-v1.5`), Tantivy BM25 keyword matching, Reciprocal Rank Fusion ($k=60$), and graph proximity multipliers:
+```bash
+orbit search "distributed consensus"                  # Hybrid search (dense + BM25 via RRF)
+orbit search "consensus" --near "Paxos Algorithm.md"  # Boosted by graph proximity to anchor note
+orbit search "raft" --mode dense --limit 5            # Explicit retrieval mode (hybrid, dense, sparse)
+orbit search "storage" --json                         # Machine-readable JSON output
 ```
 
 ### 🧠 Semantic Gap Discovery & Inferred Relationships
-Find unlinked note pairs exhibiting high semantic similarity and infer typed relationships via local/remote LLM:
+Detects unlinked note pairs with high semantic similarity ($\ge 0.80$) but graph distance $\ge 3$, classifying missing edges via local or remote LLMs:
 ```bash
-# Dry run: discover and preview unlinked semantic gaps without calling LLM
-orbit discover /path/to/vault --dry-run
-
-# Run discovery with custom similarity threshold and classify via LLM
-orbit discover /path/to/vault --threshold 0.85 --limit 10
-
-# Run 100% offline local AI inference using Ollama (Llama 3.2, Qwen 2.5)
-orbit discover /path/to/vault --provider ollama --model llama3.2
-
-# Output structured discovery results in raw JSON
-orbit discover /path/to/vault --json
+orbit discover /path/to/vault --dry-run               # Preview semantic gaps without calling LLM
+orbit discover /path/to/vault --provider ollama       # 100% offline local inference (Llama 3.2, Qwen 2.5)
+orbit discover /path/to/vault --threshold 0.85        # Custom cosine similarity threshold
 ```
+Inferred edges are stored separately in the LadybugDB `[:INFERRED_REL]` table with confidence, model name, and rationale—preserving human-curated wikilinks.
 
-Inferred edges are stored separately in the LadybugDB `[:INFERRED_REL]` table with confidence, model name, and rationale—preserving human-curated wikilinks. See [Local Model Inference](docs/subsystems/local-inference.md) for offline setup.
+---
 
-### Model Context Protocol (MCP) Server & HTTP Daemon
-Expose Orbit directly to AI assistants (**Claude Code**, **Cursor**, **Claude Desktop**, **Obsidian**) over stdio or HTTP/SSE:
+## 🔌 Model Context Protocol (MCP) & HTTP Server
+
+Orbit exposes a rich tool plane over **stdio** (for CLI/IDE agents) and **HTTP/SSE** (for Obsidian and network clients):
+
 ```bash
-# Start MCP server over stdio (for Claude Code, Cursor, OpenCode)
+# Start stdio MCP server (Claude Code, Cursor, OpenCode)
 orbit serve /path/to/vault
 
-# Start MCP server and REST API over HTTP/SSE on port 3747 (for Obsidian)
+# Start HTTP/SSE daemon on port 3747 (dual MCP SSE + REST API plane)
 orbit serve /path/to/vault --transport http --port 3747
 
-# Generate copy-paste JSON configuration for Claude Desktop and Cursor (stdio)
-orbit mcp-config /path/to/vault
-
-# Generate SSE configuration with auto-resolved Bearer token
-orbit mcp-config /path/to/vault --transport sse --port 3747
+# One-command registration for Claude Code:
+claude mcp add orbit -- uv run --directory /path/to/project-orbit orbit serve /path/to/vault
 ```
 
-See [HTTP & SSE Server Transport](docs/subsystems/http-transport.md) for full REST API specifications and token security.
-
-Exposed Tools:
-- `query_vault`: Hybrid semantic + BM25 keyword retrieval with graph boost, folder, and tag filters.
+### Exposed Tools
+- `query_vault`: Hybrid semantic + BM25 keyword retrieval with graph boost and folder/tag filters.
 - `read_note`: Read note content enriched with graph context (tags, forward links, backlinks).
-- `list_notes`: Browse notes in the vault with optional folder filtering and filename pattern matching.
-- `list_tags`: List all unique tags in the vault ranked by note frequency.
-- `search_by_tag`: Find all notes tagged with a specific tag.
+- `list_notes`: Browse notes in the vault with optional folder filtering and pattern matching.
+- `list_tags` / `search_by_tag`: Rank and query notes by tag topology.
 - `get_outline`: Extract heading hierarchy and line numbers for large notes.
-- `get_note_context`: Inspect incoming backlinks, outgoing citations, tags, 2-hop clusters, and AI-inferred relationships.
+- `get_note_context`: Inspect incoming backlinks, outgoing citations, 2-hop clusters, and AI-inferred relationships.
 - `find_bridges`: Discover the shortest link path between two notes across the vault.
 - `discover_gaps`: Uncover unlinked note pairs with high vector similarity for bridging.
 - `vault_overview`: Bird's-eye view of vault notes, wikilinks, tags, and central hub notes.
-- `reindex_note`: Incrementally re-index a single note into graph and vector indices (< 40ms) after external edits.
-- `sync_vault`: Scan and incrementally synchronize all modified or newly created files across the vault.
+- `reindex_note`: Targeted sub-40ms single-note incremental reindexing after external edits.
+- `sync_vault`: Incremental delta scan updating modified notes across the vault.
 
+---
 
-### 🎯 Retrieval Evaluation & Quality Gates
-Guard against retrieval regressions with deterministic, zero-cost Information Retrieval (IR) evaluations run directly in CLI or CI:
-```bash
-# Run default evaluation against in-repo Golden 10 benchmark
-orbit eval
+## 💎 Obsidian Desktop Plugin (`orbit-insights`)
 
-# Enforce strict quality gates in CI (exit code 1 if thresholds fail)
-orbit eval --min-mrr 0.85 --min-recall 0.80
-
-# Machine-readable JSON output for automated CI reporting
-orbit eval --json
-```
-
-### Benchmarks
-Retrieval accuracy is validated against the in-repo Golden 10 ground truth benchmark dataset (`benchmarks/golden_10.json`):
-- **MRR (Mean Reciprocal Rank):** `0.950` (Target $\ge 0.80$)
-- **Context Recall@5:** `0.950` (Target $\ge 0.80$)
-- **Hits@1:** `90.0%`
-- **Hits@3:** `100.0%`
-- **Hits@5:** `100.0%`
-- **Mean Average Precision (MAP@5):** `0.925`
-
-### 🔭 Observability & Distributed Tracing
-Inspect query execution timelines and token consumption in real time with OpenTelemetry-instrumented spans:
-```bash
-# Visualize execution trace tree in terminal
-orbit search "hybrid retrieval" --trace
-
-# Inspect note proximity biasing trace
-orbit search "storage" --near "LadybugDB.md" --trace
-```
-
-Example trace tree output:
-```text
-╭───────── Trace ID: 66d44d13f5b480b5... ─────────╮
-│ 🛰️ Trace: orbit.search  645.03ms (MISS, hybrid) │
-│ ├── cache.lookup    0.10ms (MISS)               │
-│ ├── embed.query  599.49ms (384-dim)             │
-│ ├── lancedb.dense_search   14.98ms              │
-│ ├── lancedb.sparse_search    9.27ms             │
-│ ├── rrf.fuse    0.22ms                          │
-│ └── cache.store   19.94ms                       │
-╰─────────────────────────────────────────────────╯
-```
-- **Zero Daemons Required:** Spans are collected in-memory and rendered locally.
-- **LLM Token Auditing:** Tracks prompt and completion tokens per inference call.
-- **Context Tokens Saved:** Quantifies tokens saved by graph topology pruning in `orbit discover`.
-- **Remote OTLP Exporter:** Optional live trace streaming to Langfuse, Jaeger, or Datadog via `.env`.
-
-### 💎 Obsidian Desktop Plugin (`orbit-insights`)
-Native desktop integration bringing Orbit's GraphRAG engine directly into your markdown editing flow:
+A native desktop companion plugin (`plugins/obsidian/`) connecting Obsidian to Orbit:
 - **Orbit Insights Sidebar:** Real-time semantic gap recommendations, contradiction warnings with LLM citations, and structural graph context.
-- **CodeMirror 6 Inline Indicators:** Ambient visual widgets on headings (`🔗 N`, `⚠️`) without document clutter; clicking opens the sidebar panel.
+- **CodeMirror 6 Inline Indicators:** Ambient visual widgets on headings (`🔗 N`, `⚠️`) without document clutter; clicking reveals the sidebar panel.
 - **Proximity Concept Explorer:** Context-anchored hybrid retrieval drawer (`--near <note>`) directly within the editor with 1-click reference insertion.
 - **Knowledge Governance:** Persistent negative feedback cache preventing dismissed links from recurring; transparent restoration drawer and global reset.
 - **Zero-Config Token Security:** Automatically discovers `.orbit/server_token` from active vault.
 - **Live Reactive Updates:** Subscribes to Server-Sent Events (`/api/v1/events`) for background indexing updates.
-See [docs/subsystems/obsidian-plugin.md](file:///home/ali/projects/my/project-orbit/docs/subsystems/obsidian-plugin.md) for installation and developer guides.
 
-### Running Tests & Linting
+See [docs/subsystems/obsidian-plugin.md](docs/subsystems/obsidian-plugin.md) for installation and developer guides.
+
+---
+
+## 🎯 Benchmarks & Distributed Tracing
+
+### Information Retrieval Quality Gates
+Evaluated against the in-repo Golden 10 ground truth benchmark dataset (`benchmarks/golden_10.json`):
+- **MRR (Mean Reciprocal Rank):** `0.950` (Target $\ge 0.80$, PASS)
+- **Context Recall@5:** `0.950` (Target $\ge 0.80$, PASS)
+- **Hits@1:** `90.0%` | **Hits@3:** `100.0%` | **Hits@5:** `100.0%`
+- **Mean Average Precision (MAP@5):** `0.925`
+
+```bash
+orbit eval --min-mrr 0.85 --min-recall 0.80           # CI regression gate
+```
+
+### OpenTelemetry Distributed Tracing
+Inspect execution timelines and token consumption in real time with in-memory OpenTelemetry spans:
+```bash
+orbit search "storage" --near "LadybugDB.md" --trace
+```
+```text
+╭───────── Trace ID: 66d44d13f5b480b5... ─────────╮
+│ 🛰️ Trace: orbit.search  18.42ms (HIT, hybrid)   │
+│ ├── cache.lookup    0.15ms (HIT)                │
+│ ├── lancedb.search   8.12ms                     │
+│ ├── ladybug.hops     4.20ms (dist: 1)           │
+│ └── rrf.fuse         0.18ms                     │
+╰─────────────────────────────────────────────────╯
+```
+- **Zero Daemons Required:** Spans are collected in-memory and rendered locally.
+- **LLM Token Auditing:** Tracks prompt and completion tokens per inference call.
+- **Remote OTLP Exporter:** Optional live trace streaming to Langfuse, Jaeger, or Datadog via `.env`.
+
+---
+
+## 🧪 Development & Quality Gates
+
 ```bash
 # Unit & integration tests + Golden 10 benchmark
 uv run pytest
 
-# Type checking
+# Strict type checking
 uv run mypy src tests
 
-# Linting & Formatting
-uv run ruff check .
-uv run ruff format --check .
-```
+# Linting & code formatting
+uv run ruff check . && uv run ruff format --check .
 
+# Obsidian plugin compliance & unit tests
+cd plugins/obsidian && npm run typecheck && npm test && npm run build
+```
