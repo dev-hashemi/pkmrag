@@ -61,6 +61,7 @@ flowchart TD
 - [**Caching & On-Demand Digestion**](subsystems/caching.md): SQLite L1 query cache with composite hashing, dependency invalidation, and sub-40ms single-note reindexing.
 - [**Observability & Tracing**](subsystems/observability.md): OpenTelemetry span hierarchy, visual terminal waterfall trees, and token auditing.
 - [**Local Model Inference**](subsystems/local-inference.md): Offline relationship classification with Ollama, conversational validation retry, and token-bucket bypass.
+- [**HTTP & SSE Server Transport**](subsystems/http-transport.md): Dual-protocol Starlette server hosting MCP SSE, REST APIs, Bearer auth, and live event broadcasting.
 - [**Benchmarks**](subsystems/benchmarks.md): Golden 10 and Obsidian Help 50 ground truth datasets and evaluation metrics.
 - [**Roadmap**](roadmap.md): Milestone progression and planned architecture from v0.0.1 to v0.9.0.
 - [**Architecture Decision Records (ADRs)**](adr/): Historical design decisions and rationale.

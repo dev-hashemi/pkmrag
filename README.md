@@ -65,7 +65,8 @@ flowchart TD
 - **Phase 6 (`v0.6.0`):** Automated evaluation regression harness (`orbit eval`) — **Completed** ✅
 - **Phase 7 (`v0.7.0`):** Observability & distributed tracing (OpenTelemetry spans, token auditing, `--trace`) — **Completed** ✅
 - **Phase 8 (`v0.8.0`):** Local model inference & Ollama ergonomics (offline AI, validation retry, rate-limit bypass) — **Completed** ✅
-- **Phase 9 (`v0.9.0`):** Obsidian desktop plugin & human-in-the-loop connection reviews — *Next*
+- **Phase 9a (`v0.9.0`):** HTTP & SSE server transport, REST API plane, Bearer auth & reactive event streaming — **Completed** ✅
+- **Phase 9b (`v0.9.1`):** Obsidian desktop plugin MVP (insights sidebar panel, file save auto-sync) — *Next*
 
 
 See the complete [Engineering Roadmap](docs/roadmap.md) for milestone progression through Phase 9 (`v0.9.0`).
@@ -165,15 +166,23 @@ orbit discover /path/to/vault --json
 
 Inferred edges are stored separately in the LadybugDB `[:INFERRED_REL]` table with confidence, model name, and rationale—preserving human-curated wikilinks. See [Local Model Inference](docs/subsystems/local-inference.md) for offline setup.
 
-### Model Context Protocol (MCP) Server
-Expose Orbit directly to AI assistants (**Claude Code**, **Cursor**, **Claude Desktop**) over stdio:
+### Model Context Protocol (MCP) Server & HTTP Daemon
+Expose Orbit directly to AI assistants (**Claude Code**, **Cursor**, **Claude Desktop**, **Obsidian**) over stdio or HTTP/SSE:
 ```bash
-# Start the MCP server for an indexed vault
+# Start MCP server over stdio (for Claude Code, Cursor, OpenCode)
 orbit serve /path/to/vault
 
-# Generate copy-paste JSON configuration for Claude Desktop and Cursor
+# Start MCP server and REST API over HTTP/SSE on port 3747 (for Obsidian)
+orbit serve /path/to/vault --transport http --port 3747
+
+# Generate copy-paste JSON configuration for Claude Desktop and Cursor (stdio)
 orbit mcp-config /path/to/vault
+
+# Generate SSE configuration with auto-resolved Bearer token
+orbit mcp-config /path/to/vault --transport sse --port 3747
 ```
+
+See [HTTP & SSE Server Transport](docs/subsystems/http-transport.md) for full REST API specifications and token security.
 
 Exposed Tools:
 - `query_vault`: Hybrid semantic + BM25 keyword retrieval with graph boost, folder, and tag filters.

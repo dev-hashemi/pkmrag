@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from orbit.mcp.http_server import create_http_app, run_server
 from orbit.mcp.server import create_mcp_server
 
-__all__ = ["create_mcp_server"]
+__all__ = ["create_http_app", "create_mcp_server", "run_server"]

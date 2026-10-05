@@ -80,6 +80,7 @@ uv run orbit discover <path>             # Discover semantic gaps and infer rela
 uv run orbit discover <path> -p ollama   # Offline semantic discovery via local Ollama
 uv run orbit eval                        # Automated IR retrieval evaluation against golden benchmark
 uv run orbit serve <path>                # Start stdio MCP server for Claude/Cursor
+uv run orbit serve <path> -t http        # Start HTTP/SSE MCP & REST daemon on port 3747
 uv run orbit mcp-config <path>           # Output MCP JSON client configuration
 uv run ruff check --fix .                # Lint
 uv run ruff format .                     # Format

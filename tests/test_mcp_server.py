@@ -102,3 +102,21 @@ def test_cli_mcp_config(tmp_path: Path) -> None:
     assert orbit_cfg["command"] == "uv"
     assert "serve" in orbit_cfg["args"]
     assert str(vault.resolve()) in orbit_cfg["args"]
+
+
+def test_cli_mcp_config_sse(tmp_path: Path) -> None:
+    """Verify orbit mcp-config --transport sse outputs valid SSE configuration."""
+    vault = tmp_path / "sample_vault"
+    vault.mkdir()
+
+    res = runner.invoke(app, ["mcp-config", str(vault), "--transport", "sse", "--port", "3747"])
+    assert res.exit_code == 0
+    assert "SSE Configuration" in res.output
+
+    json_start = res.output.find("{")
+    json_end = res.output.rfind("}") + 1
+    cfg = json.loads(res.output[json_start:json_end])
+    assert "mcpServers" in cfg
+    assert "orbit" in cfg["mcpServers"]
+    orbit_cfg = cfg["mcpServers"]["orbit"]
+    assert orbit_cfg["url"] == "http://127.0.0.1:3747/sse"

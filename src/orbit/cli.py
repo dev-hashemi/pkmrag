@@ -169,26 +169,32 @@ def search(
 @app.command()
 def serve(
     vault_path: Path = typer.Argument(..., help="Vault directory.", exists=True, resolve_path=True),
-    transport: str = typer.Option("stdio", "--transport", "-t", help="MCP transport (stdio)."),
+    transport: str = typer.Option("stdio", "--transport", "-t", help="Transport (stdio/http/sse)."),
+    host: str = typer.Option("127.0.0.1", "--host", "-h", help="Bind address for HTTP/SSE."),
+    port: int = typer.Option(3747, "--port", "-p", help="Port for HTTP/SSE."),
+    token: Optional[str] = typer.Option(None, "--token", help="Bearer auth token."),
+    no_auth: bool = typer.Option(False, "--no-auth", help="Disable token authentication."),
 ) -> None:
-    """Start an MCP server exposing Orbit tools over stdio to Claude and Cursor."""
-    if transport != "stdio":
-        console.print(
-            f"[bold red]Unsupported transport '{transport}'. Only 'stdio' supported.[/bold red]"
+    """Start an MCP server exposing Orbit tools over stdio or HTTP/SSE."""
+    from orbit.mcp import run_server
+
+    try:
+        run_server(
+            vault_path, transport=transport, host=host, port=port, token=token, no_auth=no_auth
         )
+    except ValueError as e:
+        console.print(f"[bold red]{e}[/bold red]")
         sys.exit(1)
-
-    from orbit.mcp import create_mcp_server
-
-    create_mcp_server(vault_path).run(transport="stdio")
 
 
 @app.command(name="mcp-config")
 def mcp_config(
     vault_path: Path = typer.Argument(..., help="Vault directory.", exists=True, resolve_path=True),
+    transport: str = typer.Option("stdio", "--transport", "-t", help="Transport (stdio, sse)."),
+    port: int = typer.Option(3747, "--port", "-p", help="Port for SSE server."),
 ) -> None:
     """Generate ready-to-use MCP configuration snippets for Claude Desktop and Cursor."""
-    render_mcp_config(vault_path, console)
+    render_mcp_config(vault_path, console, transport=transport, port=port)
 
 
 @app.command()

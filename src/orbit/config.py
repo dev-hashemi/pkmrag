@@ -56,6 +56,28 @@ class OrbitSettings(BaseSettings):
         validation_alias=AliasChoices("ORBIT_LLM_MAX_RETRIES", "LLM_MAX_RETRIES"),
     )
 
+    # HTTP & SSE Server
+    server_host: str = Field(
+        default="127.0.0.1",
+        validation_alias=AliasChoices("ORBIT_SERVER_HOST", "SERVER_HOST"),
+    )
+    server_port: int = Field(
+        default=3747,
+        validation_alias=AliasChoices("ORBIT_SERVER_PORT", "SERVER_PORT"),
+    )
+    server_token: str = Field(
+        default="",
+        validation_alias=AliasChoices("ORBIT_SERVER_TOKEN", "SERVER_TOKEN"),
+    )
+    cors_origins: list[str] = Field(
+        default_factory=lambda: [
+            "app://obsidian.md",
+            "capacitor://localhost",
+            "http://localhost",
+            "http://127.0.0.1",
+        ]
+    )
+
     # Search & Embeddings
     embedding_model: str = "BAAI/bge-small-en-v1.5"
     embedding_dim: int = 384

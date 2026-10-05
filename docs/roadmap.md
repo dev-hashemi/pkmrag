@@ -73,11 +73,24 @@ v0.0.1      v0.1.0      v0.2.0      v0.3.0      v0.4.0      v0.5.0      v0.6.0  
 
 ---
 
+### Phase 9a: HTTP/SSE Server Transport & REST API (`v0.9.0`) ✅
+- **Dual Protocol Plane:** `orbit serve --transport http` hosting both Model Context Protocol SSE (`/sse`, `/messages/`) and direct REST endpoints (`/api/v1/*`).
+- **Obsidian-Ready REST APIs:** Structured endpoints for note context, semantic gaps, hybrid search, incremental reindexing, and delta synchronization.
+- **Zero-Config Token Security:** Automatically persists owner-only token (`0o600`) to `.orbit/server_token` in the vault, defended against DNS rebinding via loopback binding (`127.0.0.1`).
+- **Reactive Event Stream:** Server-Sent Events stream (`/api/v1/events`) pushing live reindex/sync updates to connected editor tabs.
+
+---
+
 ## 🎯 Current Milestone
 
-### Phase 9: Obsidian Plugin (`v0.9.0` — Optional)
-- **Editor Integration:** Lightweight TypeScript desktop plugin connecting to Orbit via HTTP/SSE.
-- **Human-in-the-Loop:** Displays suggested connections and contradiction warnings as diffs for human approval.
+### Phase 9b: Obsidian Plugin MVP (`v0.9.1`)
+- **Editor Integration:** Lightweight TypeScript desktop plugin connecting to Orbit's HTTP/SSE daemon.
+- **"Orbit Insights" Sidebar Panel:** Cards for missing links, contradiction warnings, and structural note context.
+- **Auto-Sync on File Save:** Obsidian `vault.on('modify')` hook triggering sub-40ms single-note reindexing.
+
+### Phase 9c: Obsidian Plugin Polish (`v0.9.2` — Optional)
+- **Editor Gutter Icons:** Subtle inline markers next to headings with unlinked semantic connections.
+- **Dismissed Suggestion Memory:** Negative feedback cache preventing dismissed links from reappearing.
 
 ---
 
