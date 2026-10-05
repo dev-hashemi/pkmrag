@@ -19,6 +19,10 @@ class OrbitSettings(BaseSettings):
     )
 
     # LLM Inference
+    llm_provider: str = Field(
+        default="openai",
+        validation_alias=AliasChoices("ORBIT_LLM_PROVIDER", "LLM_PROVIDER"),
+    )
     openai_api_key: str = Field(
         default="",
         validation_alias=AliasChoices("ORBIT_LLM_API_KEY", "OPENAI_API_KEY"),
@@ -30,6 +34,14 @@ class OrbitSettings(BaseSettings):
     llm_model: str = Field(
         default="gpt-4o-mini",
         validation_alias=AliasChoices("ORBIT_LLM_MODEL", "LLM_MODEL"),
+    )
+    ollama_base_url: str = Field(
+        default="http://localhost:11434/v1",
+        validation_alias=AliasChoices("ORBIT_OLLAMA_BASE_URL", "OLLAMA_BASE_URL"),
+    )
+    ollama_model: str = Field(
+        default="llama3.2",
+        validation_alias=AliasChoices("ORBIT_OLLAMA_MODEL", "OLLAMA_MODEL"),
     )
     llm_rpm: int = Field(
         default=30,

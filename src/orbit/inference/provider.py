@@ -42,21 +42,32 @@ class OpenAICompatibleProvider:
         timeout: float = 30.0,
         rate_limiter: Optional[RateLimiter] = None,
         on_wait: Optional[Callable[[float, str], None]] = None,
+        is_local: bool = False,
+        max_retries: Optional[int] = None,
     ) -> None:
         from orbit.config import settings
 
         self.api_key = api_key or settings.openai_api_key
-        self.base_url = (base_url or settings.openai_base_url).rstrip("/")
+        raw_base = (base_url or settings.openai_base_url).rstrip("/")
+        if ("localhost" in raw_base or "127.0.0.1" in raw_base) and not raw_base.endswith("/v1"):
+            raw_base = f"{raw_base}/v1"
+        self.base_url = raw_base
         self.model = model or settings.llm_model
         self.timeout = timeout
         self.name = f"openai-compatible ({self.model})"
+        self.is_local = is_local
+        self.max_retries = (
+            max_retries
+            if max_retries is not None
+            else (rate_limiter.max_retries if rate_limiter else settings.llm_max_retries)
+        )
         self.rate_limiter = (
             rate_limiter
             if rate_limiter is not None
             else RateLimiter(
                 rpm=settings.llm_rpm,
                 tpm=settings.llm_tpm,
-                max_retries=settings.llm_max_retries,
+                max_retries=self.max_retries,
             )
         )
         self.on_wait = on_wait
@@ -83,8 +94,9 @@ class OpenAICompatibleProvider:
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
 
-        prompt_tokens = estimate_tokens(user_prompt) + estimate_tokens(SYSTEM_PROMPT) + 150
-        self.rate_limiter.acquire(prompt_tokens, on_wait=self.on_wait)
+        if not self.is_local:
+            prompt_tokens = estimate_tokens(user_prompt) + estimate_tokens(SYSTEM_PROMPT) + 150
+            self.rate_limiter.acquire(prompt_tokens, on_wait=self.on_wait)
 
         with trace_span(
             "llm.classify_relationship",
@@ -103,6 +115,11 @@ class OpenAICompatibleProvider:
                 },
             }
 
+            messages: list[dict[str, str]] = [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt},
+            ]
+
             attempt = 0
             use_strict = True
             max_retries = self.rate_limiter.max_retries
@@ -110,10 +127,7 @@ class OpenAICompatibleProvider:
             while attempt <= max_retries:
                 payload = {
                     "model": self.model,
-                    "messages": [
-                        {"role": "system", "content": SYSTEM_PROMPT},
-                        {"role": "user", "content": user_prompt},
-                    ],
+                    "messages": messages,
                     "temperature": 0.0,
                     "response_format": strict_format if use_strict else {"type": "json_object"},
                 }
@@ -136,7 +150,6 @@ class OpenAICompatibleProvider:
                                 continue
                             resp.raise_for_status()
 
-                        # Fallback to json_object if an endpoint doesn't support json_schema
                         if resp.status_code == 400 and use_strict:
                             use_strict = False
                             continue
@@ -157,9 +170,30 @@ class OpenAICompatibleProvider:
                         span.set_attribute("tokens.total", t_tok)
 
                         raw_content = data["choices"][0]["message"]["content"]
-                        res = self._parse_json_result(raw_content)
-                        span.set_attribute("rel_type", res.rel_type)
-                        return res
+                        try:
+                            res = self._parse_json_result(raw_content)
+                            span.set_attribute("rel_type", res.rel_type)
+                            return res
+                        except ValueError as val_err:
+                            if attempt < max_retries:
+                                attempt += 1
+                                messages.append({"role": "assistant", "content": raw_content})
+                                messages.append(
+                                    {
+                                        "role": "user",
+                                        "content": (
+                                            f"Output failed validation: {val_err}. "
+                                            "Return ONLY a valid JSON object matching the schema."
+                                        ),
+                                    }
+                                )
+                                continue
+                            return InferredRelationshipResult(
+                                rel_type="NONE",
+                                confidence=0.0,
+                                reason=f"Validation failed after retries: {val_err}",
+                                direction="source_to_target",
+                            )
 
                 except httpx.HTTPStatusError as e:
                     if e.response.status_code == 429 and attempt < max_retries:
@@ -192,22 +226,14 @@ class OpenAICompatibleProvider:
         """Validate JSON content directly into InferredRelationshipResult model."""
         try:
             return InferredRelationshipResult.model_validate_json(raw_content)
-        except Exception:
-            pass
-
-        try:
+        except Exception as e_direct:
             match = re.search(r"\{.*\}", raw_content, re.DOTALL)
             if match:
-                return InferredRelationshipResult.model_validate_json(match.group(0))
-        except Exception:
-            pass
-
-        return InferredRelationshipResult(
-            rel_type="NONE",
-            confidence=0.0,
-            reason="Failed to validate structured JSON from model response",
-            direction="source_to_target",
-        )
+                try:
+                    return InferredRelationshipResult.model_validate_json(match.group(0))
+                except Exception as e_regex:
+                    raise ValueError(f"Schema validation error: {e_regex}") from e_regex
+            raise ValueError(f"Invalid JSON or schema validation error: {e_direct}") from e_direct
 
 
 class MockInferenceProvider:

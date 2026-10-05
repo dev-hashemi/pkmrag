@@ -64,7 +64,8 @@ flowchart TD
 - **Phase 5 (`v0.5.0`):** High-performance L1 query caching & on-demand digestion (`reindex_note`, `sync_vault`, WAL cache) — **Completed** ✅
 - **Phase 6 (`v0.6.0`):** Automated evaluation regression harness (`orbit eval`) — **Completed** ✅
 - **Phase 7 (`v0.7.0`):** Observability & distributed tracing (OpenTelemetry spans, token auditing, `--trace`) — **Completed** ✅
-- **Phase 8 (`v0.8.0`):** Production hardening & stress testing — *Next*
+- **Phase 8 (`v0.8.0`):** Local model inference & Ollama ergonomics (offline AI, validation retry, rate-limit bypass) — **Completed** ✅
+- **Phase 9 (`v0.9.0`):** Obsidian desktop plugin & human-in-the-loop connection reviews — *Next*
 
 
 See the complete [Engineering Roadmap](docs/roadmap.md) for milestone progression through Phase 9 (`v0.9.0`).
@@ -155,11 +156,14 @@ orbit discover /path/to/vault --dry-run
 # Run discovery with custom similarity threshold and classify via LLM
 orbit discover /path/to/vault --threshold 0.85 --limit 10
 
+# Run 100% offline local AI inference using Ollama (Llama 3.2, Qwen 2.5)
+orbit discover /path/to/vault --provider ollama --model llama3.2
+
 # Output structured discovery results in raw JSON
 orbit discover /path/to/vault --json
 ```
 
-Inferred edges are stored separately in the LadybugDB `[:INFERRED_REL]` table with confidence, model name, and rationale—preserving human-curated wikilinks.
+Inferred edges are stored separately in the LadybugDB `[:INFERRED_REL]` table with confidence, model name, and rationale—preserving human-curated wikilinks. See [Local Model Inference](docs/subsystems/local-inference.md) for offline setup.
 
 ### Model Context Protocol (MCP) Server
 Expose Orbit directly to AI assistants (**Claude Code**, **Cursor**, **Claude Desktop**) over stdio:

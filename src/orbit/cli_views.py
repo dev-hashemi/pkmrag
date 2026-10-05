@@ -49,9 +49,12 @@ def render_doctor_report(report: DoctorReport, console: Console) -> None:
     engine_table.add_column("Verification Details")
 
     for check in report.checks:
-        status_badge = (
-            "[bold green]PASS[/bold green]" if check.passed else "[bold red]FAIL[/bold red]"
-        )
+        if check.extra.get("optional") and not check.extra.get("active"):
+            status_badge = "[bold yellow]OFFLINE[/bold yellow]"
+        else:
+            status_badge = (
+                "[bold green]PASS[/bold green]" if check.passed else "[bold red]FAIL[/bold red]"
+            )
         engine_table.add_row(
             check.name,
             status_badge,

@@ -33,7 +33,11 @@ class InferredRelationshipResult(BaseModel):
                 "NONE",
             ):
                 return clean
-        return "NONE"
+            raise ValueError(
+                f"Invalid relationship type '{v}'. Must be one of: "
+                "EXTENDS, CONTRADICTS, SUPPORTS, PREREQUISITE_FOR, REFINES, NONE"
+            )
+        raise ValueError(f"Relationship type must be a string, got {type(v).__name__}")
 
     @classmethod
     def strict_json_schema(cls) -> dict[str, object]:

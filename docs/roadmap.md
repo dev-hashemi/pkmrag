@@ -64,11 +64,16 @@ v0.0.1      v0.1.0      v0.2.0      v0.3.0      v0.4.0      v0.5.0      v0.6.0  
 
 ---
 
-## 🎯 Current Milestone
+### Phase 8: Local Model Inference (`v0.8.0`) ✅
+- **Local Fallback:** Implemented `OllamaProvider` adhering to Phase 4's `InferenceProvider` protocol with OpenAI-compatible endpoint auto-normalization.
+- **Offline Privacy:** Run relationship classification completely on-device (`llama3.2`, `qwen2.5`) with zero telemetry or network calls.
+- **Conversational Validation Feedback:** Multi-turn retry loop catching Pydantic validation failures on edge 3B/7B models and supplying error feedback for autonomous correction.
+- **Zero-Throttling Execution:** Local providers bypass token-bucket rate limits (`is_local=True`) to maximize local hardware throughput.
+- **Health Verification:** `orbit doctor` probes Ollama connectivity and lists active local models without blocking CI or offline usage.
 
-### Phase 8: Local Model Inference (`v0.8.0`)
-- **Local Fallback:** Implement `OllamaProvider` adhering to Phase 4's `InferenceProvider` protocol.
-- **Offline Privacy:** Run relationship classification on-device (`llama3.2`, `qwen2.5`) with constrained JSON decoding and validation retries.
+---
+
+## 🎯 Current Milestone
 
 ### Phase 9: Obsidian Plugin (`v0.9.0` — Optional)
 - **Editor Integration:** Lightweight TypeScript desktop plugin connecting to Orbit via HTTP/SSE.

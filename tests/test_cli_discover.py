@@ -67,6 +67,7 @@ def test_cli_discover_help() -> None:
     assert "threshold" in clean
     assert "limit" in clean
     assert "dry-run" in clean
+    assert "provider" in clean
 
 
 def test_cli_discover_dry_run(tmp_path: Path) -> None:
@@ -101,3 +102,29 @@ def test_cli_discover_json_dry_run(tmp_path: Path) -> None:
     assert "candidates" in data
     assert len(data["candidates"]) >= 1
     assert data["candidates"][0]["source_path"] in ("Alpha.md", "Beta.md")
+
+
+def test_cli_discover_ollama_flag(tmp_path: Path) -> None:
+    """Verify orbit discover accepts --provider ollama and --model flags."""
+    vault = tmp_path / "vault"
+    _setup_vault(vault)
+
+    result = runner.invoke(
+        app,
+        [
+            "discover",
+            str(vault),
+            "--provider",
+            "ollama",
+            "--model",
+            "llama3.2",
+            "--threshold",
+            "0.4",
+            "--dry-run",
+            "--json",
+        ],
+    )
+    assert result.exit_code == 0
+    data = _extract_json(result.output)
+    assert data["dry_run"] is True
+    assert "candidates" in data

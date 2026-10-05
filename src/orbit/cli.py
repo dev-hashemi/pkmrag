@@ -222,6 +222,8 @@ def discover(
     vault_path: Path = typer.Argument(..., help="Vault directory.", exists=True, resolve_path=True),
     threshold: float = typer.Option(0.80, "--threshold", "-t", help="Cosine similarity threshold."),
     limit: int = typer.Option(20, "--limit", "-l", help="Maximum candidate pairs to classify."),
+    provider: Optional[str] = typer.Option(None, "--provider", "-p", help="Provider type."),
+    model: Optional[str] = typer.Option(None, "--model", help="Inference model name."),
     rpm: Optional[int] = typer.Option(None, "--rpm", help="Rate limit: max requests per minute."),
     tpm: Optional[int] = typer.Option(None, "--tpm", help="Rate limit: max tokens per minute."),
     dry_run: bool = typer.Option(False, "--dry-run", help="Scan candidates without invoking LLM."),
@@ -240,7 +242,13 @@ def discover(
     try:
         if dry_run or json_output:
             candidates, inferred, stats = engine.discover(
-                similarity_threshold=threshold, limit=limit, dry_run=dry_run, rpm=rpm, tpm=tpm
+                similarity_threshold=threshold,
+                limit=limit,
+                dry_run=dry_run,
+                provider_type=provider,
+                model=model,
+                rpm=rpm,
+                tpm=tpm,
             )
         else:
             with _make_progress() as progress:
@@ -259,6 +267,8 @@ def discover(
                     similarity_threshold=threshold,
                     limit=limit,
                     dry_run=dry_run,
+                    provider_type=provider,
+                    model=model,
                     rpm=rpm,
                     tpm=tpm,
                     on_progress=on_prog,

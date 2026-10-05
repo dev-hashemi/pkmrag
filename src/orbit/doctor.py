@@ -9,10 +9,13 @@ import tempfile
 import time
 from typing import Any
 
+import httpx
 import ladybug
 import lancedb
 import pyarrow as pa
 from pydantic import BaseModel, Field
+
+from orbit.config import settings
 
 
 class CheckResult(BaseModel):
@@ -137,11 +140,61 @@ def check_lancedb_engine() -> CheckResult:
         )
 
 
+def check_ollama_engine(base_url: str | None = None) -> CheckResult:
+    """Verify connectivity to local Ollama inference server."""
+    start_time = time.perf_counter()
+    url = base_url or settings.ollama_base_url
+    root_url = url.rstrip("/")
+    if root_url.endswith("/v1"):
+        root_url = root_url[:-3].rstrip("/")
+
+    try:
+        with httpx.Client(timeout=0.5) as client:
+            resp = client.get(f"{root_url}/api/tags")
+            latency = (time.perf_counter() - start_time) * 1000
+            if resp.status_code == 200:
+                data = resp.json()
+                models = [
+                    str(m.get("name", "")) for m in data.get("models", []) if isinstance(m, dict)
+                ]
+                model_str = ", ".join(models[:3]) + (
+                    f" (+{len(models) - 3} more)" if len(models) > 3 else ""
+                )
+                details = f"Ollama daemon active ({len(models)} models: {model_str or 'none'})"
+                return CheckResult(
+                    name="Ollama Local Engine",
+                    passed=True,
+                    version=str(data.get("version", "active")),
+                    latency_ms=round(latency, 2),
+                    details=details,
+                    extra={"optional": True, "active": True, "models": models},
+                )
+            return CheckResult(
+                name="Ollama Local Engine",
+                passed=True,
+                version="n/a",
+                latency_ms=round(latency, 2),
+                details=f"Ollama returned HTTP {resp.status_code} at {root_url}",
+                extra={"optional": True, "active": False},
+            )
+    except Exception:
+        latency = (time.perf_counter() - start_time) * 1000
+        return CheckResult(
+            name="Ollama Local Engine",
+            passed=True,
+            version="n/a",
+            latency_ms=round(latency, 2),
+            details=f"Ollama not detected at {root_url} (optional for offline AI)",
+            extra={"optional": True, "active": False},
+        )
+
+
 def run_diagnostics() -> DoctorReport:
     """Execute all system and engine health checks."""
     system_info = get_system_info()
     checks = [
         check_ladybug_engine(),
         check_lancedb_engine(),
+        check_ollama_engine(),
     ]
     return DoctorReport(system_info=system_info, checks=checks)

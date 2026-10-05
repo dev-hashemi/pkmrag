@@ -1,5 +1,7 @@
 """Tests for the Orbit diagnostic health checks and CLI."""
 
+from unittest.mock import MagicMock, patch
+
 from typer.testing import CliRunner
 
 from orbit import __version__
@@ -7,6 +9,7 @@ from orbit.cli import app
 from orbit.doctor import (
     check_ladybug_engine,
     check_lancedb_engine,
+    check_ollama_engine,
     get_system_info,
     run_diagnostics,
 )
@@ -42,11 +45,37 @@ def test_lancedb_engine_health() -> None:
     assert "verified" in result.details.lower()
 
 
+def test_ollama_engine_offline() -> None:
+    """Verify Ollama engine health check returns non-blocking status when offline."""
+    result = check_ollama_engine("http://127.0.0.1:9999")
+    assert result.passed is True
+    assert result.name == "Ollama Local Engine"
+    assert result.version == "n/a"
+    assert result.extra.get("active") is False
+    assert "not detected" in result.details.lower()
+
+
+def test_ollama_engine_online_mock() -> None:
+    """Verify Ollama engine health check extracts models when server is responsive."""
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "version": "0.3.12",
+        "models": [{"name": "llama3.2:latest"}, {"name": "nomic-embed-text:latest"}],
+    }
+    with patch("httpx.Client.get", return_value=mock_resp):
+        result = check_ollama_engine("http://localhost:11434")
+        assert result.passed is True
+        assert result.version == "0.3.12"
+        assert result.extra.get("active") is True
+        assert "llama3.2:latest" in result.details
+
+
 def test_run_diagnostics() -> None:
     """Verify aggregate diagnostics report."""
     report = run_diagnostics()
     assert report.all_passed is True
-    assert len(report.checks) == 2
+    assert len(report.checks) == 3
 
 
 def test_cli_version() -> None:
