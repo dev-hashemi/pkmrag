@@ -71,7 +71,7 @@ In Obsidian:
 1. Open **Settings** → **Community Plugins**.
 2. Enable Community Plugins (if not already enabled).
 3. Toggle on **Orbit Insights**.
-4. Click the crosshair/satellite ribbon icon on the left bar to open the **Orbit Insights** sidebar.
+4. Click the PKMRAG ribbon icon (`assets/obsidian-ribbon-icon.svg`) on the left bar to open the **PKMRAG Insights** sidebar.
 
 ---
 
@@ -92,6 +92,7 @@ plugins/obsidian/
     view_search.ts   # Proximity concept explorer & reference insertion
   tests/
     client.test.ts   # Client and storage unit tests
+  icon.svg           # Community plugin icon (100x100 monochrome SVG)
   manifest.json      # Obsidian metadata
   package.json       # Node package configuration
   tsconfig.json      # TypeScript compiler options

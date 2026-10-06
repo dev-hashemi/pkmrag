@@ -1,12 +1,19 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="../assets/pkmrag-logo-text-dark.svg">
+    <img alt="PKMRAG" src="../assets/pkmrag-logo-text.svg" width="400">
+  </picture>
+</p>
+
 # System Architecture
 
-Orbit is an embedded, local-first Hybrid GraphRAG retrieval engine and MCP server designed for linked Markdown knowledge bases.
+PKMRAG is an embedded, local-first Hybrid GraphRAG retrieval engine and MCP server designed for linked Markdown knowledge bases.
 
 ---
 
 ## 🏛️ 3-Tier Discovery Pipeline
 
-Orbit eliminates costly brute-force LLM triple extraction by structuring discovery into three distinct tiers:
+PKMRAG eliminates costly brute-force LLM triple extraction by structuring discovery into three distinct tiers:
 
 ```mermaid
 %%{init: {'theme': 'dark', 'themeVariables': { 'darkMode': true, 'background': 'transparent', 'mainBkg': '#1e293b', 'primaryColor': '#1e293b', 'primaryBorderColor': '#3b82f6', 'primaryTextColor': '#f8fafc', 'lineColor': '#38bdf8', 'edgeLabelBackground': '#1e293b' }}}%%

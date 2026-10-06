@@ -2,7 +2,7 @@
  * Orbit Insights Obsidian Plugin Entry Point.
  */
 
-import { MarkdownView, Notice, Plugin, TFile, WorkspaceLeaf } from "obsidian";
+import { MarkdownView, Notice, Plugin, TFile, WorkspaceLeaf, addIcon } from "obsidian";
 import { OrbitClient } from "./client";
 import { createOrbitEditorExtension } from "./extension";
 import { OrbitSettingTab } from "./settings";
@@ -32,14 +32,20 @@ export default class OrbitInsightsPlugin extends Plugin {
       await this.client.autoDiscoverVaultToken(this.app);
     }
 
+    // Register custom PKMRAG ribbon icon
+    addIcon(
+      "pkmrag-ribbon",
+      `<path d="M50 18 L17 80 L83 80" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><line x1="50" y1="18" x2="83" y2="80" stroke-width="8" stroke-linecap="round" stroke-dasharray="0.1 15"/><circle cx="50" cy="18" r="10" fill="currentColor" stroke="none"/><circle cx="17" cy="80" r="10" fill="currentColor" stroke="none"/><circle cx="83" cy="80" r="11" stroke-width="6"/>`
+    );
+
     // Register Sidebar View
     this.registerView(
       VIEW_TYPE_ORBIT_INSIGHTS,
       (leaf: WorkspaceLeaf) => new OrbitInsightsView(leaf, this)
     );
 
-    // Ribbon Icon (Crosshair / Satellite)
-    this.addRibbonIcon("crosshair", "Orbit Insights", () => {
+    // Ribbon Icon (PKMRAG Graph Motif)
+    this.addRibbonIcon("pkmrag-ribbon", "PKMRAG Insights", () => {
       this.activateView();
     });
 

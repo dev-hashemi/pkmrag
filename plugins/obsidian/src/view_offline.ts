@@ -2,7 +2,7 @@
  * Friendly offline recovery screen rendered when Orbit daemon is unreachable.
  */
 
-import { Notice } from "obsidian";
+import { Notice, setIcon } from "obsidian";
 import type OrbitInsightsPlugin from "./main";
 
 export function renderOfflineView(
@@ -12,17 +12,18 @@ export function renderOfflineView(
 ): void {
   const wrapper = container.createDiv({ cls: "orbit-offline-container" });
 
-  const iconEl = wrapper.createDiv({ cls: "orbit-offline-icon", text: "📡" });
-  wrapper.createEl("h3", { text: "Orbit Daemon Offline", cls: "orbit-offline-title" });
+  const iconEl = wrapper.createDiv({ cls: "orbit-offline-icon" });
+  setIcon(iconEl, "pkmrag-ribbon");
+  wrapper.createEl("h3", { text: "PKMRAG Daemon Offline", cls: "orbit-offline-title" });
 
   wrapper.createEl("p", {
     cls: "orbit-offline-desc",
-    text: `Orbit daemon is not reachable at ${plugin.settings.serverUrl}. Start the daemon to inspect graph insights, missing links, and contradictions:`,
+    text: `PKMRAG daemon is not reachable at ${plugin.settings.serverUrl}. Start the daemon to inspect graph insights, missing links, and contradictions:`,
   });
 
   // Code snippet with click-to-copy
   const codeBox = wrapper.createDiv({ cls: "orbit-code-box" });
-  const cmd = `uv run orbit serve . -t http --port 3747`;
+  const cmd = `uv run pkmrag serve . -t http --port 3747`;
   codeBox.createEl("code", { text: cmd });
 
   const copyBtn = codeBox.createEl("button", { cls: "orbit-copy-btn", text: "Copy" });

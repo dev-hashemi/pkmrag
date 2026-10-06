@@ -30,11 +30,11 @@ export class OrbitInsightsView extends ItemView {
   }
 
   getDisplayText(): string {
-    return "Orbit Insights";
+    return "PKMRAG Insights";
   }
 
   getIcon(): string {
-    return "crosshair";
+    return "pkmrag-ribbon";
   }
 
   async onOpen(): Promise<void> {

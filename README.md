@@ -1,13 +1,22 @@
-# 🛰️ PKMRAG
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/pkmrag-logo-text-dark.svg">
+    <img alt="PKMRAG" src="assets/pkmrag-logo-text.svg" width="520">
+  </picture>
+</p>
 
-> **Embedded, Local-First Hybrid GraphRAG Retrieval Engine & MCP Server**
+<p align="center">
+  <strong>Embedded, Local-First Hybrid GraphRAG Retrieval Engine & MCP Server</strong>
+</p>
 
-[![CI](https://img.shields.io/github/actions/workflow/status/dev-hashemi/project-orbit/ci.yml?branch=main&style=flat&label=CI&logo=githubactions&logoColor=white)](https://github.com/dev-hashemi/project-orbit/actions)
-[![Coverage](https://img.shields.io/badge/coverage-89%25-brightgreen?style=flat&logo=pytest)](https://github.com/dev-hashemi/project-orbit)
-[![Python](https://img.shields.io/badge/python-%3E%3D3.12-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/downloads/)
-[![Version](https://img.shields.io/github/v/tag/dev-hashemi/project-orbit?style=flat&label=version&logo=github&logoColor=white)](https://github.com/dev-hashemi/project-orbit/releases)
-[![License](https://img.shields.io/badge/license-MIT-green?style=flat&logo=opensourceinitiative&logoColor=white)](LICENSE)
-[![Mypy](https://img.shields.io/badge/types-mypy_strict-2A6DB5?style=flat&logo=python&logoColor=white)](http://mypy-lang.org/)
+<p align="center">
+  <a href="https://github.com/dev-hashemi/project-orbit/actions"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/dev-hashemi/project-orbit/ci.yml?branch=main&style=flat&label=CI&logo=githubactions&logoColor=white"></a>
+  <a href="https://github.com/dev-hashemi/project-orbit"><img alt="Coverage" src="https://img.shields.io/badge/coverage-89%25-brightgreen?style=flat&logo=pytest"></a>
+  <a href="https://www.python.org/downloads/"><img alt="Python" src="https://img.shields.io/badge/python-%3E%3D3.12-3776AB?style=flat&logo=python&logoColor=white"></a>
+  <a href="https://github.com/dev-hashemi/project-orbit/releases"><img alt="Version" src="https://img.shields.io/github/v/tag/dev-hashemi/project-orbit?style=flat&label=version&logo=github&logoColor=white"></a>
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-green?style=flat&logo=opensourceinitiative&logoColor=white"></a>
+  <a href="http://mypy-lang.org/"><img alt="Mypy" src="https://img.shields.io/badge/types-mypy_strict-2A6DB5?style=flat&logo=python&logoColor=white"></a>
+</p>
 
 PKMRAG is an open-source, local-first retrieval engine designed for linked personal knowledge bases (PKMs). While Obsidian serves as our primary reference dialect, PKMRAG operates on an abstract knowledge model supporting any linked document system (Logseq, Foam, CommonMark docs) via pluggable dialects. It combines an explicit structural property graph with an Arrow-backed vector and keyword search index, exposing contextual intelligence to frontier AI reasoning tools via the Model Context Protocol (MCP).
 

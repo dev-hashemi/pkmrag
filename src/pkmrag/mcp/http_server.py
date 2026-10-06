@@ -10,7 +10,7 @@ from starlette.applications import Starlette
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
-from starlette.responses import JSONResponse, Response, StreamingResponse
+from starlette.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from starlette.types import ASGIApp
 
 from pkmrag import __version__
@@ -28,6 +28,7 @@ from pkmrag.search.service import SearchService
 from pkmrag.search.vector_store import VectorStore
 
 logger = logging.getLogger("pkmrag.http")
+ASSETS_DIR = Path(__file__).resolve().parent.parent.parent.parent / "assets"
 
 
 class TokenAuthMiddleware(BaseHTTPMiddleware):
@@ -38,7 +39,8 @@ class TokenAuthMiddleware(BaseHTTPMiddleware):
         self.token = token
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-        if request.method == "OPTIONS" or request.url.path == "/health":
+        public_paths = {"/health", "/favicon.ico", "/favicon.svg", "/logo.svg"}
+        if request.method == "OPTIONS" or request.url.path in public_paths:
             return await call_next(request)
 
         if not self.token:
@@ -49,7 +51,7 @@ class TokenAuthMiddleware(BaseHTTPMiddleware):
             return JSONResponse(
                 {
                     "error": "Unauthorized",
-                    "message": "Invalid or missing Orbit authentication token.",
+                    "message": "Invalid or missing PKMRAG authentication token.",
                 },
                 status_code=401,
             )
@@ -198,8 +200,29 @@ def create_http_app(
     async def events_handler(request: Request) -> Response:
         return StreamingResponse(broadcaster.subscribe(), media_type="text/event-stream")
 
+    async def favicon_handler(request: Request) -> Response:
+        ico = ASSETS_DIR / "favicon.ico"
+        if not ico.is_file():
+            return Response(status_code=404)
+        return FileResponse(ico, media_type="image/x-icon")
+
+    async def favicon_svg_handler(request: Request) -> Response:
+        svg = ASSETS_DIR / "favicon.svg"
+        if not svg.is_file():
+            return Response(status_code=404)
+        return FileResponse(svg, media_type="image/svg+xml")
+
+    async def logo_handler(request: Request) -> Response:
+        logo = ASSETS_DIR / "pkmrag-logo-dark.svg"
+        if not logo.is_file():
+            return Response(status_code=404)
+        return FileResponse(logo, media_type="image/svg+xml")
+
     app = mcp.sse_app(host=host)
     app.add_route("/health", health_handler, methods=["GET"])
+    app.add_route("/favicon.ico", favicon_handler, methods=["GET"])
+    app.add_route("/favicon.svg", favicon_svg_handler, methods=["GET"])
+    app.add_route("/logo.svg", logo_handler, methods=["GET"])
     app.add_route("/api/v1/context", context_handler, methods=["GET"])
     app.add_route("/api/v1/gaps", gaps_handler, methods=["GET"])
     app.add_route("/api/v1/search", search_handler, methods=["POST"])
@@ -228,7 +251,7 @@ def run_server(
     token: Optional[str] = None,
     no_auth: bool = False,
 ) -> None:
-    """Start an MCP server exposing Orbit tools over stdio or HTTP/SSE."""
+    """Start an MCP server exposing PKMRAG tools over stdio or HTTP/SSE."""
     resolved_path = Path(vault_path).resolve()
     if transport == "stdio":
         create_mcp_server(resolved_path).run(transport="stdio")

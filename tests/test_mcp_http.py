@@ -142,6 +142,24 @@ def test_http_cors_headers(populated_vault: Path) -> None:
     assert resp.headers.get("access-control-allow-origin") == "app://obsidian.md"
 
 
+def test_http_static_assets_public(populated_vault: Path) -> None:
+    """Verify static favicon and logo assets are publicly accessible."""
+    app = create_http_app(populated_vault, token="secure_test_token")
+    client = TestClient(app)
+
+    r_ico = client.get("/favicon.ico")
+    assert r_ico.status_code == 200
+    assert r_ico.headers["content-type"] == "image/x-icon"
+
+    r_svg = client.get("/favicon.svg")
+    assert r_svg.status_code == 200
+    assert "image/svg+xml" in r_svg.headers["content-type"]
+
+    r_logo = client.get("/logo.svg")
+    assert r_logo.status_code == 200
+    assert "image/svg+xml" in r_logo.headers["content-type"]
+
+
 def test_run_server_invalid_transport(tmp_path: Path) -> None:
     """Verify run_server raises ValueError for unrecognized transport."""
     with pytest.raises(ValueError, match="Unsupported transport 'ftp'"):
