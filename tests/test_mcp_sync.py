@@ -7,8 +7,8 @@ from pathlib import Path
 import pytest
 from mcp.types import CallToolResult
 
-from orbit.ingest import IngestPipeline
-from orbit.mcp import create_mcp_server
+from pkmrag.ingest import IngestPipeline
+from pkmrag.mcp import create_mcp_server
 
 
 @pytest.mark.anyio

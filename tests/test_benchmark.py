@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from orbit.ingest import IngestPipeline
-from orbit.search import SearchService
+from pkmrag.ingest import IngestPipeline
+from pkmrag.search import SearchService
 
 BENCHMARK_PATH = Path(__file__).resolve().parent.parent / "benchmarks" / "golden_10.json"
 TEST_VAULT_PATH = Path(__file__).resolve().parent.parent / "benchmarks" / "vault"

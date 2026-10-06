@@ -37,12 +37,13 @@ venv.bak/
 .coverage
 htmlcov/
 
-# Local databases & storage (Orbit data)
+# Local databases & storage (PKMRAG data)
 *.kuzu/
 *.lance/
 *.db
 *.sqlite
 *.sqlite3
+.pkmrag/
 .orbit/
 
 # IDE & OS

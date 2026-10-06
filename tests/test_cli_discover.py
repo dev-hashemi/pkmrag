@@ -9,8 +9,8 @@ from typing import Any
 
 from typer.testing import CliRunner
 
-from orbit.cli import app
-from orbit.ingest import IngestPipeline
+from pkmrag.cli import app
+from pkmrag.ingest import IngestPipeline
 
 runner = CliRunner()
 

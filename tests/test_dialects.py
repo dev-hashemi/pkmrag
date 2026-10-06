@@ -7,15 +7,15 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from orbit.cli import app
-from orbit.dialects import (
+from pkmrag.cli import app
+from pkmrag.dialects import (
     CommonMarkDialect,
     KnowledgeDialect,
     ObsidianDialect,
     get_default_registry,
 )
-from orbit.ingest import IngestPipeline
-from orbit.models import NoteMetadata, ResolvedLink, SourceIndex, Wikilink
+from pkmrag.ingest import IngestPipeline
+from pkmrag.models import NoteMetadata, ResolvedLink, SourceIndex, Wikilink
 
 runner = CliRunner()
 

@@ -24,7 +24,7 @@ flowchart TD
 
     subgraph Exporters["📊 Exporters & Visualizers"]
         SDK --> Mem["InMemorySpanCollector"]
-        Mem --> RichTree["Rich In-Terminal Waterfall Tree\n(orbit search --trace)"]
+        Mem --> RichTree["Rich In-Terminal Waterfall Tree\n(pkmrag search --trace)"]
         SDK -.->|"Optional (.env)"| OTLP["OTLPSpanExporter (HTTP)\nLangfuse / Jaeger / Datadog"]
     end
 
@@ -89,16 +89,16 @@ Inspect any search or discovery execution in real time:
 
 ```bash
 # Search with visual trace breakdown
-uv run orbit search "vector retrieval" --trace
+uv run pkmrag search "vector retrieval" --trace
 
 # Search with note proximity bias and trace
-uv run orbit search "storage" --near "LadybugDB.md" --trace
+uv run pkmrag search "storage" --near "LadybugDB.md" --trace
 
 # Vault ingestion trace
-uv run orbit ingest ./my-vault --trace
+uv run pkmrag ingest ./my-vault --trace
 
 # Dry-run gap discovery trace
-uv run orbit discover ./my-vault --dry-run --trace
+uv run pkmrag discover ./my-vault --dry-run --trace
 ```
 
 ---

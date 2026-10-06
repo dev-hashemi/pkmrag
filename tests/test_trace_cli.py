@@ -8,8 +8,8 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from orbit.cli import app
-from orbit.telemetry import shutdown_telemetry
+from pkmrag.cli import app
+from pkmrag.telemetry import shutdown_telemetry
 
 runner = CliRunner()
 
@@ -44,7 +44,7 @@ def test_cli_search_with_trace_flag(tmp_path: Path) -> None:
     assert "NoteA.md" in res.stdout
 
     # Verify OpenTelemetry trace tree rendering is present
-    assert "Trace: orbit.search" in res.stdout
+    assert "Trace: pkmrag.search" in res.stdout
     assert "cache.lookup" in res.stdout
     assert "embed.query" in res.stdout
 
@@ -58,7 +58,7 @@ def test_cli_ingest_with_trace_flag(tmp_path: Path) -> None:
 
     res = runner.invoke(app, ["ingest", str(vault), "--trace"])
     assert res.exit_code == 0
-    assert "Trace: orbit.ingest" in res.stdout
+    assert "Trace: pkmrag.ingest" in res.stdout
     assert "ingest.scan_files" in res.stdout
 
 
@@ -74,5 +74,5 @@ def test_cli_discover_with_trace_flag(tmp_path: Path) -> None:
 
     res = runner.invoke(app, ["discover", str(vault), "--dry-run", "--trace"])
     assert res.exit_code == 0
-    assert "Trace: orbit.discover" in res.stdout
+    assert "Trace: pkmrag.discover" in res.stdout
     assert "gap.graph_filter" in res.stdout

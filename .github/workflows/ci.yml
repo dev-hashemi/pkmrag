@@ -16,9 +16,9 @@ jobs:
         with:
           python-version: "3.12"
       - run: uv sync --extra dev
-      - run: uv run pytest --cov=orbit --cov-report=term-missing
+      - run: uv run pytest --cov=pkmrag --cov-report=term-missing
       - name: Run retrieval evaluation quality gates
-        run: uv run orbit eval --min-mrr 0.80 --min-recall 0.80
+        run: uv run pkmrag eval --min-mrr 0.80 --min-recall 0.80
 
   lint:
     runs-on: ubuntu-latest

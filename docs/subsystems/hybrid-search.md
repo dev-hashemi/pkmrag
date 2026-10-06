@@ -5,9 +5,9 @@ The hybrid search subsystem fuses dense semantic embeddings, sparse BM25 keyword
 ---
 
 ## 💾 Implementation
-- **Chunker:** [`src/orbit/search/chunker.py`](file:///home/ali/projects/my/project-orbit/src/orbit/search/chunker.py)
-- **Fusion & Boost:** [`src/orbit/search/fusion.py`](file:///home/ali/projects/my/project-orbit/src/orbit/search/fusion.py)
-- **Service:** [`src/orbit/search/service.py`](file:///home/ali/projects/my/project-orbit/src/orbit/search/service.py)
+- **Chunker:** [`src/pkmrag/search/chunker.py`](file:///home/ali/projects/my/project-orbit/src/pkmrag/search/chunker.py)
+- **Fusion & Boost:** [`src/pkmrag/search/fusion.py`](file:///home/ali/projects/my/project-orbit/src/pkmrag/search/fusion.py)
+- **Service:** [`src/pkmrag/search/service.py`](file:///home/ali/projects/my/project-orbit/src/pkmrag/search/service.py)
 
 ---
 
@@ -46,5 +46,5 @@ $$\text{Score}_{\text{final}}(d) = \text{RRF}(d) \times \text{Multiplier}(\text{
 
 CLI Example:
 ```bash
-orbit search "vector retrieval" --vault /path/to/vault --near "Storage Layer"
+pkmrag search "vector retrieval" --vault /path/to/vault --near "Storage Layer"
 ```

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from orbit.search.embedder import EmbeddingProvider, FastEmbedProvider
+from pkmrag.search.embedder import EmbeddingProvider, FastEmbedProvider
 
 
 def test_embedder_protocol_and_dimensions() -> None:

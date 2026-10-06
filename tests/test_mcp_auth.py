@@ -8,7 +8,7 @@ from unittest.mock import MagicMock
 
 from starlette.requests import Request
 
-from orbit.mcp.auth import (
+from pkmrag.mcp.auth import (
     extract_request_token,
     get_or_create_token_file,
     get_token_file_path,

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from unittest.mock import MagicMock, patch
 
-from orbit.inference.provider import OpenAICompatibleProvider
+from pkmrag.inference.provider import OpenAICompatibleProvider
 
 
 def test_validation_retry_recovers_on_second_attempt() -> None:

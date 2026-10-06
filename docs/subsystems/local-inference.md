@@ -33,12 +33,12 @@ ollama pull qwen2.5:3b
 ollama pull mistral:7b
 ```
 
-### 2.2 Verify with `orbit doctor`
+### 2.2 Verify with `pkmrag doctor`
 
 Orbit's diagnostic command automatically probes your local Ollama daemon:
 
 ```bash
-uv run orbit doctor
+uv run pkmrag doctor
 ```
 
 Output:
@@ -56,7 +56,7 @@ Output:
 ```
 
 > [!NOTE]
-> If Ollama is not running, `orbit doctor` marks the check as `OFFLINE` (optional) without failing exit codes or blocking non-AI features.
+> If Ollama is not running, `pkmrag doctor` marks the check as `OFFLINE` (optional) without failing exit codes or blocking non-AI features.
 
 ---
 
@@ -68,10 +68,10 @@ To run relationship discovery with Ollama:
 
 ```bash
 # Discover semantic gaps and infer relationships using local Llama 3.2
-uv run orbit discover /path/to/vault --provider ollama --model llama3.2
+uv run pkmrag discover /path/to/vault --provider ollama --model llama3.2
 
 # Dry-run candidates without executing LLM inference
-uv run orbit discover /path/to/vault --provider ollama --dry-run
+uv run pkmrag discover /path/to/vault --provider ollama --dry-run
 ```
 
 ### 3.2 Via Configuration (`.env`)
@@ -88,7 +88,7 @@ ORBIT_OLLAMA_MODEL=llama3.2
 Once configured in `.env`, simply run:
 
 ```bash
-uv run orbit discover /path/to/vault
+uv run pkmrag discover /path/to/vault
 ```
 
 ---

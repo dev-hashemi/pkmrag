@@ -5,9 +5,9 @@ The discovery subsystem implements Tier 3 of Orbit's Hybrid GraphRAG architectur
 ---
 
 ## 💾 Storage & Lifecycle
-- **Implementation:** [`src/orbit/discovery/engine.py`](file:///home/ali/projects/my/project-orbit/src/orbit/discovery/engine.py)
+- **Implementation:** [`src/pkmrag/discovery/engine.py`](file:///home/ali/projects/my/project-orbit/src/pkmrag/discovery/engine.py)
 - **Graph Storage:** Persisted to LadybugDB in the `[:INFERRED_REL]` edge table.
-- **CLI Interface:** `orbit discover <vault> --threshold 0.80`
+- **CLI Interface:** `pkmrag discover <vault> --threshold 0.80`
 
 ---
 

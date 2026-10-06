@@ -7,12 +7,12 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from orbit.cli import app
-from orbit.graph.store import GraphStore
-from orbit.ingest.pipeline import IngestPipeline
-from orbit.models import Wikilink
-from orbit.parser.indexer import VaultIndexer
-from orbit.parser.markdown import (
+from pkmrag.cli import app
+from pkmrag.graph.store import GraphStore
+from pkmrag.ingest.pipeline import IngestPipeline
+from pkmrag.models import Wikilink
+from pkmrag.parser.indexer import VaultIndexer
+from pkmrag.parser.markdown import (
     extract_tags,
     extract_wikilinks,
     parse_frontmatter,

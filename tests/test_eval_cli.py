@@ -9,8 +9,8 @@ from typing import Any
 import pytest
 from typer.testing import CliRunner
 
-from orbit.cli import app
-from orbit.eval.harness import EvaluationHarness
+from pkmrag.cli import app
+from pkmrag.eval.harness import EvaluationHarness
 
 pytestmark = pytest.mark.xdist_group("benchmark_vault")
 

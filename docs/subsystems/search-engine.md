@@ -5,7 +5,7 @@ The search engine couples dense vector similarity search with sparse lexical BM2
 ---
 
 ## 💾 Storage & Lifecycle
-- **Implementation:** [`src/orbit/search/vector_store.py`](file:///home/ali/projects/my/project-orbit/src/orbit/search/vector_store.py) & [`src/orbit/search/embedder.py`](file:///home/ali/projects/my/project-orbit/src/orbit/search/embedder.py)
+- **Implementation:** [`src/pkmrag/search/vector_store.py`](file:///home/ali/projects/my/project-orbit/src/pkmrag/search/vector_store.py) & [`src/pkmrag/search/embedder.py`](file:///home/ali/projects/my/project-orbit/src/pkmrag/search/embedder.py)
 - **Path:** `<vault>/.orbit/vectors/chunks.lance`
 - **Model:** `BAAI/bge-small-en-v1.5` (384 dimensions, ONNX Runtime CPU via `fastembed`).
 

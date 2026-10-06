@@ -5,7 +5,7 @@ The graph engine manages the deterministic topological backbone of notes, tags, 
 ---
 
 ## 💾 Storage & Lifecycle
-- **Implementation:** [`src/orbit/graph/store.py`](file:///home/ali/projects/my/project-orbit/src/orbit/graph/store.py) & [`src/orbit/graph/traversal.py`](file:///home/ali/projects/my/project-orbit/src/orbit/graph/traversal.py)
+- **Implementation:** [`src/pkmrag/graph/store.py`](file:///home/ali/projects/my/project-orbit/src/pkmrag/graph/store.py) & [`src/pkmrag/graph/traversal.py`](file:///home/ali/projects/my/project-orbit/src/pkmrag/graph/traversal.py)
 - **Path:** `<vault>/.orbit/graph/orbit.ladybug`
 - **Execution:** In-process C++ binding via `ladybug.Database` and `ladybug.Connection`. Zero network daemons.
 

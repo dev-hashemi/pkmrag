@@ -20,7 +20,7 @@ Developing and maintaining custom chat and graph rendering frontends creates imm
 Orbit exposes its capabilities primarily as a **Model Context Protocol (MCP) server**:
 - Transport: Standard input/output (stdio) and Server-Sent Events (SSE).
 - Interface: Deterministic tools (`query_vault`, `read_note`, `find_bridges`) and graph resources.
-- CLI serves as a local developer inspection tool (`orbit search`, `orbit ingest`, `orbit doctor`).
+- CLI serves as a local developer inspection tool (`pkmrag search`, `pkmrag ingest`, `pkmrag doctor`).
 - No custom web UI or frontend chat application.
 
 ---

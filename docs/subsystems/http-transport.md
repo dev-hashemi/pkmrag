@@ -40,22 +40,22 @@ Orbit runs an asynchronous Starlette/Uvicorn server hosting two distinct API pla
 ### 2.1 Starting the Server
 ```bash
 # Start HTTP/SSE server (generates or reads .orbit/server_token)
-uv run orbit serve /path/to/vault --transport http --port 3747
+uv run pkmrag serve /path/to/vault --transport http --port 3747
 
 # Start with an explicit authentication token
-uv run orbit serve /path/to/vault --transport http --token my_secret_token
+uv run pkmrag serve /path/to/vault --transport http --token my_secret_token
 
 # Start in local testing mode with authentication disabled
-uv run orbit serve /path/to/vault --transport http --no-auth
+uv run pkmrag serve /path/to/vault --transport http --no-auth
 ```
 
 ### 2.2 Generating MCP Client Configuration
 ```bash
 # Generate stdio configuration
-uv run orbit mcp-config /path/to/vault
+uv run pkmrag mcp-config /path/to/vault
 
 # Generate SSE configuration with auto-resolved Bearer token
-uv run orbit mcp-config /path/to/vault --transport sse --port 3747
+uv run pkmrag mcp-config /path/to/vault --transport sse --port 3747
 ```
 
 ---

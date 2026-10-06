@@ -1,4 +1,4 @@
-# 🛰️ Project Orbit
+# 🛰️ PKMRAG
 
 > **Embedded, Local-First Hybrid GraphRAG Retrieval Engine & MCP Server**
 
@@ -9,7 +9,7 @@
 [![License](https://img.shields.io/badge/license-MIT-green?style=flat&logo=opensourceinitiative&logoColor=white)](LICENSE)
 [![Mypy](https://img.shields.io/badge/types-mypy_strict-2A6DB5?style=flat&logo=python&logoColor=white)](http://mypy-lang.org/)
 
-Project Orbit is an open-source, local-first retrieval engine designed for linked personal knowledge bases (PKMs). While Obsidian serves as our primary reference dialect, Orbit operates on an abstract knowledge model supporting any linked document system (Logseq, Foam, CommonMark docs) via pluggable dialects. It combines an explicit structural property graph with an Arrow-backed vector and keyword search index, exposing contextual intelligence to frontier AI reasoning tools via the Model Context Protocol (MCP).
+PKMRAG is an open-source, local-first retrieval engine designed for linked personal knowledge bases (PKMs). While Obsidian serves as our primary reference dialect, PKMRAG operates on an abstract knowledge model supporting any linked document system (Logseq, Foam, CommonMark docs) via pluggable dialects. It combines an explicit structural property graph with an Arrow-backed vector and keyword search index, exposing contextual intelligence to frontier AI reasoning tools via the Model Context Protocol (MCP).
 
 📖 **Technical Documentation:** [System Architecture & Subsystems](docs/architecture.md)
 
@@ -17,7 +17,7 @@ Project Orbit is an open-source, local-first retrieval engine designed for linke
 
 ## 🏛️ Architecture Overview
 
-Orbit replaces brute-force triple extraction with a targeted, 3-tier discovery pipeline:
+PKMRAG replaces brute-force triple extraction with a targeted, 3-tier discovery pipeline:
 
 ```mermaid
 %%{init: {'theme': 'dark', 'themeVariables': { 'darkMode': true, 'background': 'transparent', 'mainBkg': '#1e293b', 'primaryColor': '#1e293b', 'primaryBorderColor': '#3b82f6', 'primaryTextColor': '#f8fafc', 'lineColor': '#38bdf8', 'edgeLabelBackground': '#1e293b' }}}%%
@@ -63,12 +63,12 @@ uv pip install -e .
 
 ### 2. Verify Storage & Engine Health
 ```bash
-orbit doctor
+pkmrag doctor
 ```
 ```text
-╭────────────────────────────────────────────────────╮
-│ Project Orbit v0.9.0 — System Health & Diagnostics │
-╰────────────────────────────────────────────────────╯
+╭─────────────────────────────────────────────╮
+│ PKMRAG v0.9.0 — System Health & Diagnostics │
+╰─────────────────────────────────────────────╯
                        In-Process Data Plane Verification                       
 ┏━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━┓
 ┃ Component              ┃ Status  ┃ Version ┃ Latency ┃ Verification Details  ┃
@@ -77,15 +77,15 @@ orbit doctor
 │ Graph                  │         │         │         │ read/write verified   │
 │ LanceDB Vector Engine  │  PASS   │ 0.38.0  │   6.3ms │ Arrow-backed vector   │
 │                        │         │         │         │ index verified        │
-│ Ollama Local Engine    │  PASS   │ 0.3.14  │   1.2ms │ Local daemon detected │
+│ Ollama Local Engine    │  PASS   │ active  │   1.2ms │ Local daemon detected │
 └────────────────────────┴─────────┴─────────┴─────────┴───────────────────────┘
-All systems operational. Engines ready for Orbit.
+All systems operational. Engines ready for PKMRAG.
 ```
 
 ### 3. Ingest and Search in 30 Seconds
 ```bash
-orbit ingest /path/to/vault
-orbit search "how does cache invalidation work?" --near "Cache Architecture.md"
+pkmrag ingest /path/to/vault
+pkmrag search "how does cache invalidation work?" --near "Cache Architecture.md"
 ```
 
 ---
@@ -95,27 +95,27 @@ orbit search "how does cache invalidation work?" --near "Cache Architecture.md"
 ### Ingestion & Incremental Synchronization
 Ingest notes, links, tags, and semantic vectors with SHA-256 delta sync:
 ```bash
-orbit ingest /path/to/vault                           # Ingest graph topology + semantic vectors
-orbit ingest /path/to/vault --target vector           # Target specific plane (all, graph, or vector)
-orbit ingest /path/to/docs --dialect commonmark       # Explicitly select markdown dialect
-orbit ingest /path/to/vault --rebuild                 # Force a clean rebuild
+pkmrag ingest /path/to/vault                           # Ingest graph topology + semantic vectors
+pkmrag ingest /path/to/vault --target vector           # Target specific plane (all, graph, or vector)
+pkmrag ingest /path/to/docs --dialect commonmark       # Explicitly select markdown dialect
+pkmrag ingest /path/to/vault --rebuild                 # Force a clean rebuild
 ```
 
 ### Hybrid & Graph-Boosted Retrieval
 Combines dense semantic similarity (`BAAI/bge-small-en-v1.5`), Tantivy BM25 keyword matching, Reciprocal Rank Fusion ($k=60$), and graph proximity multipliers:
 ```bash
-orbit search "distributed consensus"                  # Hybrid search (dense + BM25 via RRF)
-orbit search "consensus" --near "Paxos Algorithm.md"  # Boosted by graph proximity to anchor note
-orbit search "raft" --mode dense --limit 5            # Explicit retrieval mode (hybrid, dense, sparse)
-orbit search "storage" --json                         # Machine-readable JSON output
+pkmrag search "distributed consensus"                  # Hybrid search (dense + BM25 via RRF)
+pkmrag search "consensus" --near "Paxos Algorithm.md"  # Boosted by graph proximity to anchor note
+pkmrag search "raft" --mode dense --limit 5            # Explicit retrieval mode (hybrid, dense, sparse)
+pkmrag search "storage" --json                         # Machine-readable JSON output
 ```
 
 ### 🧠 Semantic Gap Discovery & Inferred Relationships
 Detects unlinked note pairs with high semantic similarity ($\ge 0.80$) but graph distance $\ge 3$, classifying missing edges via local or remote LLMs:
 ```bash
-orbit discover /path/to/vault --dry-run               # Preview semantic gaps without calling LLM
-orbit discover /path/to/vault --provider ollama       # 100% offline local inference (Llama 3.2, Qwen 2.5)
-orbit discover /path/to/vault --threshold 0.85        # Custom cosine similarity threshold
+pkmrag discover /path/to/vault --dry-run               # Preview semantic gaps without calling LLM
+pkmrag discover /path/to/vault --provider ollama       # 100% offline local inference (Llama 3.2, Qwen 2.5)
+pkmrag discover /path/to/vault --threshold 0.85        # Custom cosine similarity threshold
 ```
 Inferred edges are stored separately in the LadybugDB `[:INFERRED_REL]` table with confidence, model name, and rationale—preserving human-curated wikilinks.
 
@@ -123,17 +123,17 @@ Inferred edges are stored separately in the LadybugDB `[:INFERRED_REL]` table wi
 
 ## 🔌 Model Context Protocol (MCP) & HTTP Server
 
-Orbit exposes a rich tool plane over **stdio** (for CLI/IDE agents) and **HTTP/SSE** (for Obsidian and network clients):
+PKMRAG exposes a rich tool plane over **stdio** (for CLI/IDE agents) and **HTTP/SSE** (for Obsidian and network clients):
 
 ```bash
 # Start stdio MCP server (Claude Code, Cursor, OpenCode)
-orbit serve /path/to/vault
+pkmrag serve /path/to/vault
 
 # Start HTTP/SSE daemon on port 3747 (dual MCP SSE + REST API plane)
-orbit serve /path/to/vault --transport http --port 3747
+pkmrag serve /path/to/vault --transport http --port 3747
 
 # One-command registration for Claude Code:
-claude mcp add orbit -- uv run --directory /path/to/project-orbit orbit serve /path/to/vault
+claude mcp add pkmrag -- uv run pkmrag serve /path/to/vault
 ```
 
 ### Exposed Tools
@@ -153,12 +153,12 @@ claude mcp add orbit -- uv run --directory /path/to/project-orbit orbit serve /p
 
 ## 💎 Obsidian Desktop Plugin (`orbit-insights`)
 
-A native desktop companion plugin (`plugins/obsidian/`) connecting Obsidian to Orbit:
+A native desktop companion plugin (`plugins/obsidian/`) connecting Obsidian to PKMRAG:
 - **Orbit Insights Sidebar:** Real-time semantic gap recommendations, contradiction warnings with LLM citations, and structural graph context.
 - **CodeMirror 6 Inline Indicators:** Ambient visual widgets on headings (`🔗 N`, `⚠️`) without document clutter; clicking reveals the sidebar panel.
 - **Proximity Concept Explorer:** Context-anchored hybrid retrieval drawer (`--near <note>`) directly within the editor with 1-click reference insertion.
 - **Knowledge Governance:** Persistent negative feedback cache preventing dismissed links from recurring; transparent restoration drawer and global reset.
-- **Zero-Config Token Security:** Automatically discovers `.orbit/server_token` from active vault.
+- **Zero-Config Token Security:** Automatically discovers `.pkmrag/server_token` (or legacy `.orbit/server_token`) from active vault.
 - **Live Reactive Updates:** Subscribes to Server-Sent Events (`/api/v1/events`) for background indexing updates.
 
 See [docs/subsystems/obsidian-plugin.md](docs/subsystems/obsidian-plugin.md) for installation and developer guides.
@@ -175,17 +175,17 @@ Evaluated against the in-repo Golden 10 ground truth benchmark dataset (`benchma
 - **Mean Average Precision (MAP@5):** `0.925`
 
 ```bash
-orbit eval --min-mrr 0.85 --min-recall 0.80           # CI regression gate
+pkmrag eval --min-mrr 0.85 --min-recall 0.80           # CI regression gate
 ```
 
 ### OpenTelemetry Distributed Tracing
 Inspect execution timelines and token consumption in real time with in-memory OpenTelemetry spans:
 ```bash
-orbit search "storage" --near "LadybugDB.md" --trace
+pkmrag search "storage" --near "LadybugDB.md" --trace
 ```
 ```text
 ╭───────── Trace ID: 66d44d13f5b480b5... ─────────╮
-│ 🛰️ Trace: orbit.search  18.42ms (HIT, hybrid)   │
+│ 🛰️ Trace: pkmrag.search  18.42ms (HIT, hybrid)  │
 │ ├── cache.lookup    0.15ms (HIT)                │
 │ ├── lancedb.search   8.12ms                     │
 │ ├── ladybug.hops     4.20ms (dist: 1)           │
@@ -210,6 +210,6 @@ uv run mypy src tests
 # Linting & code formatting
 uv run ruff check . && uv run ruff format --check .
 
-# Obsidian plugin compliance & unit tests
-cd plugins/obsidian && npm run typecheck && npm test && npm run build
+# Retrieval evaluation against benchmark
+uv run pkmrag eval
 ```

@@ -35,7 +35,7 @@ export class OrbitSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Authentication Token")
-      .setDesc("Bearer token for server access (auto-detected from .orbit/server_token)")
+      .setDesc("Bearer token for server access (auto-detected from .pkmrag/server_token)")
       .addText((text) =>
         text
           .setPlaceholder("Auto-detected or custom token")
@@ -49,11 +49,11 @@ export class OrbitSettingTab extends PluginSettingTab {
         btn.setButtonText("Auto-Detect").onClick(async () => {
           const tok = await this.plugin.client.autoDiscoverVaultToken(this.app);
           if (tok) {
-            new Notice(`Found Orbit token in vault!`);
+            new Notice(`Found server token in vault!`);
             await this.plugin.saveSettings();
             this.display();
           } else {
-            new Notice(`No .orbit/server_token file found in vault.`);
+            new Notice(`No .pkmrag/server_token file found in vault.`);
           }
         })
       );

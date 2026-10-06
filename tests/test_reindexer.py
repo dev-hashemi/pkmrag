@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from orbit.graph.paths import get_note_structural_context
-from orbit.graph.store import GraphStore
-from orbit.ingest.pipeline import IngestPipeline
-from orbit.ingest.reindexer import SingleNoteReindexer
-from orbit.search.service import SearchService
-from orbit.search.vector_store import VectorStore
+from pkmrag.graph.paths import get_note_structural_context
+from pkmrag.graph.store import GraphStore
+from pkmrag.ingest.pipeline import IngestPipeline
+from pkmrag.ingest.reindexer import SingleNoteReindexer
+from pkmrag.search.service import SearchService
+from pkmrag.search.vector_store import VectorStore
 
 
 def test_single_note_reindex_and_graph_population(tmp_path: Path) -> None:
@@ -38,7 +38,7 @@ def test_single_note_reindex_and_graph_population(tmp_path: Path) -> None:
     assert result.duration_ms > 0
 
     # Verify graph state
-    with GraphStore(vault / ".orbit" / "graph", read_only=True) as gstore:
+    with GraphStore(vault / ".pkmrag" / "graph", read_only=True) as gstore:
         ctx = get_note_structural_context(gstore.conn, "Component.md")
         assert ctx is not None
         assert "Base.md" in ctx.outgoing_links
@@ -46,7 +46,7 @@ def test_single_note_reindex_and_graph_population(tmp_path: Path) -> None:
         assert "core" in ctx.tags
 
     # Verify vector state
-    with VectorStore(vault / ".orbit" / "vectors") as vstore:
+    with VectorStore(vault / ".pkmrag" / "vectors") as vstore:
         dense_hits = vstore.search_sparse("architecture", limit=5)
         assert any(h["note_path"] == "Component.md" for h in dense_hits)
 
@@ -68,7 +68,7 @@ def test_ghost_note_reconciliation_on_reindex(tmp_path: Path) -> None:
     pipe.run()
 
     # Verify ghost note exists initially
-    with GraphStore(vault / ".orbit" / "graph", read_only=True) as gstore:
+    with GraphStore(vault / ".pkmrag" / "graph", read_only=True) as gstore:
         notes = gstore.get_all_notes()
         assert "TargetAPI.md" in notes
         assert notes["TargetAPI.md"]["is_unresolved"] is True
@@ -82,7 +82,7 @@ def test_ghost_note_reconciliation_on_reindex(tmp_path: Path) -> None:
     assert res.ghosts_reconciled == 1
 
     # Verify ghost note migrated into real note
-    with GraphStore(vault / ".orbit" / "graph", read_only=True) as gstore:
+    with GraphStore(vault / ".pkmrag" / "graph", read_only=True) as gstore:
         notes = gstore.get_all_notes()
         assert "TargetAPI.md" in notes
         assert notes["TargetAPI.md"]["is_unresolved"] is False
@@ -111,11 +111,11 @@ def test_single_note_deletion_lifecycle(tmp_path: Path) -> None:
     result = reindexer.reindex_note("Obsolete.md")
     assert result.status == "deleted"
 
-    with GraphStore(vault / ".orbit" / "graph", read_only=True) as gstore:
+    with GraphStore(vault / ".pkmrag" / "graph", read_only=True) as gstore:
         notes = gstore.get_all_notes()
         assert "Obsolete.md" not in notes
 
-    with VectorStore(vault / ".orbit" / "vectors") as vstore:
+    with VectorStore(vault / ".pkmrag" / "vectors") as vstore:
         hits = vstore.search_sparse("Obsolete", limit=5)
         assert len(hits) == 0
 
@@ -135,7 +135,7 @@ def test_reindexer_security_boundaries(tmp_path: Path) -> None:
     assert "outside vault" in (r1.error_message or "").lower()
 
     # 2. Protected directory (.orbit)
-    r2 = reindexer.reindex_note(".orbit/graph/fake.md")
+    r2 = reindexer.reindex_note(".pkmrag/graph/fake.md")
     assert r2.status == "error"
     assert "protected" in (r2.error_message or "").lower()
 

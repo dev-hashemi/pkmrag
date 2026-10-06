@@ -7,8 +7,8 @@ from pathlib import Path
 import pytest
 from starlette.testclient import TestClient
 
-from orbit.ingest import IngestPipeline
-from orbit.mcp.http_server import create_http_app, run_server
+from pkmrag.ingest import IngestPipeline
+from pkmrag.mcp.http_server import create_http_app, run_server
 
 
 @pytest.fixture

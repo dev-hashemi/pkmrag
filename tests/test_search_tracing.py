@@ -7,9 +7,9 @@ from pathlib import Path
 
 import pytest
 
-from orbit.ingest import IngestPipeline
-from orbit.search import SearchService
-from orbit.telemetry import (
+from pkmrag.ingest import IngestPipeline
+from pkmrag.search import SearchService
+from pkmrag.telemetry import (
     get_memory_collector,
     setup_telemetry,
     shutdown_telemetry,
@@ -54,7 +54,7 @@ def test_search_pipeline_trace_hierarchy(tmp_path: Path) -> None:
         span_names = [s.name for s in spans]
 
         # Verify all expected phase spans are captured
-        assert "orbit.search" in span_names
+        assert "pkmrag.search" in span_names
         assert "cache.lookup" in span_names
         assert "embed.query" in span_names
         assert "lancedb.dense_search" in span_names
@@ -63,7 +63,7 @@ def test_search_pipeline_trace_hierarchy(tmp_path: Path) -> None:
         assert "ladybug.proximity_boost" in span_names
         assert "cache.store" in span_names
 
-        root = next(s for s in spans if s.name == "orbit.search")
+        root = next(s for s in spans if s.name == "pkmrag.search")
         assert root.attributes["query"] == "LadybugDB traversal"
         assert root.attributes["mode"] == "hybrid"
         assert root.attributes["near"] == "LadybugDB.md"
@@ -87,7 +87,7 @@ def test_search_pipeline_trace_hierarchy(tmp_path: Path) -> None:
         spans_cached = collector.get_spans()
         cached_names = [s.name for s in spans_cached]
 
-        assert "orbit.search" in cached_names
+        assert "pkmrag.search" in cached_names
         assert "cache.lookup" in cached_names
         # Dense search, BM25, and RRF should be skipped on cache hit
         assert "lancedb.dense_search" not in cached_names

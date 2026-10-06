@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from unittest.mock import MagicMock, patch
 
-from orbit.inference.ollama import OllamaProvider
+from pkmrag.inference.ollama import OllamaProvider
 
 
 def test_ollama_provider_defaults() -> None:

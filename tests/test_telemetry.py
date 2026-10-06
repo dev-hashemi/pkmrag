@@ -8,7 +8,7 @@ from collections.abc import Generator
 import pytest
 from rich.console import Console
 
-from orbit.telemetry import (
+from pkmrag.telemetry import (
     RecordedSpan,
     get_memory_collector,
     is_telemetry_active,
@@ -18,7 +18,7 @@ from orbit.telemetry import (
     trace_span,
     traced,
 )
-from orbit.telemetry.spans import _NoOpSpan
+from pkmrag.telemetry.spans import _NoOpSpan
 
 
 @pytest.fixture(autouse=True)
@@ -55,16 +55,16 @@ def test_in_memory_span_collector_recording() -> None:
     collector = get_memory_collector()
     assert collector is not None
 
-    with trace_span("orbit.test_root", attributes={"root_attr": "hello"}):
-        with trace_span("orbit.test_child", attributes={"mode": "hybrid"}) as child_s:
+    with trace_span("pkmrag.test_root", attributes={"root_attr": "hello"}):
+        with trace_span("pkmrag.test_child", attributes={"mode": "hybrid"}) as child_s:
             child_s.set_attribute("candidates.count", 42)
 
     spans = collector.get_spans()
     assert len(spans) == 2
 
     # Spans are exported on end: child finishes before root
-    child_span = next(s for s in spans if s.name == "orbit.test_child")
-    root_span = next(s for s in spans if s.name == "orbit.test_root")
+    child_span = next(s for s in spans if s.name == "pkmrag.test_child")
+    root_span = next(s for s in spans if s.name == "pkmrag.test_root")
 
     assert child_span.attributes["mode"] == "hybrid"
     assert child_span.attributes["candidates.count"] == 42
@@ -87,7 +87,7 @@ def test_trace_span_records_exception() -> None:
     assert collector is not None
 
     with pytest.raises(RuntimeError, match="boom"):
-        with trace_span("orbit.test_error"):
+        with trace_span("pkmrag.test_error"):
             raise RuntimeError("boom")
 
     spans = collector.get_spans()
@@ -103,7 +103,7 @@ def test_traced_decorator_with_active_telemetry() -> None:
     collector = get_memory_collector()
     assert collector is not None
 
-    @traced(name="orbit.multiply")
+    @traced(name="pkmrag.multiply")
     def multiply(x: int, y: int) -> int:
         return x * y
 
@@ -112,7 +112,7 @@ def test_traced_decorator_with_active_telemetry() -> None:
 
     spans = collector.get_spans()
     assert len(spans) == 1
-    assert spans[0].name == "orbit.multiply"
+    assert spans[0].name == "pkmrag.multiply"
 
 
 def test_render_trace_tree_output() -> None:
@@ -127,7 +127,7 @@ def test_render_trace_tree_output() -> None:
     # Populated spans
     sample_spans = [
         RecordedSpan(
-            name="orbit.search",
+            name="pkmrag.search",
             trace_id="trace-001",
             span_id="span-root",
             parent_span_id=None,
@@ -155,7 +155,7 @@ def test_render_trace_tree_output() -> None:
     render_trace_tree(sample_spans, console=test_console2)
     rendered = out_buf2.getvalue()
 
-    assert "orbit.search" in rendered
+    assert "pkmrag.search" in rendered
     assert "lancedb.dense_search" in rendered
     assert "100.00ms" in rendered
     assert "40.00ms" in rendered

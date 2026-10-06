@@ -8,8 +8,8 @@ from typing import Any
 
 from typer.testing import CliRunner
 
-from orbit import __version__
-from orbit.cli import app
+from pkmrag import __version__
+from pkmrag.cli import app
 
 runner = CliRunner()
 
@@ -68,7 +68,7 @@ def test_cli_mcp_config(mock_vault: Path) -> None:
     result = runner.invoke(app, ["mcp-config", str(mock_vault)])
     assert result.exit_code == 0
     assert "mcpServers" in result.output
-    assert "orbit" in result.output
+    assert "pkmrag" in result.output
     assert str(mock_vault.resolve()) in result.output
 
 

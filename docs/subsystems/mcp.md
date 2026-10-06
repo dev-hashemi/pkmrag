@@ -37,7 +37,7 @@ $$\text{Client} \underset{\text{stdio}}{\overset{\text{JSON-RPC}}{\rightleftharp
 
 ## ⚙️ Client Configuration
 
-Run `orbit mcp-config <vault_path>` to generate the configuration block for your client.
+Run `pkmrag mcp-config <vault_path>` to generate the configuration block for your client.
 
 ### Claude Desktop (`claude_desktop_config.json`)
 ```json
@@ -64,7 +64,7 @@ Add an entry with type `"command"`, command `"uv"`, and args matching the above.
 ### OpenCode CLI (`opencode`)
 Add Orbit with a single native command:
 ```bash
-opencode mcp add orbit -- uv --directory /absolute/path/to/project-orbit run orbit serve /absolute/path/to/your/vault
+opencode mcp add pkmrag -- uv --directory /absolute/path/to/project-orbit run pkmrag serve /absolute/path/to/your/vault
 ```
 Verify connection status:
 ```bash

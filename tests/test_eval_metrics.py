@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from orbit.eval.metrics import (
+from pkmrag.eval.metrics import (
     aggregate_metrics,
     compute_average_precision,
     compute_precision_at_k,
@@ -10,7 +10,7 @@ from orbit.eval.metrics import (
     compute_reciprocal_rank,
     normalize_path,
 )
-from orbit.eval.models import QueryEvalResult
+from pkmrag.eval.models import QueryEvalResult
 
 
 def test_normalize_path() -> None:

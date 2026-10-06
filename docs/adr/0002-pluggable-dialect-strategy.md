@@ -18,7 +18,7 @@ Hardcoding Obsidian parsing rules directly into the core indexer couples storage
 
 ## Decision
 Implement a **Dialect Strategy Pattern** governed by the `KnowledgeDialect` protocol:
-- Format-specific parsing logic lives in `src/orbit/dialects/<format>.py`.
+- Format-specific parsing logic lives in `src/pkmrag/dialects/<format>.py`.
 - The core indexer and ingestion pipeline operate strictly on normalized `RawLink`, `NoteMetadata`, and `Wikilink` entities.
 - A `DialectRegistry` inspects vault structure to auto-detect the appropriate dialect or accepts an explicit `--dialect` CLI argument.
 

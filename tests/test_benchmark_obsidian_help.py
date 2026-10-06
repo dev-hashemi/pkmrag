@@ -9,7 +9,7 @@ from typing import Any
 
 import pytest
 
-from orbit.search import SearchService
+from pkmrag.search import SearchService
 
 BENCHMARK_PATH = (
     Path(__file__).resolve().parent.parent / "benchmarks" / "golden_50_obsidian_help.json"

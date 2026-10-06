@@ -18,22 +18,23 @@ export class OrbitClient {
   constructor(public settings: OrbitPluginSettings) {}
 
   /**
-   * Attempt to read .orbit/server_token from the active Obsidian vault filesystem.
+   * Attempt to read .pkmrag/server_token or .orbit/server_token from active vault filesystem.
    */
   async autoDiscoverVaultToken(app: App): Promise<string | null> {
     try {
-      const tokenPath = ".orbit/server_token";
-      const exists = await app.vault.adapter.exists(tokenPath);
-      if (exists) {
-        const content = await app.vault.adapter.read(tokenPath);
-        const trimmed = content.trim();
-        if (trimmed.length > 0) {
-          this.settings.authToken = trimmed;
-          return trimmed;
+      for (const tokenPath of [".pkmrag/server_token", ".orbit/server_token"]) {
+        const exists = await app.vault.adapter.exists(tokenPath);
+        if (exists) {
+          const content = await app.vault.adapter.read(tokenPath);
+          const trimmed = content.trim();
+          if (trimmed.length > 0) {
+            this.settings.authToken = trimmed;
+            return trimmed;
+          }
         }
       }
     } catch (err) {
-      console.warn("[Orbit] Could not auto-read .orbit/server_token:", err);
+      console.warn("[PKMRAG] Could not auto-read server_token:", err);
     }
     return null;
   }
@@ -43,7 +44,9 @@ export class OrbitClient {
       "Content-Type": "application/json",
     };
     if (this.settings.authToken && this.settings.authToken.trim().length > 0) {
-      headers["Authorization"] = `Bearer ${this.settings.authToken.trim()}`;
+      const tok = this.settings.authToken.trim();
+      headers["Authorization"] = `Bearer ${tok}`;
+      headers["X-Pkmrag-Token"] = tok;
     }
     return headers;
   }

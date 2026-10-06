@@ -11,7 +11,7 @@ Orbit maintains two automated ground-truth benchmarks:
 ### 1. Synthetic Golden 10 (Fast CI Quality Gate)
 - **Dataset:** [`benchmarks/golden_10.json`](file:///home/ali/projects/my/project-orbit/benchmarks/golden_10.json)
 - **Reference Vault:** [`benchmarks/vault/`](file:///home/ali/projects/my/project-orbit/benchmarks/vault/) (12 notes, 17 vertices, 39 links, 36 tags)
-- **CLI Command:** `uv run orbit eval`
+- **CLI Command:** `uv run pkmrag eval`
 - **Execution Time:** ~35ms warm cache, ~1.5s cold
 - **CI Quality Gates:** `MRR >= 0.80`, `Recall@5 >= 0.80`
 
@@ -43,20 +43,20 @@ Orbit maintains two automated ground-truth benchmarks:
 
 ---
 
-## 🛠️ CLI Usage: `orbit eval`
+## 🛠️ CLI Usage: `pkmrag eval`
 
 ```bash
 # Run default evaluation (benchmarks/golden_10.json on benchmarks/vault)
-uv run orbit eval
+uv run pkmrag eval
 
 # Enforce custom quality gates in CI
-uv run orbit eval --min-mrr 0.85 --min-recall 0.80
+uv run pkmrag eval --min-mrr 0.85 --min-recall 0.80
 
 # Machine-readable JSON output for automated reporting
-uv run orbit eval --json
+uv run pkmrag eval --json
 
 # Run against custom vault or benchmark dataset
-uv run orbit eval /path/to/vault -b /path/to/benchmark.json
+uv run pkmrag eval /path/to/vault -b /path/to/benchmark.json
 ```
 
 ### 📊 Metrics Explained
@@ -76,13 +76,13 @@ Orbit's evaluation harness tracks two classes of metrics: **Quality Gates** (str
 
 ## ❓ Frequently Asked Questions
 
-### Do I need to run `orbit ingest` before `orbit eval`?
+### Do I need to run `pkmrag ingest` before `pkmrag eval`?
 **No.** `EvaluationHarness` is completely self-contained. It inspects the target vault and automatically executes `IngestPipeline` on demand. On the first run, it builds the graph and vector indices; on subsequent runs, it uses the cached indices to run the evaluation in **~20ms**.
 
-### Does `orbit eval` evaluate LLM gap detection (`orbit discover`)?
-**No.** `orbit eval` is strictly focused on the **Tier 1 & Tier 2 deterministic retrieval backbone** (LadybugDB graph + LanceDB vectors + BM25 keyword search + RRF fusion). 
+### Does `pkmrag eval` evaluate LLM gap detection (`pkmrag discover`)?
+**No.** `pkmrag eval` is strictly focused on the **Tier 1 & Tier 2 deterministic retrieval backbone** (LadybugDB graph + LanceDB vectors + BM25 keyword search + RRF fusion). 
 
-Gap detection (Tier 3) requires LLM inference (calling Gemini, Claude, or local Ollama). Leaving LLM generation out of `orbit eval` ensures CI runs are:
+Gap detection (Tier 3) requires LLM inference (calling Gemini, Claude, or local Ollama). Leaving LLM generation out of `pkmrag eval` ensures CI runs are:
 - **100% Deterministic:** Zero test flakiness or non-reproducible scores.
 - **$0 Cost:** Runs without paid API tokens.
 - **Offline & Fast:** Completes in milliseconds on headless GitHub Actions runners.

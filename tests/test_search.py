@@ -7,9 +7,9 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from orbit.cli import app
-from orbit.ingest import IngestPipeline
-from orbit.search import SearchService
+from pkmrag.cli import app
+from pkmrag.ingest import IngestPipeline
+from pkmrag.search import SearchService
 
 runner = CliRunner()
 

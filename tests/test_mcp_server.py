@@ -9,9 +9,9 @@ import pytest
 from mcp.types import CallToolResult
 from typer.testing import CliRunner
 
-from orbit.cli import app
-from orbit.ingest import IngestPipeline
-from orbit.mcp import create_mcp_server
+from pkmrag.cli import app
+from pkmrag.ingest import IngestPipeline
+from pkmrag.mcp import create_mcp_server
 
 runner = CliRunner()
 
@@ -24,7 +24,7 @@ async def test_mcp_server_initialization_and_tool_registration(tmp_path: Path) -
     (vault_dir / "Readme.md").write_text("# Readme\nWelcome to Orbit.", encoding="utf-8")
 
     server = create_mcp_server(vault_dir)
-    assert server.name == "orbit"
+    assert server.name == "pkmrag"
 
     tools = await server.list_tools()
     tool_names = {t.name for t in tools}
@@ -88,7 +88,7 @@ def test_cli_mcp_config(tmp_path: Path) -> None:
     res = runner.invoke(app, ["mcp-config", str(vault)])
     assert res.exit_code == 0
     assert "Claude Desktop / Cursor Configuration" in res.output
-    assert "opencode mcp add orbit" in res.output
+    assert "opencode mcp add pkmrag" in res.output
 
     # Find and parse JSON block from output
     json_start = res.output.find("{")
@@ -97,8 +97,8 @@ def test_cli_mcp_config(tmp_path: Path) -> None:
 
     cfg = json.loads(res.output[json_start:json_end])
     assert "mcpServers" in cfg
-    assert "orbit" in cfg["mcpServers"]
-    orbit_cfg = cfg["mcpServers"]["orbit"]
+    assert "pkmrag" in cfg["mcpServers"]
+    orbit_cfg = cfg["mcpServers"]["pkmrag"]
     assert orbit_cfg["command"] == "uv"
     assert "serve" in orbit_cfg["args"]
     assert str(vault.resolve()) in orbit_cfg["args"]
@@ -117,6 +117,6 @@ def test_cli_mcp_config_sse(tmp_path: Path) -> None:
     json_end = res.output.rfind("}") + 1
     cfg = json.loads(res.output[json_start:json_end])
     assert "mcpServers" in cfg
-    assert "orbit" in cfg["mcpServers"]
-    orbit_cfg = cfg["mcpServers"]["orbit"]
+    assert "pkmrag" in cfg["mcpServers"]
+    orbit_cfg = cfg["mcpServers"]["pkmrag"]
     assert orbit_cfg["url"] == "http://127.0.0.1:3747/sse"

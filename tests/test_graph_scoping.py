@@ -4,14 +4,14 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from orbit.graph import GraphStore
-from orbit.graph.paths import find_shortest_bridge
-from orbit.graph.traversal import (
+from pkmrag.graph import GraphStore
+from pkmrag.graph.paths import find_shortest_bridge
+from pkmrag.graph.traversal import (
     add_inferred_relationship,
     get_inferred_relationships,
     get_neighbor_hops,
 )
-from orbit.models import InferredRelationship
+from pkmrag.models import InferredRelationship
 
 
 def test_inferred_relationship_does_not_bleed_into_links_to_traversals(

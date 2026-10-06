@@ -44,7 +44,7 @@ The plugin subscribes to Orbit's Server-Sent Events stream (`GET /api/v1/events`
 
 ### 1.8 Graceful Offline Recovery Panel
 - **Helpful Onboarding:** If the background Orbit daemon is not running, the sidebar displays an onboarding card rather than a raw error.
-- **Click-to-Copy CLI Command:** One-click copy for `uv run orbit serve . -t http --port 3747`.
+- **Click-to-Copy CLI Command:** One-click copy for `uv run pkmrag serve . -t http --port 3747`.
 - **Immediate Reconnection:** "Retry Connection" button tests connectivity and auto-populates insights once the daemon is up.
 
 ---
@@ -54,7 +54,7 @@ The plugin subscribes to Orbit's Server-Sent Events stream (`GET /api/v1/events`
 ### 2.1 Start Orbit HTTP Daemon
 ```bash
 # In your terminal, start Orbit HTTP server for your vault:
-uv run orbit serve /path/to/my-vault -t http --port 3747
+uv run pkmrag serve /path/to/my-vault -t http --port 3747
 ```
 
 ### 2.2 Install Plugin into Vault

@@ -4,9 +4,9 @@ from unittest.mock import MagicMock, patch
 
 from typer.testing import CliRunner
 
-from orbit import __version__
-from orbit.cli import app
-from orbit.doctor import (
+from pkmrag import __version__
+from pkmrag.cli import app
+from pkmrag.doctor import (
     check_ladybug_engine,
     check_lancedb_engine,
     check_ollama_engine,

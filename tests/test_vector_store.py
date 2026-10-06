@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from orbit.models import ChunkMetadata
-from orbit.search.vector_store import VectorStore
+from pkmrag.models import ChunkMetadata
+from pkmrag.search.vector_store import VectorStore
 
 
 def test_vector_store_lifecycle_and_search(tmp_path: Path) -> None:

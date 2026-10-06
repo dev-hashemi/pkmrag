@@ -9,10 +9,10 @@ from unittest.mock import MagicMock, patch
 import httpx
 import pytest
 
-from orbit.discovery import GapDiscoveryEngine
-from orbit.inference import OpenAICompatibleProvider
-from orbit.ingest import IngestPipeline
-from orbit.telemetry import (
+from pkmrag.discovery import GapDiscoveryEngine
+from pkmrag.inference import OpenAICompatibleProvider
+from pkmrag.ingest import IngestPipeline
+from pkmrag.telemetry import (
     get_memory_collector,
     setup_telemetry,
     shutdown_telemetry,
@@ -102,7 +102,7 @@ def test_discovery_engine_telemetry_and_tokens_saved(tmp_path: Path) -> None:
     spans = collector.get_spans()
     span_names = [s.name for s in spans]
 
-    assert "orbit.discover" in span_names
+    assert "pkmrag.discover" in span_names
     assert "gap.vector_ann" in span_names
     assert "gap.graph_filter" in span_names
 

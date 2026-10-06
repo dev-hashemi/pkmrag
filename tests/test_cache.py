@@ -6,9 +6,9 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from orbit.cache.manager import CacheManager
-from orbit.cache.sqlite_cache import SQLiteQueryCache
-from orbit.models import SearchResult
+from pkmrag.cache.manager import CacheManager
+from pkmrag.cache.sqlite_cache import SQLiteQueryCache
+from pkmrag.models import SearchResult
 
 
 def _make_dummy_result(chunk_id: str, note_path: str, score: float = 0.9) -> SearchResult:

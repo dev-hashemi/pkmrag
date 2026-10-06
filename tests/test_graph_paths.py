@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from orbit.graph.paths import (
+from pkmrag.graph.paths import (
     find_shortest_bridge,
     get_note_structural_context,
     get_vault_overview,
 )
-from orbit.graph.store import GraphStore
-from orbit.models import HubNote, TagStat
+from pkmrag.graph.store import GraphStore
+from pkmrag.models import HubNote, TagStat
 
 
 def _populate_test_graph(store: GraphStore) -> None:

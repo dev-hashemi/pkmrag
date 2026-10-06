@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from orbit.discovery.engine import GapDiscoveryEngine
-from orbit.graph import GraphStore
-from orbit.graph.traversal import get_inferred_relationships
-from orbit.inference.base import InferredRelationshipResult
-from orbit.inference.provider import MockInferenceProvider
-from orbit.ingest import IngestPipeline
+from pkmrag.discovery.engine import GapDiscoveryEngine
+from pkmrag.graph import GraphStore
+from pkmrag.graph.traversal import get_inferred_relationships
+from pkmrag.inference.base import InferredRelationshipResult
+from pkmrag.inference.provider import MockInferenceProvider
+from pkmrag.ingest import IngestPipeline
 
 
 def _setup_test_vault(vault: Path) -> None:
@@ -86,7 +86,7 @@ def test_gap_discovery_finds_unlinked_notes(tmp_path: Path) -> None:
     assert "Redlock" in rel.reason
 
     # Verify persistence in LadybugDB
-    graph = GraphStore(vault / ".orbit" / "graph")
+    graph = GraphStore(vault / ".pkmrag" / "graph")
     stored = get_inferred_relationships(graph.conn, "DistributedLocks.md")
     graph.close()
     assert len(stored) >= 1
@@ -112,7 +112,7 @@ def test_gap_discovery_dry_run(tmp_path: Path) -> None:
     assert len(mock_provider.calls) == 0
 
     # Verify nothing was persisted
-    graph = GraphStore(vault / ".orbit" / "graph")
+    graph = GraphStore(vault / ".pkmrag" / "graph")
     stored = get_inferred_relationships(graph.conn, "DistributedLocks.md")
     graph.close()
     assert len(stored) == 0
@@ -140,7 +140,7 @@ def test_gap_discovery_none_classification_discarded(tmp_path: Path) -> None:
     assert len(candidates) >= 1
     assert len(inferred) == 0
 
-    graph = GraphStore(vault / ".orbit" / "graph")
+    graph = GraphStore(vault / ".pkmrag" / "graph")
     stored = get_inferred_relationships(graph.conn, "DistributedLocks.md")
     graph.close()
     assert len(stored) == 0

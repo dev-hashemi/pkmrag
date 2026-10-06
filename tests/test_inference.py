@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 
 import httpx
 
-from orbit.inference import (
+from pkmrag.inference import (
     InferredRelationshipResult,
     MockInferenceProvider,
     OpenAICompatibleProvider,
@@ -211,7 +211,7 @@ def test_dotenv_loading(tmp_path: Path, monkeypatch: Any) -> None:
         "ORBIT_LLM_TPM=12000\n"
     )
 
-    from orbit.config import load_vault_env
+    from pkmrag.config import load_vault_env
 
     cfg = load_vault_env(vault)
 

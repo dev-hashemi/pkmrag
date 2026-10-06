@@ -5,15 +5,15 @@ The ingestion pipeline coordinates filesystem discovery, dialect-specific parsin
 ---
 
 ## 💾 Implementation
-- **Pipeline:** [`src/orbit/ingest/pipeline.py`](file:///home/ali/projects/my/project-orbit/src/orbit/ingest/pipeline.py)
-- **Indexer:** [`src/orbit/parser/indexer.py`](file:///home/ali/projects/my/project-orbit/src/orbit/parser/indexer.py)
-- **Dialects:** [`src/orbit/dialects/`](file:///home/ali/projects/my/project-orbit/src/orbit/dialects/)
+- **Pipeline:** [`src/pkmrag/ingest/pipeline.py`](file:///home/ali/projects/my/project-orbit/src/pkmrag/ingest/pipeline.py)
+- **Indexer:** [`src/pkmrag/parser/indexer.py`](file:///home/ali/projects/my/project-orbit/src/pkmrag/parser/indexer.py)
+- **Dialects:** [`src/pkmrag/dialects/`](file:///home/ali/projects/my/project-orbit/src/pkmrag/dialects/)
 
 ---
 
 ## 🔌 Pluggable Dialect Strategy
 
-Orbit separates syntax parsing from storage using [`KnowledgeDialect`](file:///home/ali/projects/my/project-orbit/src/orbit/dialects/base.py):
+Orbit separates syntax parsing from storage using [`KnowledgeDialect`](file:///home/ali/projects/my/project-orbit/src/pkmrag/dialects/base.py):
 - `ObsidianDialect`: Parses `[[wikilinks|alias]]`, embedded media (`![[img.png]]`), hashtags (`#tag`), and YAML frontmatter.
 - `CommonMarkDialect`: Parses standard Markdown links (`[text](url.md)`).
 - Auto-detection selects the dialect based on vault configuration (e.g., presence of `.obsidian/`).
@@ -29,9 +29,9 @@ Ingestion compares disk state against database state to avoid redundant work:
 
 **Target Control:**
 ```bash
-orbit ingest /path/to/vault --target all     # Ingest graph + vectors
-orbit ingest /path/to/vault --target graph   # Ingest LadybugDB graph only
-orbit ingest /path/to/vault --target vector  # Ingest LanceDB vectors only
+pkmrag ingest /path/to/vault --target all     # Ingest graph + vectors
+pkmrag ingest /path/to/vault --target graph   # Ingest LadybugDB graph only
+pkmrag ingest /path/to/vault --target vector  # Ingest LanceDB vectors only
 ```
 
 ---

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from orbit.graph.store import GraphStore
-from orbit.mcp.tools import (
+from pkmrag.graph.store import GraphStore
+from pkmrag.mcp.tools import (
     execute_find_bridges,
     execute_get_note_context,
     execute_query_vault,
@@ -174,7 +174,7 @@ def test_execute_read_note_with_graph_context(tmp_path: Path) -> None:
 
 def test_execute_list_notes(tmp_path: Path) -> None:
     """Verify list_notes browsing, folder filtering, and pattern matching."""
-    from orbit.mcp.tools_vault import execute_list_notes
+    from pkmrag.mcp.tools_vault import execute_list_notes
 
     (tmp_path / "Root.md").write_text("Root note", encoding="utf-8")
     (tmp_path / "Post.markdown").write_text("Markdown post", encoding="utf-8")
@@ -214,7 +214,7 @@ def test_execute_list_notes(tmp_path: Path) -> None:
 
 def test_execute_tags_tools(tmp_path: Path) -> None:
     """Verify list_tags and search_by_tag MCP tools."""
-    from orbit.mcp.tools_vault import execute_list_tags, execute_search_by_tag
+    from pkmrag.mcp.tools_vault import execute_list_tags, execute_search_by_tag
 
     db_dir = tmp_path / "graph"
     db_dir.mkdir()
@@ -248,7 +248,7 @@ def test_execute_tags_tools(tmp_path: Path) -> None:
 
 def test_execute_get_outline(tmp_path: Path) -> None:
     """Verify get_outline extracts headings and line numbers."""
-    from orbit.mcp.tools_vault import execute_get_outline
+    from pkmrag.mcp.tools_vault import execute_get_outline
 
     doc = (
         "# Main Title\n\nIntro text.\n\n"

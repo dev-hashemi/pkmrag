@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from orbit.graph.store import GraphStore
+from pkmrag.graph.store import GraphStore
 
 
 @pytest.fixture

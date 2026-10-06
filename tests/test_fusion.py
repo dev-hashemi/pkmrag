@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from orbit.models import SearchResult
-from orbit.search.fusion import apply_graph_boost, build_single_mode_results, compute_rrf
+from pkmrag.models import SearchResult
+from pkmrag.search.fusion import apply_graph_boost, build_single_mode_results, compute_rrf
 
 
 def test_rrf_scoring_and_ranking() -> None:

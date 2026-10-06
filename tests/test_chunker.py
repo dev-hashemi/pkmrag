@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from orbit.search.chunker import HierarchicalMarkdownChunker
+from pkmrag.search.chunker import HierarchicalMarkdownChunker
 
 
 def test_chunker_basic_hierarchy() -> None:
