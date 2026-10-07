@@ -82,7 +82,10 @@ uv run pkmrag eval                        # Automated IR retrieval evaluation ag
 uv run pkmrag serve <path>                # Start stdio MCP server for Claude/Cursor
 uv run pkmrag serve <path> -t http        # Start HTTP/SSE MCP & REST daemon on port 3747
 uv run pkmrag mcp-config <path>           # Output MCP JSON client configuration
+uv run pkmrag install-plugin              # Install Obsidian companion plugin to vault (via PKMRAG_VAULT_PATH)
+uv run pkmrag install-plugin --symlink    # Symlink plugin files for live development
 uv run ruff check --fix .                 # Lint
+
 uv run ruff format .                      # Format
 uv run mypy src tests                     # Type check
 uv run pytest                             # Test

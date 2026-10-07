@@ -1,6 +1,6 @@
-# Obsidian Desktop Plugin (`orbit-insights`)
+# Obsidian Desktop Plugin (`pkmrag`)
 
-The Orbit Insights plugin is a lightweight, local-first companion plugin for [Obsidian](https://obsidian.md). It connects Obsidian to the Project Orbit background daemon over HTTP/SSE (`http://127.0.0.1:3747`), surfacing AI-discovered missing connections, contradiction warnings, and structural graph context directly inside your editor.
+The PKMRAG plugin is a lightweight, local-first companion plugin for [Obsidian](https://obsidian.md). It connects Obsidian to the PKMRAG background daemon over HTTP/SSE (`http://127.0.0.1:3747`), surfacing AI-discovered missing connections, contradiction warnings, and structural graph context directly inside your editor.
 
 ---
 
@@ -58,20 +58,36 @@ uv run pkmrag serve /path/to/my-vault -t http --port 3747
 ```
 
 ### 2.2 Install Plugin into Vault
-Copy or symlink the build artifacts to your vault's `.obsidian/plugins/` directory:
+You can install and auto-enable the plugin via npm or PKMRAG CLI:
+
 ```bash
-mkdir -p "/path/to/my-vault/.obsidian/plugins/orbit-insights"
+# Using npm (reads PKMRAG_VAULT_PATH from .env or pass vault as argument):
+npm run install-plugin
+npm run install-plugin --symlink
+
+# Or from within plugins/obsidian/:
+cd plugins/obsidian && npm run install-vault
+
+# Or using the Python CLI:
+uv run pkmrag install-plugin
+uv run pkmrag install-plugin --symlink
+```
+
+Alternatively, you can manually copy or symlink the build files:
+```bash
+mkdir -p "/path/to/my-vault/.obsidian/plugins/pkmrag"
 cp plugins/obsidian/manifest.json \
    plugins/obsidian/main.js \
    plugins/obsidian/styles.css \
-   "/path/to/my-vault/.obsidian/plugins/orbit-insights/"
+   "/path/to/my-vault/.obsidian/plugins/pkmrag/"
 ```
 
 In Obsidian:
 1. Open **Settings** → **Community Plugins**.
 2. Enable Community Plugins (if not already enabled).
-3. Toggle on **Orbit Insights**.
+3. Verify **PKMRAG** is toggled on.
 4. Click the PKMRAG ribbon icon (`assets/obsidian-ribbon-icon.svg`) on the left bar to open the **PKMRAG Insights** sidebar.
+
 
 ---
 

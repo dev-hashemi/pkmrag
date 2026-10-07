@@ -21,6 +21,7 @@ from pkmrag.cli_views import (
 )
 from pkmrag.doctor import run_diagnostics
 from pkmrag.ingest import IngestPipeline
+from pkmrag.plugin import register_plugin_command
 from pkmrag.search import SearchService
 
 app = typer.Typer(
@@ -28,6 +29,8 @@ app = typer.Typer(
     help="🛰️ PKMRAG: In-process Hybrid GraphRAG Retrieval Engine & MCP Server.",
     no_args_is_help=True,
 )
+register_plugin_command(app)
+
 console = Console()
 
 
@@ -114,8 +117,7 @@ def ingest(
     )
 
     if json_output:
-        stats = pipeline.run()
-        console.print_json(stats.model_dump_json())
+        console.print_json(pipeline.run().model_dump_json())
         sys.exit(0)
 
     if rebuild:
@@ -124,15 +126,16 @@ def ingest(
     with _make_progress() as progress:
         task_id = progress.add_task("[cyan]Ingesting vault...", total=100)
 
-        def on_progress(phase: str, current: int, total: int) -> None:
+        def on_prog(phase: str, cur: int, tot: int) -> None:
             progress.update(
-                task_id, description=f"[cyan]{phase}...", total=max(total, 1), completed=current
+                task_id, description=f"[cyan]{phase}...", total=max(tot, 1), completed=cur
             )
 
-        stats = pipeline.run(progress_callback=on_progress)
+        stats = pipeline.run(progress_callback=on_prog)
         progress.update(task_id, description="[bold green]Ingestion complete!")
 
     render_ingest_report(stats, console)
+
     if trace:
         _display_trace_if_active()
 
@@ -157,8 +160,7 @@ def search(
         results = service.search(query=query, near=near, mode=mode, limit=limit)
 
     if json_output:
-        dump = [r.model_dump() for r in results]
-        typer.echo(json.dumps(dump, indent=2))
+        typer.echo(json.dumps([r.model_dump() for r in results], indent=2))
         sys.exit(0)
 
     render_search_results(results, query=query, near=near, mode=mode, console=console)
@@ -246,22 +248,16 @@ def discover(
 
     engine = GapDiscoveryEngine(vault_path)
     try:
-        if dry_run or json_output:
-            candidates, inferred, stats = engine.discover(
-                similarity_threshold=threshold,
-                limit=limit,
-                dry_run=dry_run,
-                provider_type=provider,
-                model=model,
-                rpm=rpm,
-                tpm=tpm,
-            )
-        else:
-            with _make_progress() as progress:
-                t_id = progress.add_task("[cyan]Scanning for semantic gaps...", total=limit)
+        on_prog = None
+        progress = None
+        if not (dry_run or json_output):
+            progress = _make_progress()
+            progress.start()
+            t_id = progress.add_task("[cyan]Scanning for semantic gaps...", total=limit)
 
-                def on_prog(cur: int, tot: int, desc: str) -> None:
-                    style = "yellow" if cur < 0 else "cyan"
+            def _cb(cur: int, tot: int, desc: str) -> None:
+                style = "yellow" if cur < 0 else "cyan"
+                if progress:
                     progress.update(
                         t_id,
                         description=f"[{style}]{desc}[/{style}]",
@@ -269,16 +265,21 @@ def discover(
                         completed=max(cur, 0),
                     )
 
-                candidates, inferred, stats = engine.discover(
-                    similarity_threshold=threshold,
-                    limit=limit,
-                    dry_run=dry_run,
-                    provider_type=provider,
-                    model=model,
-                    rpm=rpm,
-                    tpm=tpm,
-                    on_progress=on_prog,
-                )
+            on_prog = _cb
+
+        candidates, inferred, stats = engine.discover(
+            similarity_threshold=threshold,
+            limit=limit,
+            dry_run=dry_run,
+            provider_type=provider,
+            model=model,
+            rpm=rpm,
+            tpm=tpm,
+            on_progress=on_prog,
+        )
+
+        if progress:
+            progress.stop()
     finally:
         engine.close()
 

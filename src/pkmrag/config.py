@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Optional
 
-from pydantic import AliasChoices, Field
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -113,6 +113,12 @@ class PkmragSettings(BaseSettings):
     supported_extensions: tuple[str, ...] = (".md", ".markdown", ".mdx")
 
     # Storage Directory Overrides
+    vault_path: Optional[Path] = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "PKMRAG_VAULT_PATH", "ORBIT_VAULT_PATH", "VAULT_PATH", "OBSIDIAN_VAULT_PATH"
+        ),
+    )
     db_dir: Optional[Path] = Field(
         default=None, validation_alias=AliasChoices("PKMRAG_DB_DIR", "ORBIT_DB_DIR")
     )
@@ -122,6 +128,13 @@ class PkmragSettings(BaseSettings):
     cache_dir: Optional[Path] = Field(
         default=None, validation_alias=AliasChoices("PKMRAG_CACHE_DIR", "ORBIT_CACHE_DIR")
     )
+
+    @field_validator("vault_path", mode="after")
+    @classmethod
+    def _expand_vault_path(cls, v: Optional[Path]) -> Optional[Path]:
+        if v is not None:
+            return v.expanduser().resolve()
+        return None
 
     # Query Cache
     cache_enabled: bool = True

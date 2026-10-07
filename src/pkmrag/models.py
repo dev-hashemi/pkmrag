@@ -241,3 +241,15 @@ class CacheStats(BaseModel):
     hit_rate: float = 0.0
     evictions: int = 0
     db_size_bytes: int = 0
+
+
+class PluginInstallResult(BaseModel):
+    """Result of an Obsidian plugin installation operation."""
+
+    vault_path: str
+    target_dir: str
+    plugin_id: str
+    installed_files: list[str]
+    symlinked: bool = False
+    enabled: bool = False
+    built: bool = False

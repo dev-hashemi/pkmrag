@@ -1,10 +1,11 @@
 {
-  "id": "orbit-insights",
-  "name": "Orbit Insights",
+  "id": "pkmrag",
+  "name": "PKMRAG",
   "version": "0.9.0",
   "minAppVersion": "1.5.0",
-  "description": "Local-first Hybrid GraphRAG insights, missing link discovery, and contradiction warnings powered by Project Orbit.",
-  "author": "Project Orbit Contributors",
+  "description": "Local-first Hybrid GraphRAG insights, missing link discovery, and contradiction warnings powered by PKMRAG.",
+  "author": "PKMRAG Contributors",
   "authorUrl": "https://github.com/project-orbit/project-orbit",
   "isDesktopOnly": true
 }
+

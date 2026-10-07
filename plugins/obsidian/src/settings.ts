@@ -17,12 +17,12 @@ export class OrbitSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    containerEl.createEl("h2", { text: "Orbit Knowledge Engine Settings" });
+    containerEl.createEl("h2", { text: "PKMRAG Knowledge Engine Settings" });
 
     // 1. Connection Section
     new Setting(containerEl)
       .setName("Server URL")
-      .setDesc("Base address of Orbit HTTP/SSE daemon (default: http://127.0.0.1:3747)")
+      .setDesc("Base address of PKMRAG HTTP/SSE daemon (default: http://127.0.0.1:3747)")
       .addText((text) =>
         text
           .setPlaceholder("http://127.0.0.1:3747")
@@ -61,18 +61,19 @@ export class OrbitSettingTab extends PluginSettingTab {
     // Connection Health Verification Button
     new Setting(containerEl)
       .setName("Server Status")
-      .setDesc("Verify communication with local Orbit daemon")
+      .setDesc("Verify communication with local PKMRAG daemon")
       .addButton((btn) =>
         btn.setButtonText("Test Connection").onClick(async () => {
           btn.setDisabled(true);
           try {
             const health = await this.plugin.client.checkHealth();
-            new Notice(`Orbit Connected! Vault: '${health.vault}', Version: v${health.version}`);
+            new Notice(`PKMRAG Connected! Vault: '${health.vault}', Version: v${health.version}`);
           } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : String(err);
             new Notice(`Connection failed: ${msg}`);
           } finally {
             btn.setDisabled(false);
+
           }
         })
       );

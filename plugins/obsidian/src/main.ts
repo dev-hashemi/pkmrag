@@ -74,13 +74,13 @@ export default class OrbitInsightsPlugin extends Plugin {
       id: "sync-orbit-vault",
       name: "Sync Vault Index (Incremental)",
       callback: async () => {
-        new Notice("Orbit: Synchronizing vault delta...");
+        new Notice("PKMRAG: Synchronizing vault delta...");
         try {
           const results = await this.client.syncVault();
-          new Notice(`Orbit: Synchronized ${results.length} notes.`);
+          new Notice(`PKMRAG: Synchronized ${results.length} notes.`);
         } catch (err: unknown) {
           const msg = err instanceof Error ? err.message : String(err);
-          new Notice(`Orbit Sync Failed: ${msg}`);
+          new Notice(`PKMRAG Sync Failed: ${msg}`);
         }
       },
     });
@@ -92,7 +92,7 @@ export default class OrbitInsightsPlugin extends Plugin {
         this.settings.showInlineIndicators = !this.settings.showInlineIndicators;
         await this.saveSettings();
         new Notice(
-          `Orbit: Inline indicators ${this.settings.showInlineIndicators ? "enabled" : "disabled"}`
+          `PKMRAG: Inline indicators ${this.settings.showInlineIndicators ? "enabled" : "disabled"}`
         );
         this.app.workspace.updateOptions();
       },
@@ -104,10 +104,11 @@ export default class OrbitInsightsPlugin extends Plugin {
       callback: async () => {
         this.settings.dismissedSuggestions = {};
         await this.saveSettings();
-        new Notice("Orbit: Cleared all dismissed suggestions.");
+        new Notice("PKMRAG: Cleared all dismissed suggestions.");
         this.refreshActiveView();
       },
     });
+
 
     // Auto-Sync on Save (debounced 1500ms)
     this.registerEvent(
@@ -250,7 +251,8 @@ export default class OrbitInsightsPlugin extends Plugin {
   private updateStatusBar(connected: boolean): void {
     if (!this.statusBarEl) return;
     this.statusBarEl.empty();
-    const text = connected ? "🛰️ Orbit: Connected" : "🛰️ Orbit: Offline";
+    const text = connected ? "🛰️ PKMRAG: Connected" : "🛰️ PKMRAG: Offline";
+
     this.statusBarEl.createSpan({
       text,
       cls: connected ? "orbit-status-connected" : "orbit-status-disconnected",

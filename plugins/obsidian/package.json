@@ -1,11 +1,14 @@
 {
-  "name": "orbit-insights",
+  "name": "pkmrag",
   "version": "0.9.0",
-  "description": "Local-first Hybrid GraphRAG insights and contradiction warnings for Obsidian.",
+  "description": "Local-first Hybrid GraphRAG insights and contradiction warnings for Obsidian powered by PKMRAG.",
   "main": "main.js",
   "type": "module",
   "scripts": {
     "build": "node esbuild.config.mjs",
+    "dev": "node esbuild.config.mjs",
+    "install-vault": "node esbuild.config.mjs production && node scripts/install.mjs",
+    "install-vault:symlink": "node esbuild.config.mjs production && node scripts/install.mjs --symlink",
     "typecheck": "tsc --noEmit",
     "test": "esbuild tests/client.test.ts tests/compliance.test.ts --bundle --platform=node --external:obsidian --format=esm --outdir=dist && node --test dist/client.test.js dist/compliance.test.js"
   },
@@ -14,10 +17,12 @@
     "obsidian-plugin",
     "graphrag",
     "pkm",
-    "knowledge-graph"
+    "knowledge-graph",
+    "pkmrag"
   ],
-  "author": "Project Orbit Contributors",
+  "author": "PKMRAG Contributors",
   "license": "MIT",
+
   "devDependencies": {
     "@codemirror/state": "^6.4.0",
     "@codemirror/view": "^6.35.0",

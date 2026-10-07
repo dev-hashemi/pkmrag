@@ -160,7 +160,7 @@ claude mcp add pkmrag -- uv run pkmrag serve /path/to/vault
 
 ---
 
-## 💎 Obsidian Desktop Plugin (`orbit-insights`)
+## 💎 Obsidian Desktop Plugin (`pkmrag`)
 
 A native desktop companion plugin (`plugins/obsidian/`) connecting Obsidian to PKMRAG:
 - **Orbit Insights Sidebar:** Real-time semantic gap recommendations, contradiction warnings with LLM citations, and structural graph context.
@@ -170,7 +170,16 @@ A native desktop companion plugin (`plugins/obsidian/`) connecting Obsidian to P
 - **Zero-Config Token Security:** Automatically discovers `.pkmrag/server_token` (or legacy `.orbit/server_token`) from active vault.
 - **Live Reactive Updates:** Subscribes to Server-Sent Events (`/api/v1/events`) for background indexing updates.
 
+```bash
+# 1-Click Install to Obsidian Vault (configured via PKMRAG_VAULT_PATH in .env)
+npm run install-plugin                 # Via npm
+uv run pkmrag install-plugin           # Or via Python CLI
+uv run pkmrag install-plugin --symlink # Symlink artifacts for live plugin development
+```
+
+
 See [docs/subsystems/obsidian-plugin.md](docs/subsystems/obsidian-plugin.md) for installation and developer guides.
+
 
 ---
 

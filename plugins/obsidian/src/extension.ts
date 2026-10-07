@@ -28,9 +28,10 @@ class OrbitHeadingWidget extends WidgetType {
       this.hasContradiction ? "orbit-inline-warning" : "orbit-inline-normal"
     }`;
     span.textContent = this.hasContradiction ? " ⚠️" : " 🔗";
-    span.title = `Orbit: ${this.count} unlinked connection${
+    span.title = `PKMRAG: ${this.count} unlinked connection${
       this.count > 1 ? "s" : ""
     }${this.hasContradiction ? " (includes contradiction)" : ""}. Click to open sidebar.`;
+
 
     span.onclick = (e) => {
       e.stopPropagation();

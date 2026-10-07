@@ -1,0 +1,15 @@
+{
+  "name": "pkmrag",
+  "version": "0.9.0",
+  "private": true,
+  "description": "Local-first Hybrid GraphRAG retrieval engine and Obsidian companion plugin",
+  "type": "module",
+  "scripts": {
+    "build:plugin": "npm --prefix plugins/obsidian run build",
+    "test:plugin": "npm --prefix plugins/obsidian test",
+    "install-plugin": "npm --prefix plugins/obsidian run install-vault",
+    "install-plugin:symlink": "npm --prefix plugins/obsidian run install-vault:symlink",
+    "install-vault": "npm --prefix plugins/obsidian run install-vault",
+    "install-vault:symlink": "npm --prefix plugins/obsidian run install-vault:symlink"
+  }
+}
