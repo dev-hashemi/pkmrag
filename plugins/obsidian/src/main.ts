@@ -32,11 +32,12 @@ export default class OrbitInsightsPlugin extends Plugin {
       await this.client.autoDiscoverVaultToken(this.app);
     }
 
-    // Register custom PKMRAG ribbon icon
+    // Register custom PKMRAG ribbon icon (monochrome outline matching Obsidian icon system)
     addIcon(
       "pkmrag-ribbon",
-      `<path d="M50 18 L17 80 L83 80" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><line x1="50" y1="18" x2="83" y2="80" stroke-width="8" stroke-linecap="round" stroke-dasharray="0.1 15"/><circle cx="50" cy="18" r="10" fill="currentColor" stroke="none"/><circle cx="17" cy="80" r="10" fill="currentColor" stroke="none"/><circle cx="83" cy="80" r="11" stroke-width="6"/>`
+      `<circle cx="50" cy="22" r="10" fill="none" stroke="currentColor" stroke-width="8"/><circle cx="22" cy="78" r="10" fill="none" stroke="currentColor" stroke-width="8"/><circle cx="78" cy="78" r="10" fill="none" stroke="currentColor" stroke-width="8"/><line x1="44" y1="34" x2="28" y2="66" stroke="currentColor" stroke-width="8" stroke-linecap="round"/><line x1="34" y1="78" x2="66" y2="78" stroke="currentColor" stroke-width="8" stroke-linecap="round"/><line x1="56" y1="34" x2="72" y2="66" stroke="currentColor" stroke-width="8" stroke-dasharray="4 6" stroke-linecap="round"/>`
     );
+
 
     // Register Sidebar View
     this.registerView(
@@ -251,7 +252,8 @@ export default class OrbitInsightsPlugin extends Plugin {
   private updateStatusBar(connected: boolean): void {
     if (!this.statusBarEl) return;
     this.statusBarEl.empty();
-    const text = connected ? "🛰️ PKMRAG: Connected" : "🛰️ PKMRAG: Offline";
+    const text = connected ? "PKMRAG: Connected" : "PKMRAG: Offline";
+
 
     this.statusBarEl.createSpan({
       text,

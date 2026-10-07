@@ -61,10 +61,12 @@ def test_install_obsidian_plugin_copy(tmp_path: Path) -> None:
     manifest_file = target_dir / "manifest.json"
     main_file = target_dir / "main.js"
     styles_file = target_dir / "styles.css"
+    icon_file = target_dir / "icon.svg"
 
     assert manifest_file.is_file() and not manifest_file.is_symlink()
     assert main_file.is_file() and not main_file.is_symlink()
     assert styles_file.is_file() and not styles_file.is_symlink()
+    assert icon_file.is_file() and not icon_file.is_symlink()
 
     # Verify community-plugins.json was created
     comm_file = vault / ".obsidian" / "community-plugins.json"
@@ -147,9 +149,15 @@ def test_cli_install_plugin_with_env_var(tmp_path: Path, monkeypatch: pytest.Mon
 
 def test_cli_install_plugin_missing_path(monkeypatch: pytest.MonkeyPatch) -> None:
     """Verify CLI exits with code 1 when no vault path is provided or configured."""
+    from pkmrag.config import PkmragSettings
+
     monkeypatch.delenv("PKMRAG_VAULT_PATH", raising=False)
     monkeypatch.delenv("VAULT_PATH", raising=False)
     monkeypatch.delenv("OBSIDIAN_VAULT_PATH", raising=False)
+    monkeypatch.setattr(
+        "pkmrag.config.load_vault_env",
+        lambda *args, **kwargs: PkmragSettings(vault_path=None, _env_file=None),  # type: ignore[call-arg]
+    )
 
     res = runner.invoke(app, ["install-plugin"])
     assert res.exit_code == 1

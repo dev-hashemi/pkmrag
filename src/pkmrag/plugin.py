@@ -82,6 +82,8 @@ def install_obsidian_plugin(
     files_to_install = ["manifest.json", "main.js"]
     if (source_dir / "styles.css").is_file():
         files_to_install.append("styles.css")
+    if (source_dir / "icon.svg").is_file():
+        files_to_install.append("icon.svg")
 
     installed_files: list[str] = []
     for fname in files_to_install:

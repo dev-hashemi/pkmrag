@@ -78,6 +78,10 @@ const filesToInstall = ["manifest.json", "main.js"];
 if (fs.existsSync(path.join(pluginDir, "styles.css"))) {
   filesToInstall.push("styles.css");
 }
+if (fs.existsSync(path.join(pluginDir, "icon.svg"))) {
+  filesToInstall.push("icon.svg");
+}
+
 
 for (const file of filesToInstall) {
   const src = path.join(pluginDir, file);
