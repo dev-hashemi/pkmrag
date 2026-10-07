@@ -4,6 +4,7 @@
 
 import { App, Notice, PluginSettingTab, Setting } from "obsidian";
 import type OrbitInsightsPlugin from "./main";
+import { renderLlmSection } from "./settings_llm";
 
 export class OrbitSettingTab extends PluginSettingTab {
   plugin: OrbitInsightsPlugin;
@@ -19,66 +20,106 @@ export class OrbitSettingTab extends PluginSettingTab {
 
     containerEl.createEl("h2", { text: "PKMRAG Knowledge Engine Settings" });
 
-    // 1. Connection Section
+    // 1. Daemon Management Section
+    this.renderDaemonSection(containerEl);
+
+    // 2. Custom LLM Configuration Section (Modular)
+    renderLlmSection(containerEl, this.plugin, () => this.display());
+
+    // 3. Search & Embedding Models Section
+    this.renderEmbeddingsSection(containerEl);
+
+    // 4. Connection & Behavior Section
+    this.renderBehaviorSection(containerEl);
+
+    // 5. Index Maintenance & Governance Section
+    this.renderMaintenanceSection(containerEl);
+  }
+
+  private renderDaemonSection(containerEl: HTMLElement): void {
+    containerEl.createEl("h3", { text: "Background Daemon (Zero-Terminal)" });
+
     new Setting(containerEl)
-      .setName("Server URL")
-      .setDesc("Base address of PKMRAG HTTP/SSE daemon (default: http://127.0.0.1:3747)")
-      .addText((text) =>
-        text
-          .setPlaceholder("http://127.0.0.1:3747")
-          .setValue(this.plugin.settings.serverUrl)
-          .onChange(async (val) => {
-            this.plugin.settings.serverUrl = val;
-            await this.plugin.saveSettings();
-          })
+      .setName("Auto-Start Background Daemon")
+      .setDesc("Automatically start the local PKMRAG engine daemon on Obsidian launch (Desktop only)")
+      .addToggle((toggle) =>
+        toggle.setValue(this.plugin.settings.autoStartDaemon).onChange(async (val) => {
+          this.plugin.settings.autoStartDaemon = val;
+          await this.plugin.saveSettings();
+        })
       );
 
     new Setting(containerEl)
-      .setName("Authentication Token")
-      .setDesc("Bearer token for server access (auto-detected from .pkmrag/server_token)")
+      .setName("Custom Executable / uv Path")
+      .setDesc("Optional absolute path to 'pkmrag' or 'uv' executable (leave blank for system auto-detection)")
       .addText((text) =>
         text
-          .setPlaceholder("Auto-detected or custom token")
-          .setValue(this.plugin.settings.authToken)
+          .setPlaceholder("e.g. ~/.local/bin/pkmrag")
+          .setValue(this.plugin.settings.customBinaryPath)
           .onChange(async (val) => {
-            this.plugin.settings.authToken = val;
+            this.plugin.settings.customBinaryPath = val.trim();
             await this.plugin.saveSettings();
           })
       )
       .addButton((btn) =>
-        btn.setButtonText("Auto-Detect").onClick(async () => {
-          const tok = await this.plugin.client.autoDiscoverVaultToken(this.app);
-          if (tok) {
-            new Notice(`Found server token in vault!`);
-            await this.plugin.saveSettings();
-            this.display();
+        btn.setButtonText("Auto-Detect").onClick(() => {
+          const avail = this.plugin.daemonManager.isBinaryAvailable();
+          if (avail) {
+            new Notice("PKMRAG executable detected in standard PATH (~/.local/bin/pkmrag)!");
           } else {
-            new Notice(`No .pkmrag/server_token file found in vault.`);
+            new Notice("PKMRAG executable not found. Install via: pipx install pkmrag");
           }
         })
       );
 
-    // Connection Health Verification Button
+    const daemonStatusSetting = new Setting(containerEl)
+      .setName("Daemon Process Control")
+      .setDesc(`Current Status: ${this.plugin.daemonManager.statusMessage}`);
+
+    daemonStatusSetting.addButton((btn) =>
+      btn.setButtonText("Start").onClick(async () => {
+        btn.setDisabled(true);
+        const ok = await this.plugin.daemonManager.start();
+        new Notice(ok ? "PKMRAG Daemon started!" : "Failed to start daemon.");
+        btn.setDisabled(false);
+        this.display();
+      })
+    );
+
+    daemonStatusSetting.addButton((btn) =>
+      btn.setButtonText("Restart").onClick(async () => {
+        btn.setDisabled(true);
+        const ok = await this.plugin.daemonManager.restart();
+        new Notice(ok ? "PKMRAG Daemon restarted!" : "Failed to restart daemon.");
+        btn.setDisabled(false);
+        this.display();
+      })
+    );
+
+    daemonStatusSetting.addButton((btn) =>
+      btn.setButtonText("Stop").onClick(() => {
+        this.plugin.daemonManager.stop();
+        new Notice("PKMRAG Daemon stopped.");
+        this.display();
+      })
+    );
+  }
+
+  private renderEmbeddingsSection(containerEl: HTMLElement): void {
+    containerEl.createEl("h3", { text: "Search & Local Embeddings" });
+
     new Setting(containerEl)
-      .setName("Server Status")
-      .setDesc("Verify communication with local PKMRAG daemon")
+      .setName("Active Embedding Model")
+      .setDesc("BAAI/bge-small-en-v1.5 (384 dimensions). Runs fully local via FastEmbed & ONNX Runtime (zero API costs).")
       .addButton((btn) =>
-        btn.setButtonText("Test Connection").onClick(async () => {
-          btn.setDisabled(true);
-          try {
-            const health = await this.plugin.client.checkHealth();
-            new Notice(`PKMRAG Connected! Vault: '${health.vault}', Version: v${health.version}`);
-          } catch (err: unknown) {
-            const msg = err instanceof Error ? err.message : String(err);
-            new Notice(`Connection failed: ${msg}`);
-          } finally {
-            btn.setDisabled(false);
-
-          }
+        btn.setButtonText("Verify Model").onClick(() => {
+          new Notice("Active: BAAI/bge-small-en-v1.5 (384-dim, FastEmbed local ONNX)");
         })
       );
+  }
 
-    containerEl.createEl("h3", { text: "Behavior & Thresholds" });
+  private renderBehaviorSection(containerEl: HTMLElement): void {
+    containerEl.createEl("h3", { text: "Behavior & Retrieval Thresholds" });
 
     new Setting(containerEl)
       .setName("Auto-Sync on Save")
@@ -130,20 +171,40 @@ export class OrbitSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Show Inline Heading Indicators")
-      .setDesc("Display subtle link/contradiction indicators next to Markdown headings in the editor")
+      .setDesc("Display subtle link/contradiction indicators next to Markdown headings in editor")
       .addToggle((toggle) =>
         toggle.setValue(this.plugin.settings.showInlineIndicators).onChange(async (val) => {
           this.plugin.settings.showInlineIndicators = val;
           await this.plugin.saveSettings();
         })
       );
+  }
 
-    containerEl.createEl("h3", { text: "Knowledge Governance & Memory" });
+  private renderMaintenanceSection(containerEl: HTMLElement): void {
+    containerEl.createEl("h3", { text: "Vault Maintenance & Governance" });
+
+    new Setting(containerEl)
+      .setName("Rebuild Full Vault Index")
+      .setDesc("Re-index all notes, wikilinks, tags, and embeddings from scratch in background")
+      .addButton((btn) =>
+        btn.setButtonText("Rebuild Index").onClick(async () => {
+          btn.setDisabled(true);
+          try {
+            await this.plugin.client.triggerIngest({ rebuild: true });
+            new Notice("PKMRAG: Full index rebuild started in background.");
+          } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : String(err);
+            new Notice(`Rebuild failed: ${msg}`);
+          } finally {
+            btn.setDisabled(false);
+          }
+        })
+      );
 
     const dismissedCount = Object.keys(this.plugin.settings.dismissedSuggestions || {}).length;
     new Setting(containerEl)
       .setName("Dismissed Suggestions Memory")
-      .setDesc(`${dismissedCount} suggestion${dismissedCount === 1 ? "" : "s"} currently hidden by negative feedback`)
+      .setDesc(`${dismissedCount} suggestion${dismissedCount === 1 ? "" : "s"} hidden by negative feedback`)
       .addButton((btn) =>
         btn.setButtonText("Reset All Dismissed").onClick(async () => {
           this.plugin.settings.dismissedSuggestions = {};

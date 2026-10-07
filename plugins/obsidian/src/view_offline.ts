@@ -18,24 +18,32 @@ export function renderOfflineView(
 
   wrapper.createEl("p", {
     cls: "orbit-offline-desc",
-    text: `PKMRAG daemon is not reachable at ${plugin.settings.serverUrl}. Start the daemon to inspect graph insights, missing links, and contradictions:`,
+    text: `PKMRAG daemon is not reachable at ${plugin.settings.serverUrl}. Start the local daemon to inspect graph insights, missing links, and AI suggestions:`,
   });
-
-  // Code snippet with click-to-copy
-  const codeBox = wrapper.createDiv({ cls: "orbit-code-box" });
-  const cmd = `uv run pkmrag serve . -t http --port 3747`;
-  codeBox.createEl("code", { text: cmd });
-
-  const copyBtn = codeBox.createEl("button", { cls: "orbit-copy-btn", text: "Copy" });
-  copyBtn.onclick = () => {
-    navigator.clipboard.writeText(cmd);
-    new Notice("Copied command to clipboard!");
-  };
 
   // Actions
   const btnRow = wrapper.createDiv({ cls: "orbit-offline-actions" });
-  const retryBtn = btnRow.createEl("button", {
+
+  const startBtn = btnRow.createEl("button", {
     cls: "orbit-btn-sm mod-cta",
+    text: "🚀 Start Daemon",
+  });
+  startBtn.onclick = async () => {
+    startBtn.setText("Starting...");
+    startBtn.setAttribute("disabled", "true");
+    const ok = await plugin.daemonManager.start();
+    if (ok) {
+      new Notice("PKMRAG: Daemon started successfully.");
+      onRetry();
+    } else {
+      startBtn.setText("🚀 Start Daemon");
+      startBtn.removeAttribute("disabled");
+      new Notice("Could not auto-start daemon. Check settings or executable path.");
+    }
+  };
+
+  const retryBtn = btnRow.createEl("button", {
+    cls: "orbit-btn-sm",
     text: "Retry Connection",
   });
   retryBtn.onclick = () => {
@@ -49,8 +57,18 @@ export function renderOfflineView(
     text: "Settings",
   });
   settingsBtn.onclick = () => {
-    // Open settings tab
     (plugin.app as any).setting?.open?.();
     (plugin.app as any).setting?.openTabById?.(plugin.manifest.id);
+  };
+
+  // Advanced / manual command info
+  const codeBox = wrapper.createDiv({ cls: "orbit-code-box" });
+  const cmd = `uv run pkmrag serve . -t http --port 3747`;
+  codeBox.createEl("code", { text: cmd });
+
+  const copyBtn = codeBox.createEl("button", { cls: "orbit-copy-btn", text: "Copy" });
+  copyBtn.onclick = () => {
+    navigator.clipboard.writeText(cmd);
+    new Notice("Copied command to clipboard!");
   };
 }

@@ -18,17 +18,16 @@ from pkmrag.models import PluginInstallResult
 
 
 def find_plugin_dir() -> Path:
-    """Locate the Obsidian plugin source directory."""
+    """Locate the Obsidian plugin directory (bundled package assets or repo source)."""
     candidates = [
+        Path(__file__).resolve().parent / "plugin_assets",
         Path(__file__).resolve().parent.parent.parent / "plugins" / "obsidian",
         Path.cwd() / "plugins" / "obsidian",
     ]
     for candidate in candidates:
         if candidate.is_dir() and (candidate / "manifest.json").is_file():
             return candidate.resolve()
-    raise FileNotFoundError(
-        "Could not locate 'plugins/obsidian' directory containing manifest.json."
-    )
+    raise FileNotFoundError("Could not locate Obsidian plugin directory containing manifest.json.")
 
 
 def build_plugin(plugin_dir: Path) -> None:
@@ -69,7 +68,7 @@ def install_obsidian_plugin(
 
     did_build = False
     main_js = source_dir / "main.js"
-    if build or not main_js.is_file():
+    if (build or not main_js.is_file()) and (source_dir / "package.json").is_file():
         build_plugin(source_dir)
         did_build = True
 

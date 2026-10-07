@@ -163,3 +163,62 @@ test("Dismissed suggestions filter removes dismissed items matching source and t
   assert.equal(filtered[0].target_title, "Paxos");
 });
 
+test("OrbitClient testLlm dispatches POST request with provider and model", async () => {
+  const client = new OrbitClient({
+    ...DEFAULT_SETTINGS,
+    llmProvider: "custom",
+    llmBaseUrl: "https://api.test.com/v1",
+    llmModel: "test-model",
+    llmApiKey: "test-key",
+  });
+
+  const originalFetch = globalThis.fetch;
+  let capturedBody = "";
+
+  globalThis.fetch = async (url: string | URL | Request, init?: RequestInit): Promise<Response> => {
+    capturedBody = String(init?.body || "");
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: "Connected to test-model",
+        latency_ms: 42.5,
+      }),
+      { status: 200, headers: { "Content-Type": "application/json" } }
+    );
+  };
+
+  try {
+    const res = await client.testLlm();
+    assert.equal(res.success, true);
+    assert.equal(res.latency_ms, 42.5);
+    const parsed = JSON.parse(capturedBody);
+    assert.equal(parsed.provider, "custom");
+    assert.equal(parsed.model, "test-model");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("OrbitClient triggerDiscover and triggerIngest dispatch operational requests", async () => {
+  const client = new OrbitClient({ ...DEFAULT_SETTINGS });
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async (): Promise<Response> => {
+    return new Response(JSON.stringify({ status: "started", message: "Job initiated" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+
+  try {
+    const discRes = await client.triggerDiscover({ limit: 5 });
+    assert.equal(discRes.status, "started");
+
+    const ingRes = await client.triggerIngest({ rebuild: true });
+    assert.equal(ingRes.status, "started");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+

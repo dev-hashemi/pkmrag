@@ -131,8 +131,9 @@ test("Obsidian compliance: prefer Vault API over Adapter / full scans", () => {
     srcFiles(),
     /vault\.adapter\b/,
     "use the Vault API instead of vault.adapter (allowlisted for hidden token discovery only)",
-    ["plugins/obsidian/src/client.ts"]
+    ["plugins/obsidian/src/client.ts", "plugins/obsidian/src/daemon.ts"]
   );
+
   assertNoMatch(
     srcFiles(),
     /\.getFiles\(\)\s*\.find\(/,

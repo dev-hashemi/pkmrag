@@ -65,9 +65,19 @@ flowchart TD
 ## 🛠️ Quickstart
 
 ### 1. Installation
+Install PKMRAG into an isolated global environment using `pipx` or `uv tool`:
 ```bash
-# Requires Python >= 3.12 and uv
-uv pip install -e .
+# Recommended for end users
+pipx install pkmrag
+# or
+uv tool install pkmrag
+```
+
+For local development or cloning from source:
+```bash
+git clone https://github.com/dev-hashemi/project-orbit.git pkmrag
+cd pkmrag
+uv sync
 ```
 
 ### 2. Verify Storage & Engine Health
@@ -163,7 +173,11 @@ claude mcp add pkmrag -- uv run pkmrag serve /path/to/vault
 ## 💎 Obsidian Desktop Plugin (`pkmrag`)
 
 A native desktop companion plugin (`plugins/obsidian/`) connecting Obsidian to PKMRAG:
+- **Interactive Setup Wizard:** If installed before the Python core engine, the sidebar automatically guides you through a 2-step setup with 1-click command copying and live verification.
 - **Orbit Insights Sidebar:** Real-time semantic gap recommendations, contradiction warnings with LLM citations, and structural graph context.
+- **Zero-Terminal Workflow & Auto-Daemon:** Transparently starts the background engine daemon on launch and shuts down cleanly on exit.
+- **In-App AI Discovery & Indexing:** Trigger deep AI relationship discovery (`⚡ Discover`) and full vault rebuilds directly from Obsidian without opening a shell.
+- **Settings-Driven LLM & Embedding Models:** Swap between Ollama, OpenAI, Groq, or local endpoints and customize models with 1-click latency verification directly inside Obsidian Settings.
 - **CodeMirror 6 Inline Indicators:** Ambient visual widgets on headings (`🔗 N`, `⚠️`) without document clutter; clicking reveals the sidebar panel.
 - **Proximity Concept Explorer:** Context-anchored hybrid retrieval drawer (`--near <note>`) directly within the editor with 1-click reference insertion.
 - **Knowledge Governance:** Persistent negative feedback cache preventing dismissed links from recurring; transparent restoration drawer and global reset.
@@ -171,12 +185,12 @@ A native desktop companion plugin (`plugins/obsidian/`) connecting Obsidian to P
 - **Live Reactive Updates:** Subscribes to Server-Sent Events (`/api/v1/events`) for background indexing updates.
 
 ```bash
-# 1-Click Install to Obsidian Vault (configured via PKMRAG_VAULT_PATH in .env)
-npm run install-plugin                 # Via npm
-uv run pkmrag install-plugin           # Or via Python CLI
-uv run pkmrag install-plugin --symlink # Symlink artifacts for live plugin development
-```
+# Install companion plugin into your Obsidian vault:
+pkmrag install-plugin /path/to/vault
 
+# Or for plugin developers:
+pkmrag install-plugin /path/to/vault --symlink
+```
 
 See [docs/subsystems/obsidian-plugin.md](docs/subsystems/obsidian-plugin.md) for installation and developer guides.
 

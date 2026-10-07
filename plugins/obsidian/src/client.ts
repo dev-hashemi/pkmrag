@@ -3,9 +3,14 @@
  */
 
 import { App } from "obsidian";
+import { connectEventStream } from "./client_events";
+
 import {
+  DiscoverOptions,
   GapsResponse,
   HealthResponse,
+  IngestOptions,
+  LlmTestResponse,
   NoteContext,
   OrbitPluginSettings,
   SearchResponse,
@@ -13,6 +18,7 @@ import {
   SemanticGapCandidate,
   SyncResult,
 } from "./types";
+
 
 export class OrbitClient {
   constructor(public settings: OrbitPluginSettings) {}
@@ -77,6 +83,9 @@ export class OrbitClient {
     if (res.status === 404) {
       return null;
     }
+    if (res.status === 503) {
+      throw new Error("VAULT_UNINDEXED");
+    }
     if (!res.ok) {
       throw new Error(`Context fetch failed with HTTP ${res.status}`);
     }
@@ -103,6 +112,9 @@ export class OrbitClient {
       method: "GET",
       headers: this.getHeaders(),
     });
+    if (res.status === 503) {
+      return [];
+    }
     if (!res.ok) {
       throw new Error(`Gaps fetch failed with HTTP ${res.status}`);
     }
@@ -175,37 +187,105 @@ export class OrbitClient {
   }
 
   /**
-   * Subscribe to live SSE events from Orbit server.
+   * Subscribe to live SSE events from PKMRAG server.
    */
   connectEvents(
     onEvent: (event: string, data: Record<string, unknown>) => void
   ): EventSource | null {
-    if (typeof EventSource === "undefined") {
-      return null;
+    return connectEventStream(this.settings.serverUrl, this.settings.authToken, onEvent);
+  }
+
+
+  /**
+   * Test LLM connection, latency, and schema formatting.
+   */
+  async testLlm(payload?: Record<string, unknown>): Promise<LlmTestResponse> {
+    const base = this.settings.serverUrl.replace(/\/+$/, "");
+    const body = payload || {
+      provider: this.settings.llmProvider,
+      base_url: this.settings.llmBaseUrl,
+      model: this.settings.llmModel,
+      api_key: this.settings.llmApiKey,
+    };
+    const res = await fetch(`${base}/api/v1/llm/test`, {
+      method: "POST",
+      headers: this.getHeaders(),
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      throw new Error(`LLM test failed with HTTP ${res.status}`);
     }
-    try {
-      const base = this.settings.serverUrl.replace(/\/+$/, "");
-      const tokenParam = this.settings.authToken
-        ? `?token=${encodeURIComponent(this.settings.authToken)}`
-        : "";
-      const source = new EventSource(`${base}/api/v1/events${tokenParam}`);
+    return (await res.json()) as LlmTestResponse;
+  }
 
-      source.addEventListener("reindex", (e: MessageEvent) => {
-        try {
-          onEvent("reindex", JSON.parse(e.data));
-        } catch {}
-      });
-
-      source.addEventListener("sync", (e: MessageEvent) => {
-        try {
-          onEvent("sync", JSON.parse(e.data));
-        } catch {}
-      });
-
-      return source;
-    } catch (err) {
-      console.warn("[Orbit] Could not establish EventSource stream:", err);
-      return null;
+  /**
+   * Trigger vault ingestion / full rebuild in background.
+   */
+  async triggerIngest(options?: IngestOptions): Promise<{ status: string; message: string }> {
+    const base = this.settings.serverUrl.replace(/\/+$/, "");
+    const res = await fetch(`${base}/api/v1/ingest`, {
+      method: "POST",
+      headers: this.getHeaders(),
+      body: JSON.stringify(options || {}),
+    });
+    if (!res.ok) {
+      throw new Error(`Ingest request failed with HTTP ${res.status}`);
     }
+    return (await res.json()) as { status: string; message: string };
+  }
+
+  /**
+   * Trigger AI semantic gap discovery and relationship inference.
+   */
+  async triggerDiscover(options?: DiscoverOptions): Promise<{ status: string; message: string }> {
+    const base = this.settings.serverUrl.replace(/\/+$/, "");
+    const payload = options || {
+      threshold: this.settings.similarityThreshold,
+      provider: this.settings.llmProvider,
+      base_url: this.settings.llmBaseUrl,
+      model: this.settings.llmModel,
+      api_key: this.settings.llmApiKey,
+    };
+    const res = await fetch(`${base}/api/v1/discover`, {
+      method: "POST",
+      headers: this.getHeaders(),
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      throw new Error(`Discovery request failed with HTTP ${res.status}`);
+    }
+    return (await res.json()) as { status: string; message: string };
+  }
+
+  /**
+   * Fetch vault runtime settings from backend.
+   */
+  async getVaultConfig(): Promise<Record<string, unknown>> {
+    const base = this.settings.serverUrl.replace(/\/+$/, "");
+    const res = await fetch(`${base}/api/v1/settings`, {
+      method: "GET",
+      headers: this.getHeaders(),
+    });
+    if (!res.ok) {
+      throw new Error(`Settings fetch failed with HTTP ${res.status}`);
+    }
+    return (await res.json()) as Record<string, unknown>;
+  }
+
+  /**
+   * Save vault runtime settings to backend.
+   */
+  async saveVaultConfig(cfg: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const base = this.settings.serverUrl.replace(/\/+$/, "");
+    const res = await fetch(`${base}/api/v1/settings`, {
+      method: "POST",
+      headers: this.getHeaders(),
+      body: JSON.stringify(cfg),
+    });
+    if (!res.ok) {
+      throw new Error(`Settings save failed with HTTP ${res.status}`);
+    }
+    return (await res.json()) as Record<string, unknown>;
   }
 }
+

@@ -9,6 +9,7 @@ import httpx
 
 from pkmrag.inference.base import InferredRelationshipResult
 from pkmrag.inference.limiter import RateLimiter, estimate_tokens, parse_retry_after
+from pkmrag.inference.mock import MockInferenceProvider
 from pkmrag.telemetry import trace_span
 
 SYSTEM_PROMPT = """You are an expert personal knowledge graph analyst.
@@ -235,38 +236,24 @@ class OpenAICompatibleProvider:
                     raise ValueError(f"Schema validation error: {e_regex}") from e_regex
             raise ValueError(f"Invalid JSON or schema validation error: {e_direct}") from e_direct
 
+    def test_connection(self) -> tuple[bool, str, float]:
+        """Test LLM endpoint connectivity, authentication, and structured output formatting."""
+        import time
 
-class MockInferenceProvider:
-    """Deterministic mock provider for unit testing without network or token costs."""
+        start = time.perf_counter()
+        try:
+            res = self.classify_relationship(
+                source_title="Graph Theory",
+                source_excerpt="A branch of mathematics focused on networks and node connections.",
+                target_title="Network Science",
+                target_excerpt="An interdisciplinary field studying complex networks.",
+            )
+            elapsed_ms = (time.perf_counter() - start) * 1000
+            msg = f"Connected to '{self.model}' (output: {res.rel_type})"
+            return True, msg, round(elapsed_ms, 1)
+        except Exception as e:
+            elapsed_ms = (time.perf_counter() - start) * 1000
+            return False, f"Connection test failed: {e}", round(elapsed_ms, 1)
 
-    def __init__(
-        self,
-        default_rel: InferredRelationshipResult | None = None,
-        custom_mapping: dict[tuple[str, str], InferredRelationshipResult] | None = None,
-    ) -> None:
-        self.default_rel = default_rel or InferredRelationshipResult(
-            rel_type="NONE",
-            confidence=0.5,
-            reason="Mock default no relationship",
-            direction="source_to_target",
-        )
-        self.custom_mapping = custom_mapping or {}
-        self.name = "mock-inference"
-        self.model = "mock-v1"
-        self.calls: list[tuple[str, str]] = []
 
-    def classify_relationship(
-        self,
-        source_title: str,
-        source_excerpt: str,
-        target_title: str,
-        target_excerpt: str,
-    ) -> InferredRelationshipResult:
-        self.calls.append((source_title, target_title))
-        key = (source_title, target_title)
-        rev_key = (target_title, source_title)
-        if key in self.custom_mapping:
-            return self.custom_mapping[key]
-        if rev_key in self.custom_mapping:
-            return self.custom_mapping[rev_key]
-        return self.default_rel
+__all__ = ["OpenAICompatibleProvider", "MockInferenceProvider", "SYSTEM_PROMPT"]

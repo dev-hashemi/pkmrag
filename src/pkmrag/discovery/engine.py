@@ -212,6 +212,8 @@ class GapDiscoveryEngine:
         provider: Optional[InferenceProvider] = None,
         provider_type: Optional[str] = None,
         model: Optional[str] = None,
+        base_url: Optional[str] = None,
+        api_key: Optional[str] = None,
         rpm: Optional[int] = None,
         tpm: Optional[int] = None,
         on_progress: Optional[Callable[[int, int, str], None]] = None,
@@ -228,31 +230,22 @@ class GapDiscoveryEngine:
             eff_provider = provider or self.inference_provider
             if not dry_run and candidates:
                 if eff_provider is None:
-                    from pkmrag.inference.limiter import RateLimiter
-                    from pkmrag.inference.ollama import OllamaProvider
-                    from pkmrag.inference.provider import OpenAICompatibleProvider
-
-                    eff_type = (provider_type or settings.llm_provider).lower()
-                    eff_rpm = rpm if rpm is not None else settings.llm_rpm
-                    eff_tpm = tpm if tpm is not None else settings.llm_tpm
-                    limiter = RateLimiter(
-                        rpm=eff_rpm,
-                        tpm=eff_tpm,
-                        max_retries=settings.llm_max_retries,
-                    )
+                    from pkmrag.inference.factory import resolve_provider
 
                     def on_wait(delay: float, reason: str) -> None:
                         if on_progress:
                             on_progress(-1, -1, f"Rate limit wait ({reason}): {delay:.1f}s")
 
-                    if eff_type == "ollama":
-                        eff_provider = OllamaProvider(
-                            model=model, rate_limiter=limiter, on_wait=on_wait
-                        )
-                    else:
-                        eff_provider = OpenAICompatibleProvider(
-                            model=model, rate_limiter=limiter, on_wait=on_wait
-                        )
+                    eff_provider = resolve_provider(
+                        vault_path=self.vault_path,
+                        provider_type=provider_type,
+                        model=model,
+                        base_url=base_url,
+                        api_key=api_key,
+                        rpm=rpm,
+                        tpm=tpm,
+                        on_wait=on_wait,
+                    )
 
                 inferred, _ = self.evaluate_and_persist(
                     candidates,

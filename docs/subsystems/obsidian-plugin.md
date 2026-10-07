@@ -42,35 +42,52 @@ The plugin subscribes to Orbit's Server-Sent Events stream (`GET /api/v1/events`
 - **Transparent Recovery:** A collapsible "Dismissed Suggestions" drawer in the sidebar displays previously dismissed items with single-click `[Restore]` buttons.
 - **Global Reset:** A "Reset All Dismissed Suggestions" action in Plugin Settings lets users flush negative feedback when restructuring their vault.
 
-### 1.8 Graceful Offline Recovery Panel
-- **Helpful Onboarding:** If the background Orbit daemon is not running, the sidebar displays an onboarding card rather than a raw error.
-- **Click-to-Copy CLI Command:** One-click copy for `uv run pkmrag serve . -t http --port 3747`.
+### 1.8 Zero-Terminal Background Daemon Management
+- **Automatic Lifecycle:** On desktop, the plugin automatically spawns and manages the PKMRAG daemon process on startup and gracefully stops it on shutdown.
+- **Process Controls:** Settings provide manual Start, Stop, and Restart controls along with live PID / status feedback.
+
+### 1.9 In-App AI Discovery & Indexing
+- **Header Action:** The `⚡ Discover` button in the insights sidebar header triggers background relationship inference.
+- **Live Event Streaming:** Subscribes to SSE progress updates and automatically refreshes newly inferred relationships without manual CLI intervention.
+- **Full Vault Rebuild:** Trigger full rebuilds directly from Settings or the Command Palette.
+
+### 1.10 Custom LLM & Embedding Model Configuration
+- **Model & Provider Independence:** Configure OpenAI, local Ollama, or any custom OpenAI-compatible endpoint (Groq, DeepSeek, vLLM, LM Studio) directly in Obsidian Settings.
+- **Interactive Verification:** Test LLM credentials and measured response latency with a single click.
+- **Embedding Model Setting:** View or change the dense embedding model (`BAAI/bge-small-en-v1.5` by default) with automatic vector reindexing guidance.
+- **Per-Vault Persistence:** Automatically writes to `<vault>/.pkmrag/config.json`, keeping vault-specific preferences in sync across devices.
+
+### 1.11 Interactive Setup Wizard for First-Time Users
+- **Auto-Detection:** When the plugin is enabled, it checks if `pkmrag` is installed on the host machine (`~/.local/bin`, `~/.cargo/bin`, `/usr/local/bin`, or PATH).
+- **Onboarding Card:** If the core engine is missing, the sidebar renders a 2-step setup wizard:
+  - Step 1: Copy-to-clipboard command (`pipx install pkmrag` or `uv tool install pkmrag`).
+  - Step 2: "Check Installation & Start" button that verifies detection and launches the daemon automatically.
+- **Status Bar Integration:** Shows `⚪ PKMRAG: Setup Required` until the engine binary is installed.
+
+### 1.12 Graceful Offline Recovery Panel
+- **Helpful Status Feedback:** If the binary is installed but the daemon cannot be reached, the sidebar displays an offline card with status diagnostics.
+- **Click-to-Copy CLI Fallback:** One-click copy for `pkmrag serve . -t http --port 3747`.
 - **Immediate Reconnection:** "Retry Connection" button tests connectivity and auto-populates insights once the daemon is up.
 
 ---
 
 ## 2. Installation & Quickstart
 
-### 2.1 Start Orbit HTTP Daemon
+### 2.1 Install PKMRAG Core Engine
 ```bash
-# In your terminal, start Orbit HTTP server for your vault:
-uv run pkmrag serve /path/to/my-vault -t http --port 3747
+# Recommended: Isolated global installation
+pipx install pkmrag
+# or
+uv tool install pkmrag
 ```
 
-### 2.2 Install Plugin into Vault
-You can install and auto-enable the plugin via npm or PKMRAG CLI:
-
+### 2.2 Install Companion Plugin into Vault
 ```bash
-# Using npm (reads PKMRAG_VAULT_PATH from .env or pass vault as argument):
-npm run install-plugin
-npm run install-plugin --symlink
+# Install and enable plugin in your vault:
+pkmrag install-plugin /path/to/my-vault
 
-# Or from within plugins/obsidian/:
-cd plugins/obsidian && npm run install-vault
-
-# Or using the Python CLI:
-uv run pkmrag install-plugin
-uv run pkmrag install-plugin --symlink
+# For plugin development:
+pkmrag install-plugin /path/to/my-vault --symlink
 ```
 
 Alternatively, you can manually copy or symlink the build files:

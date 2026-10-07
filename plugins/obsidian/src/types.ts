@@ -18,6 +18,14 @@ export interface OrbitPluginSettings {
   maxSuggestions: number;
   showInlineIndicators: boolean;
   dismissedSuggestions: Record<string, DismissedSuggestion>;
+  autoStartDaemon: boolean;
+  customBinaryPath: string;
+  llmProvider: "openai" | "ollama" | "custom";
+  llmBaseUrl: string;
+  llmModel: string;
+  llmApiKey: string;
+  llmRpm: number;
+  llmTpm: number;
 }
 
 export const DEFAULT_SETTINGS: OrbitPluginSettings = {
@@ -29,7 +37,50 @@ export const DEFAULT_SETTINGS: OrbitPluginSettings = {
   maxSuggestions: 5,
   showInlineIndicators: true,
   dismissedSuggestions: {},
+  autoStartDaemon: true,
+  customBinaryPath: "",
+  llmProvider: "openai",
+  llmBaseUrl: "https://api.openai.com/v1",
+  llmModel: "gpt-4o-mini",
+  llmApiKey: "",
+  llmRpm: 30,
+  llmTpm: 8000,
 };
+
+export interface LlmTestResponse {
+  success: boolean;
+  message: string;
+  latency_ms: number;
+  model?: string;
+  provider?: string;
+}
+
+export interface DiscoverOptions {
+  threshold?: number;
+  limit?: number;
+  dry_run?: boolean;
+  provider?: string;
+  model?: string;
+  base_url?: string;
+  api_key?: string;
+}
+
+export interface IngestOptions {
+  rebuild?: boolean;
+  dialect?: string;
+  target?: string;
+}
+
+
+export interface ActiveJobState {
+  type: "ingest" | "discover";
+  phase: string;
+  cur: number;
+  total: number;
+  percent: number;
+  message?: string;
+  desc?: string;
+}
 
 export interface HealthResponse {
   status: string;
@@ -38,6 +89,9 @@ export interface HealthResponse {
   vault_path: string;
   transport: string;
   auth_enabled: boolean;
+  is_indexed?: boolean;
+  active_job?: ActiveJobState | null;
+  stats?: { notes: number; links: number; tags: number };
 }
 
 export interface InferredRelationship {

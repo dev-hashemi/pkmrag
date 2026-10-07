@@ -4,9 +4,14 @@
 
 import { MarkdownView, Notice, Plugin, TFile, WorkspaceLeaf, addIcon } from "obsidian";
 import { OrbitClient } from "./client";
+import { DaemonManager } from "./daemon";
+import { registerPluginCommands } from "./commands";
 import { createOrbitEditorExtension } from "./extension";
 import { OrbitSettingTab } from "./settings";
+import { renderStatusBar, setupEventStream } from "./status_bar";
+
 import {
+  ActiveJobState,
   DEFAULT_SETTINGS,
   InferredRelationship,
   OrbitPluginSettings,
@@ -17,6 +22,10 @@ import { OrbitInsightsView, VIEW_TYPE_ORBIT_INSIGHTS } from "./view";
 export default class OrbitInsightsPlugin extends Plugin {
   settings: OrbitPluginSettings = DEFAULT_SETTINGS;
   client!: OrbitClient;
+  daemonManager!: DaemonManager;
+  activeJob: ActiveJobState | null = null;
+  isVaultIndexed = true;
+  isServerConnected = false;
   private statusBarEl!: HTMLElement;
   private eventSource: EventSource | null = null;
   private debounceMap: Map<string, ReturnJS_Timeout> = new Map();
@@ -26,18 +35,23 @@ export default class OrbitInsightsPlugin extends Plugin {
   async onload(): Promise<void> {
     await this.loadSettings();
     this.client = new OrbitClient(this.settings);
+    this.daemonManager = new DaemonManager(this);
 
     // Auto-discover vault token if not set
     if (!this.settings.authToken) {
       await this.client.autoDiscoverVaultToken(this.app);
     }
 
-    // Register custom PKMRAG ribbon icon (monochrome outline matching Obsidian icon system)
+    // Auto-start daemon on desktop if enabled
+    if (this.settings.autoStartDaemon) {
+      this.daemonManager.start();
+    }
+
+    // Register custom PKMRAG ribbon icon
     addIcon(
       "pkmrag-ribbon",
       `<circle cx="50" cy="22" r="10" fill="none" stroke="currentColor" stroke-width="8"/><circle cx="22" cy="78" r="10" fill="none" stroke="currentColor" stroke-width="8"/><circle cx="78" cy="78" r="10" fill="none" stroke="currentColor" stroke-width="8"/><line x1="44" y1="34" x2="28" y2="66" stroke="currentColor" stroke-width="8" stroke-linecap="round"/><line x1="34" y1="78" x2="66" y2="78" stroke="currentColor" stroke-width="8" stroke-linecap="round"/><line x1="56" y1="34" x2="72" y2="66" stroke="currentColor" stroke-width="8" stroke-dasharray="4 6" stroke-linecap="round"/>`
     );
-
 
     // Register Sidebar View
     this.registerView(
@@ -45,71 +59,22 @@ export default class OrbitInsightsPlugin extends Plugin {
       (leaf: WorkspaceLeaf) => new OrbitInsightsView(leaf, this)
     );
 
-    // Ribbon Icon (PKMRAG Graph Motif)
+    // Ribbon Icon
     this.addRibbonIcon("pkmrag-ribbon", "PKMRAG Insights", () => {
       this.activateView();
     });
 
     // Status Bar Item
     this.statusBarEl = this.addStatusBarItem();
-    this.updateStatusBar(false);
+    this.updateStatusBar();
     this.checkConnection();
 
     // Register Commands
-    this.addCommand({
-      id: "open-orbit-insights",
-      name: "Open Insights Sidebar",
-      callback: () => this.activateView(),
-    });
-
-    this.addCommand({
-      id: "refresh-orbit-insights",
-      name: "Refresh Insights for Active Note",
-      callback: () => this.refreshActiveView(),
-    });
+    registerPluginCommands(this);
 
     // Register CodeMirror 6 Editor Extension
+
     this.registerEditorExtension(createOrbitEditorExtension(this));
-
-    this.addCommand({
-      id: "sync-orbit-vault",
-      name: "Sync Vault Index (Incremental)",
-      callback: async () => {
-        new Notice("PKMRAG: Synchronizing vault delta...");
-        try {
-          const results = await this.client.syncVault();
-          new Notice(`PKMRAG: Synchronized ${results.length} notes.`);
-        } catch (err: unknown) {
-          const msg = err instanceof Error ? err.message : String(err);
-          new Notice(`PKMRAG Sync Failed: ${msg}`);
-        }
-      },
-    });
-
-    this.addCommand({
-      id: "toggle-orbit-inline-indicators",
-      name: "Toggle Inline Heading Indicators",
-      callback: async () => {
-        this.settings.showInlineIndicators = !this.settings.showInlineIndicators;
-        await this.saveSettings();
-        new Notice(
-          `PKMRAG: Inline indicators ${this.settings.showInlineIndicators ? "enabled" : "disabled"}`
-        );
-        this.app.workspace.updateOptions();
-      },
-    });
-
-    this.addCommand({
-      id: "clear-orbit-dismissed",
-      name: "Clear Dismissed Suggestions",
-      callback: async () => {
-        this.settings.dismissedSuggestions = {};
-        await this.saveSettings();
-        new Notice("PKMRAG: Cleared all dismissed suggestions.");
-        this.refreshActiveView();
-      },
-    });
-
 
     // Auto-Sync on Save (debounced 1500ms)
     this.registerEvent(
@@ -125,7 +90,7 @@ export default class OrbitInsightsPlugin extends Plugin {
           try {
             await this.client.reindexNote(file.path);
           } catch (err) {
-            console.warn(`[Orbit] Reindex failed for ${file.path}:`, err);
+            console.warn(`[PKMRAG] Reindex failed for ${file.path}:`, err);
           }
         }, 1500);
 
@@ -151,6 +116,7 @@ export default class OrbitInsightsPlugin extends Plugin {
   }
 
   onunload(): void {
+    this.daemonManager.stop();
     if (this.eventSource) {
       this.eventSource.close();
       this.eventSource = null;
@@ -212,9 +178,8 @@ export default class OrbitInsightsPlugin extends Plugin {
       new Notice(`No active markdown editor to insert [[${targetTitle}]].`);
       return;
     }
-    const editor = view.editor;
     const wikilink = `[[${targetTitle}]]`;
-    editor.replaceSelection(wikilink);
+    view.editor.replaceSelection(wikilink);
     new Notice(`Inserted link to ${wikilink}`);
   }
 
@@ -240,26 +205,24 @@ export default class OrbitInsightsPlugin extends Plugin {
     return this.activeInsights.get(path)?.hasContradiction || false;
   }
 
-  private async checkConnection(): Promise<void> {
-    try {
-      await this.client.checkHealth();
-      this.updateStatusBar(true);
-    } catch {
-      this.updateStatusBar(false);
+  updateStatusBar(connected?: boolean): void {
+    if (typeof connected === "boolean") {
+      this.isServerConnected = connected;
     }
+    if (!this.statusBarEl) return;
+    renderStatusBar(this.statusBarEl, this);
   }
 
-  private updateStatusBar(connected: boolean): void {
-    if (!this.statusBarEl) return;
-    this.statusBarEl.empty();
-    const text = connected ? "PKMRAG: Connected" : "PKMRAG: Offline";
-
-
-    this.statusBarEl.createSpan({
-      text,
-      cls: connected ? "orbit-status-connected" : "orbit-status-disconnected",
-    });
-    this.statusBarEl.onclick = () => this.activateView();
+  async checkConnection(): Promise<void> {
+    try {
+      const health = await this.client.checkHealth();
+      this.isServerConnected = true;
+      this.isVaultIndexed = health.is_indexed !== false;
+      this.activeJob = health.active_job || null;
+    } catch {
+      this.isServerConnected = false;
+    }
+    this.updateStatusBar();
   }
 
   private initEventStream(): void {
@@ -267,19 +230,7 @@ export default class OrbitInsightsPlugin extends Plugin {
       this.eventSource.close();
       this.eventSource = null;
     }
-    this.eventSource = this.client.connectEvents((event, data) => {
-      const activeFile = this.app.workspace.getActiveFile();
-      if (!activeFile) return;
-
-      if (event === "reindex") {
-        const reindexed = data.note_path as string;
-        if (reindexed && activeFile.path.endsWith(reindexed)) {
-          this.refreshActiveView(activeFile.path);
-        }
-      } else if (event === "sync") {
-        this.refreshActiveView(activeFile.path);
-      }
-    });
+    this.eventSource = setupEventStream(this);
   }
 }
 

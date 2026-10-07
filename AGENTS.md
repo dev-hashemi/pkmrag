@@ -27,6 +27,9 @@ src/pkmrag/
   eval/           # Retrieval evaluation harness and IR metrics (MRR, Recall, MAP)
   telemetry/      # OpenTelemetry spans, collector, visual tree, tracer lifecycle
   mcp/            # FastMCP server, tool handlers, and stdio transport
+  vault_config.py # Per-vault configuration reader/writer (<vault>/.pkmrag/config.json)
+  plugin.py       # Obsidian plugin installer & bundler CLI
+  plugin_assets/  # Bundled standalone Obsidian plugin assets (manifest, main.js, styles)
 
 tests/            # Mirrors src/pkmrag/ structure
 benchmarks/       # Ground-truth evaluation benchmarks (golden_10, vault)

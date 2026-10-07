@@ -13,19 +13,16 @@ from starlette.requests import Request
 from starlette.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from starlette.types import ASGIApp
 
-from pkmrag import __version__
-from pkmrag.cache import CacheManager
 from pkmrag.config import settings
 from pkmrag.discovery import GapDiscoveryEngine
 from pkmrag.graph.paths import get_note_structural_context, get_vault_overview
-from pkmrag.graph.store import GraphStore
 from pkmrag.graph.traversal import get_inferred_relationships
 from pkmrag.ingest import SingleNoteReindexer
 from pkmrag.mcp.auth import extract_request_token, resolve_server_token, validate_token
 from pkmrag.mcp.events import EventBroadcaster
+from pkmrag.mcp.http_ops import register_ops_routes
 from pkmrag.mcp.server import create_mcp_server
-from pkmrag.search.service import SearchService
-from pkmrag.search.vector_store import VectorStore
+from pkmrag.mcp.server_state import ServerState
 
 logger = logging.getLogger("pkmrag.http")
 ASSETS_DIR = Path(__file__).resolve().parent.parent.parent.parent / "assets"
@@ -64,51 +61,41 @@ def create_http_app(
     port: int = 3747,
     token: str = "",
 ) -> Starlette:
-    """Build Starlette app with MCP SSE transport, REST APIs, CORS, and auth middleware."""
+    """Build Starlette app with MCP SSE transport, REST APIs, CORS, and dynamic ServerState."""
     vpath = Path(vault_path).resolve()
     mcp = create_mcp_server(vpath)
     broadcaster = EventBroadcaster()
-
-    db_dir = settings.get_db_dir(vpath)
-    vec_dir = settings.get_vector_dir(vpath)
-    graph_store = GraphStore(db_dir, read_only=False) if db_dir.exists() else None
-    vector_store = VectorStore(vec_dir) if vec_dir.exists() else None
-    cache_manager = CacheManager(vpath)
-    search_service = SearchService(
-        vpath,
-        graph_store=graph_store,
-        vector_store=vector_store,
-        cache_manager=cache_manager,
-    )
+    server_state = ServerState(vpath, broadcaster)
 
     async def health_handler(request: Request) -> Response:
-        return JSONResponse(
-            {
-                "status": "healthy",
-                "version": __version__,
-                "vault": vpath.name,
-                "vault_path": str(vpath),
-                "transport": "sse",
-                "auth_enabled": bool(token),
-            }
-        )
+        return JSONResponse(server_state.get_health_status(token_enabled=bool(token)))
 
     async def context_handler(request: Request) -> Response:
         note_path = request.query_params.get("note_path", "").strip()
         if not note_path:
             return JSONResponse({"error": "Missing 'note_path' query parameter."}, status_code=400)
-        if graph_store is None:
+        if server_state.graph_store is None:
             return JSONResponse(
-                {"error": "Graph store is unavailable for this vault."}, status_code=503
+                {
+                    "error": "VAULT_UNINDEXED",
+                    "message": "Graph store is unavailable. Vault has not been indexed yet.",
+                },
+                status_code=503,
             )
 
-        ctx = get_note_structural_context(graph_store.conn, note_path)
+        ctx = get_note_structural_context(server_state.graph_store.conn, note_path)
         if ctx is None:
             return JSONResponse(
-                {"error": f"Note '{note_path}' was not found in graph."}, status_code=404
+                {
+                    "error": "NOTE_NOT_FOUND",
+                    "message": f"Note '{note_path}' was not found in graph.",
+                },
+                status_code=404,
             )
 
-        ctx.inferred_relationships = get_inferred_relationships(graph_store.conn, ctx.path)
+        ctx.inferred_relationships = get_inferred_relationships(
+            server_state.graph_store.conn, ctx.path
+        )
         return JSONResponse(ctx.model_dump())
 
     async def gaps_handler(request: Request) -> Response:
@@ -148,8 +135,16 @@ def create_http_app(
         query = body.get("query", "").strip()
         if not query:
             return JSONResponse({"error": "Query cannot be empty."}, status_code=400)
+        if server_state.search_service is None:
+            return JSONResponse(
+                {
+                    "error": "VAULT_UNINDEXED",
+                    "message": "Search service is unavailable. Vault is unindexed.",
+                },
+                status_code=503,
+            )
 
-        results = search_service.search(
+        results = server_state.search_service.search(
             query=query,
             near=body.get("near"),
             mode=body.get("mode", "hybrid"),
@@ -171,30 +166,32 @@ def create_http_app(
 
         reindexer = SingleNoteReindexer(
             vault_path=vpath,
-            graph_store=graph_store,
-            vector_store=vector_store,
-            cache_manager=cache_manager,
+            graph_store=server_state.graph_store,
+            vector_store=server_state.vector_store,
+            cache_manager=server_state.cache_manager,
         )
         res = reindexer.reindex_note(note_path)
+        server_state.reload_stores()
         await broadcaster.broadcast("reindex", {"note_path": note_path, "status": "ok"})
         return JSONResponse(res.model_dump())
 
     async def sync_handler(request: Request) -> Response:
         reindexer = SingleNoteReindexer(
             vault_path=vpath,
-            graph_store=graph_store,
-            vector_store=vector_store,
-            cache_manager=cache_manager,
+            graph_store=server_state.graph_store,
+            vector_store=server_state.vector_store,
+            cache_manager=server_state.cache_manager,
         )
         results = reindexer.sync_vault_delta()
+        server_state.reload_stores()
         await broadcaster.broadcast("sync", {"status": "ok", "updated_notes": len(results)})
         return JSONResponse({"results": [r.model_dump() for r in results], "count": len(results)})
 
     async def overview_handler(request: Request) -> Response:
-        if graph_store is None:
+        if server_state.graph_store is None:
             return JSONResponse({"error": "Graph store is unavailable."}, status_code=503)
         limit = int(request.query_params.get("limit", "10"))
-        overview = get_vault_overview(graph_store.conn, limit=limit)
+        overview = get_vault_overview(server_state.graph_store.conn, limit=limit)
         return JSONResponse(overview.model_dump())
 
     async def events_handler(request: Request) -> Response:
@@ -231,6 +228,8 @@ def create_http_app(
     app.add_route("/api/v1/overview", overview_handler, methods=["GET"])
     app.add_route("/api/v1/events", events_handler, methods=["GET"])
 
+    register_ops_routes(app, vpath, broadcaster, server_state)
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
@@ -240,6 +239,7 @@ def create_http_app(
     )
     app.add_middleware(TokenAuthMiddleware, token=token)
     app.state.broadcaster = broadcaster
+    app.state.server_state = server_state
     return app
 
 

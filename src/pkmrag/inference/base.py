@@ -63,3 +63,7 @@ class InferenceProvider(Protocol):
     ) -> InferredRelationshipResult:
         """Analyze two note excerpts and return structured relationship classification."""
         ...
+
+    def test_connection(self) -> tuple[bool, str, float]:
+        """Test provider connectivity and return (success, message, latency_ms)."""
+        ...
