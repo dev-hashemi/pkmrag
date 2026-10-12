@@ -57,8 +57,8 @@ def test_http_auth_enforcement(populated_vault: Path) -> None:
     assert r_bearer.status_code == 200
     assert r_bearer.json()["total_notes"] >= 2
 
-    # 4. Valid X-Orbit-Token -> 200
-    r_custom = client.get("/api/v1/overview", headers={"X-Orbit-Token": "secret123"})
+    # 4. Valid X-Pkmrag-Token -> 200
+    r_custom = client.get("/api/v1/overview", headers={"X-Pkmrag-Token": "secret123"})
     assert r_custom.status_code == 200
 
     # 5. Valid query param token -> 200

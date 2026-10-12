@@ -1,5 +1,5 @@
 /**
- * HTTP and SSE Client communicating with Project Orbit local daemon.
+ * HTTP and SSE Client communicating with PKMRAG local daemon.
  */
 
 import { App } from "obsidian";
@@ -12,7 +12,7 @@ import {
   IngestOptions,
   LlmTestResponse,
   NoteContext,
-  OrbitPluginSettings,
+  PkmragPluginSettings,
   SearchResponse,
   SearchResult,
   SemanticGapCandidate,
@@ -20,15 +20,15 @@ import {
 } from "./types";
 
 
-export class OrbitClient {
-  constructor(public settings: OrbitPluginSettings) {}
+export class PkmragClient {
+  constructor(public settings: PkmragPluginSettings) {}
 
   /**
-   * Attempt to read .pkmrag/server_token or .orbit/server_token from active vault filesystem.
+   * Attempt to read .pkmrag/server_token from active vault filesystem.
    */
   async autoDiscoverVaultToken(app: App): Promise<string | null> {
     try {
-      for (const tokenPath of [".pkmrag/server_token", ".orbit/server_token"]) {
+      for (const tokenPath of [".pkmrag/server_token", ".pkmrag/server_token"]) {
         const exists = await app.vault.adapter.exists(tokenPath);
         if (exists) {
           const content = await app.vault.adapter.read(tokenPath);
@@ -58,7 +58,7 @@ export class OrbitClient {
   }
 
   /**
-   * Health probe verifying Orbit daemon connectivity.
+   * Health probe verifying PKMRAG daemon connectivity.
    */
   async checkHealth(): Promise<HealthResponse> {
     const url = `${this.settings.serverUrl.replace(/\/+$/, "")}/health`;

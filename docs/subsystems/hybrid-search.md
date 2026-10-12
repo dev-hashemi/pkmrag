@@ -5,15 +5,15 @@ The hybrid search subsystem fuses dense semantic embeddings, sparse BM25 keyword
 ---
 
 ## 💾 Implementation
-- **Chunker:** [`src/pkmrag/search/chunker.py`](file:///home/ali/projects/my/project-orbit/src/pkmrag/search/chunker.py)
-- **Fusion & Boost:** [`src/pkmrag/search/fusion.py`](file:///home/ali/projects/my/project-orbit/src/pkmrag/search/fusion.py)
-- **Service:** [`src/pkmrag/search/service.py`](file:///home/ali/projects/my/project-orbit/src/pkmrag/search/service.py)
+- **Chunker:** [`src/pkmrag/search/chunker.py`](file:///home/ali/projects/my/pkmrag/src/pkmrag/search/chunker.py)
+- **Fusion & Boost:** [`src/pkmrag/search/fusion.py`](file:///home/ali/projects/my/pkmrag/src/pkmrag/search/fusion.py)
+- **Service:** [`src/pkmrag/search/service.py`](file:///home/ali/projects/my/pkmrag/src/pkmrag/search/service.py)
 
 ---
 
 ## 🧩 Hierarchical Heading Chunker
 
-Instead of fixed token windows, Orbit chunks along Markdown headings (`#`–`######`):
+Instead of fixed token windows, PKMRAG chunks along Markdown headings (`#`–`######`):
 1. **Breadcrumbs:** Tracks heading lineage (e.g. `# Arch > ## Storage > ### LanceDB`) and prepends it to chunk text for contextualized indexing.
 2. **Micro-Section Merging:** Sections below 40 tokens merge into adjacent sections to prevent low-context fragments.
 3. **Macro-Section Splitting:** Sections exceeding 500 tokens split on paragraph boundaries (`\n\n`), keeping breadcrumb context on each subchunk.
@@ -22,7 +22,7 @@ Instead of fixed token windows, Orbit chunks along Markdown headings (`#`–`###
 
 ## 🔀 Reciprocal Rank Fusion (RRF)
 
-Orbit blends dense vector ranks with sparse BM25 ranks using standard RRF ($k=60$):
+PKMRAG blends dense vector ranks with sparse BM25 ranks using standard RRF ($k=60$):
 
 $$\text{RRF}(d) = \sum_{m \in \{\text{dense}, \text{sparse}\}} \frac{1}{60 + \text{rank}_m(d)}$$
 
@@ -33,7 +33,7 @@ $$\text{RRF}(d) = \sum_{m \in \{\text{dense}, \text{sparse}\}} \frac{1}{60 + \te
 
 ## ⚡ Topological Graph Proximity Boosting
 
-When `--near <note>` is specified, Orbit identifies the focus note's graph neighborhood in LadybugDB and applies distance multipliers:
+When `--near <note>` is specified, PKMRAG identifies the focus note's graph neighborhood in LadybugDB and applies distance multipliers:
 
 $$\text{Score}_{\text{final}}(d) = \text{RRF}(d) \times \text{Multiplier}(\text{hop})$$
 

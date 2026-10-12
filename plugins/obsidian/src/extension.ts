@@ -11,9 +11,9 @@ import {
   ViewUpdate,
   WidgetType,
 } from "@codemirror/view";
-import type OrbitInsightsPlugin from "./main";
+import type PkmragPlugin from "./main";
 
-class OrbitHeadingWidget extends WidgetType {
+class PkmragHeadingWidget extends WidgetType {
   constructor(
     readonly count: number,
     readonly hasContradiction: boolean,
@@ -24,8 +24,8 @@ class OrbitHeadingWidget extends WidgetType {
 
   toDOM(): HTMLElement {
     const span = document.createElement("span");
-    span.className = `orbit-inline-indicator ${
-      this.hasContradiction ? "orbit-inline-warning" : "orbit-inline-normal"
+    span.className = `pkmrag-inline-indicator ${
+      this.hasContradiction ? "pkmrag-inline-warning" : "pkmrag-inline-normal"
     }`;
     span.textContent = this.hasContradiction ? " ⚠️" : " 🔗";
     span.title = `PKMRAG: ${this.count} unlinked connection${
@@ -43,7 +43,7 @@ class OrbitHeadingWidget extends WidgetType {
   }
 }
 
-export function createOrbitEditorExtension(plugin: OrbitInsightsPlugin): Extension {
+export function createPkmragEditorExtension(plugin: PkmragPlugin): Extension {
   return ViewPlugin.fromClass(
     class {
       decorations: DecorationSet;
@@ -89,7 +89,7 @@ export function createOrbitEditorExtension(plugin: OrbitInsightsPlugin): Extensi
                 line.to,
                 line.to,
                 Decoration.widget({
-                  widget: new OrbitHeadingWidget(count, hasContra, () => {
+                  widget: new PkmragHeadingWidget(count, hasContra, () => {
                     plugin.activateView();
                   }),
                   side: 1,

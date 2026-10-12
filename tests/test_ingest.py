@@ -156,8 +156,8 @@ def test_graph_store_crud(tmp_path: Path) -> None:
     db_dir = tmp_path / "test_graph"
     with GraphStore(db_dir) as store:
         store.upsert_note("note1.md", "Note 1", "hash1", 100.0, False)
-        store.upsert_folder_hierarchy("projects/orbit")
-        store.add_note_contained_in("note1.md", "projects/orbit")
+        store.upsert_folder_hierarchy("projects/pkmrag")
+        store.add_note_contained_in("note1.md", "projects/pkmrag")
         store.add_tagged_with("note1.md", "#graphrag")
         store.add_links_to("note1.md", "note2.md", anchor="arch", alias="Link 2")
 
@@ -230,7 +230,7 @@ def test_ingest_pipeline_incremental_sync(tmp_path: Path) -> None:
 
 
 def test_cli_ingest_commands(tmp_path: Path) -> None:
-    """Verify CLI execution of orbit ingest and orbit ingest --json."""
+    """Verify CLI execution of pkmrag ingest and pkmrag ingest --json."""
     vault = tmp_path / "cli_vault"
     vault.mkdir()
     (vault / "readme.md").write_text("# Readme\nWelcome to [[Architecture]]. #docs")

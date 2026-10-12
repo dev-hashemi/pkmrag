@@ -14,11 +14,7 @@ from pkmrag.config import settings
 
 def get_token_file_path(vault_path: Path) -> Path:
     """Return the filesystem location of the server authentication token file."""
-    pkmrag_path = (vault_path.resolve() / ".pkmrag" / "server_token").resolve()
-    legacy_path = (vault_path.resolve() / ".orbit" / "server_token").resolve()
-    if not pkmrag_path.is_file() and legacy_path.is_file():
-        return legacy_path
-    return pkmrag_path
+    return (vault_path.resolve() / ".pkmrag" / "server_token").resolve()
 
 
 def get_or_create_token_file(vault_path: Path) -> tuple[str, bool]:
@@ -61,7 +57,7 @@ def resolve_server_token(
 
 
 def extract_request_token(request: Request) -> str:
-    """Extract token from Authorization, X-Pkmrag-Token, X-Orbit-Token, or query param."""
+    """Extract token from Authorization, X-Pkmrag-Token, or query param."""
     auth_header = request.headers.get("authorization") or request.headers.get("Authorization") or ""
     if auth_header.startswith("Bearer "):
         token = auth_header[7:].strip()
@@ -69,11 +65,7 @@ def extract_request_token(request: Request) -> str:
             return token
 
     custom_header = (
-        request.headers.get("x-pkmrag-token")
-        or request.headers.get("X-Pkmrag-Token")
-        or request.headers.get("x-orbit-token")
-        or request.headers.get("X-Orbit-Token")
-        or ""
+        request.headers.get("x-pkmrag-token") or request.headers.get("X-Pkmrag-Token") or ""
     )
     if custom_header.strip():
         return custom_header.strip()

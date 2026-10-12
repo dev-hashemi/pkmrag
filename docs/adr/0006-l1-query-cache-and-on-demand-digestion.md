@@ -2,15 +2,15 @@
 
 - **Status:** Accepted
 - **Date:** 2026-10-04
-- **Deciders:** Orbit Core Team
+- **Deciders:** PKMRAG Core Team
 
 ---
 
 ## Context
-Early designs proposed adding file mutation tools (`append_to_note`, `create_note`) and a two-tier L1 exact + L2 semantic query cache to Orbit.
+Early designs proposed adding file mutation tools (`append_to_note`, `create_note`) and a two-tier L1 exact + L2 semantic query cache to PKMRAG.
 
 During architectural analysis, two core tensions emerged:
-1. **Scope Tension (File Editing vs. Digestion Engine):** Frontier AI tools (Claude Code, Cursor) and humans (Obsidian) already possess mature, diff-aware, git-integrated file editors. Adding text editing tools to Orbit would introduce redundant, fragile editing primitives prone to corrupting YAML frontmatter and formatting, while failing to catch human edits in Obsidian.
+1. **Scope Tension (File Editing vs. Digestion Engine):** Frontier AI tools (Claude Code, Cursor) and humans (Obsidian) already possess mature, diff-aware, git-integrated file editors. Adding text editing tools to PKMRAG would introduce redundant, fragile editing primitives prone to corrupting YAML frontmatter and formatting, while failing to catch human edits in Obsidian.
 2. **Semantic Cache Risk (Drift vs. Speedup):** Empirical testing on `BAAI/bge-small-en-v1.5` embeddings revealed that paraphrases (`"how does caching work?"` vs `"explain the caching mechanism"`) produced $0.9129$ cosine similarity (missing a $\ge 0.96$ threshold), while opposite queries (`"created yesterday"` vs `"created today"`) produced $0.9571$ (high false-positive risk). Meanwhile, L1 exact SQLite caching yields a **100x speedup (< 0.5ms vs 22.9ms)** with zero semantic drift.
 
 ---
@@ -18,8 +18,8 @@ During architectural analysis, two core tensions emerged:
 ## Decision
 
 1. **Option A — Pure Digestion & Fast On-Demand Synchronization:**
-   - Orbit does **not** implement file editing or text replacement tools. External clients edit notes natively.
-   - Orbit provides on-demand digestion tools (`reindex_note` and `sync_vault`) to synchronize modified files on disk into LadybugDB and LanceDB in **< 40ms**.
+   - PKMRAG does **not** implement file editing or text replacement tools. External clients edit notes natively.
+   - PKMRAG provides on-demand digestion tools (`reindex_note` and `sync_vault`) to synchronize modified files on disk into LadybugDB and LanceDB in **< 40ms**.
 2. **L1 SQLite Query Cache as Primary Tier:**
    - Implemented in embedded SQLite with WAL mode (`PRAGMA journal_mode = WAL;`).
    - Uses parameter-aware composite hashing (`compute_key`) to eliminate filter cross-talk across `mode`, `near`, `limit`, `folder`, and `tags`.
@@ -34,9 +34,9 @@ During architectural analysis, two core tensions emerged:
 
 ### Positive
 - Sub-millisecond (< 0.5ms) response times for repeated queries.
-- Zero risk of note corruption from Orbit.
+- Zero risk of note corruption from PKMRAG.
 - Sub-40ms targeted re-indexing closes the feedback loop between external edits and GraphRAG retrieval.
 - Codebase remains strictly modular, lightweight, and well below the 300-line hard limit.
 
 ### Negative
-- Pure-chat MCP clients lacking local file access (e.g., standard Claude Desktop without filesystem tools) cannot create new notes via Orbit; they rely on native filesystem MCP servers or external editing.
+- Pure-chat MCP clients lacking local file access (e.g., standard Claude Desktop without filesystem tools) cannot create new notes via PKMRAG; they rely on native filesystem MCP servers or external editing.

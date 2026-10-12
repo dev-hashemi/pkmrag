@@ -6,10 +6,10 @@ The PKMRAG plugin is a lightweight, local-first companion plugin for [Obsidian](
 
 ## 1. Core Features
 
-### 1.1 "Orbit Insights" Sidebar Panel
+### 1.1 "PKMRAG Insights" Sidebar Panel
 - **Active Note Context:** Automatically synchronizes with whatever markdown note is active in Obsidian.
 - **Missing Links Section (Semantic Gaps):** Displays unlinked note pairs exhibiting high cosine similarity and graph distance $\ge 2$.
-  - **Human-in-the-Loop Insertion:** Clicking `[+ Link]` writes `[[Target Note]]` directly at the editor cursor location (or appends to `## Related Notes` if no cursor is active). Orbit *never* mutates notes silently.
+  - **Human-in-the-Loop Insertion:** Clicking `[+ Link]` writes `[[Target Note]]` directly at the editor cursor location (or appends to `## Related Notes` if no cursor is active). PKMRAG *never* mutates notes silently.
   - **Session Dismissal:** Clicking `[Dismiss]` hides recommendations for the active editing session.
 - **Contradiction Warnings & Inferences:**
   - Distinct amber warning cards for notes classified with `CONTRADICTS` relationships, citing the LLM rationale excerpt.
@@ -18,22 +18,22 @@ The PKMRAG plugin is a lightweight, local-first companion plugin for [Obsidian](
   - Tag chips and backlink lists for immediate topological awareness without switching to graph view.
 
 ### 1.2 Zero-Config Vault Token Authentication
-When opened inside a vault indexed by Orbit, the plugin automatically reads `<vault>/.orbit/server_token` using Obsidian's Vault adapter (`app.vault.adapter.read`). No manual copy-pasting of API keys is needed.
+When opened inside a vault indexed by PKMRAG, the plugin automatically reads `<vault>/.pkmrag/server_token` using Obsidian's Vault adapter (`app.vault.adapter.read`). No manual copy-pasting of API keys is needed.
 
 ### 1.3 Debounced Background Sync on Save
-The plugin intercepts Obsidian's `vault.on('modify')` event with a **1500ms debounce timer**. When you pause typing, Orbit incrementally reindexes the modified note into LadybugDB and LanceDB in `< 40ms`, invalidating stale query caches without editor stutter.
+The plugin intercepts Obsidian's `vault.on('modify')` event with a **1500ms debounce timer**. When you pause typing, PKMRAG incrementally reindexes the modified note into LadybugDB and LanceDB in `< 40ms`, invalidating stale query caches without editor stutter.
 
 ### 1.4 Live Reactive Event Stream
-The plugin subscribes to Orbit's Server-Sent Events stream (`GET /api/v1/events`). When an external tool or CLI run updates the vault index, open sidebar tabs automatically refresh.
+The plugin subscribes to PKMRAG's Server-Sent Events stream (`GET /api/v1/events`). When an external tool or CLI run updates the vault index, open sidebar tabs automatically refresh.
 
 ### 1.5 CodeMirror 6 Inline Heading Indicators
 - **Unobtrusive Ambient Awareness:** Lightweight CodeMirror 6 `ViewPlugin` renders subtle indicators next to document headings:
   - `🔗 N` indicates *N* unlinked semantic link recommendations available for this note.
   - `⚠️` alerts to detected logical contradictions or conflicts with other notes in the vault.
-- **Direct Interaction:** Clicking any indicator smoothly reveals the Orbit Insights sidebar panel and refreshes live recommendations for the active note. Configurable via plugin settings.
+- **Direct Interaction:** Clicking any indicator smoothly reveals the PKMRAG Insights sidebar panel and refreshes live recommendations for the active note. Configurable via plugin settings.
 
 ### 1.6 Proximity Search Drawer (Concept Explorer)
-- **Anchored Graph Search:** Accessible via the `🔍 Explore Concepts` drawer in the sidebar or command palette (`Orbit: Proximity Search & Reference`).
+- **Anchored Graph Search:** Accessible via the `🔍 Explore Concepts` drawer in the sidebar or command palette (`PKMRAG: Proximity Search & Reference`).
 - **Context-Aware Fusion:** Dispatches hybrid semantic and graph traversal anchored to the active note (`POST /api/v1/search` with `--near <note>`), returning dense/sparse fusion scores and textual snippets.
 - **1-Click Reference Insertion:** Inserts a markdown link or quote reference to the target note directly at your current cursor position.
 
@@ -119,8 +119,8 @@ plugins/obsidian/
     extension.ts     # CodeMirror 6 inline heading indicator extension
     main.ts          # Plugin lifecycle & event debouncers
     settings.ts      # Settings tab with connection test & governance
-    types.ts         # TypeScript interfaces matching Orbit REST API
-    view.ts          # "Orbit Insights" ItemView sidebar panel
+    types.ts         # TypeScript interfaces matching PKMRAG REST API
+    view.ts          # "PKMRAG Insights" ItemView sidebar panel
     view_offline.ts  # Friendly offline recovery card & onboarding
     view_search.ts   # Proximity concept explorer & reference insertion
   tests/

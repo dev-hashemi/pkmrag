@@ -1,4 +1,4 @@
-"""Model Context Protocol (MCP) server integration for Project Orbit."""
+"""Model Context Protocol (MCP) server integration for PKMRAG."""
 
 from __future__ import annotations
 

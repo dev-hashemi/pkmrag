@@ -1,4 +1,4 @@
-"""Integration tests for the `orbit eval` CLI command and EvaluationHarness."""
+"""Integration tests for the `pkmrag eval` CLI command and EvaluationHarness."""
 
 from __future__ import annotations
 
@@ -50,7 +50,7 @@ def _extract_json(text: str) -> Any:
 
 
 def test_eval_cli_default() -> None:
-    """Verify orbit eval runs against default in-repo benchmark and passes."""
+    """Verify pkmrag eval runs against default in-repo benchmark and passes."""
     result = runner.invoke(app, ["eval"])
     assert result.exit_code == 0
     assert "Retrieval Evaluation Summary" in result.output
@@ -59,7 +59,7 @@ def test_eval_cli_default() -> None:
 
 
 def test_eval_cli_json() -> None:
-    """Verify orbit eval --json outputs valid JSON report with metrics."""
+    """Verify pkmrag eval --json outputs valid JSON report with metrics."""
     result = runner.invoke(app, ["eval", "--json"])
     assert result.exit_code == 0
     data = _extract_json(result.output)
@@ -72,7 +72,7 @@ def test_eval_cli_json() -> None:
 
 
 def test_eval_cli_threshold_failure_mrr() -> None:
-    """Verify orbit eval exits with code 1 when MRR threshold is not met."""
+    """Verify pkmrag eval exits with code 1 when MRR threshold is not met."""
     result = runner.invoke(app, ["eval", "--min-mrr", "0.999"])
     assert result.exit_code == 1
     assert "Retrieval regression detected" in result.output
@@ -80,7 +80,7 @@ def test_eval_cli_threshold_failure_mrr() -> None:
 
 
 def test_eval_cli_threshold_failure_recall() -> None:
-    """Verify orbit eval exits with code 1 when Recall threshold is not met."""
+    """Verify pkmrag eval exits with code 1 when Recall threshold is not met."""
     result = runner.invoke(app, ["eval", "--min-recall", "0.999"])
     assert result.exit_code == 1
     assert "Retrieval regression detected" in result.output
@@ -88,7 +88,7 @@ def test_eval_cli_threshold_failure_recall() -> None:
 
 
 def test_eval_cli_explicit_paths() -> None:
-    """Verify orbit eval with explicit vault path and benchmark arguments."""
+    """Verify pkmrag eval with explicit vault path and benchmark arguments."""
     vault = Path(__file__).resolve().parent.parent / "benchmarks" / "vault"
     bench = Path(__file__).resolve().parent.parent / "benchmarks" / "golden_10.json"
 

@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-28
-- **Deciders:** Orbit Core Team
+- **Deciders:** PKMRAG Core Team
 
 ---
 
@@ -19,7 +19,7 @@ However:
 ---
 
 ## Decision
-Orbit adopts **Reciprocal Rank Fusion (RRF)** with standard smoothing constant $k = 60$:
+PKMRAG adopts **Reciprocal Rank Fusion (RRF)** with standard smoothing constant $k = 60$:
 $$\text{RRF}(d) = \sum_{m \in \{\text{dense}, \text{sparse}\}} \frac{1}{60 + \text{rank}_m(d)}$$
 
 ---

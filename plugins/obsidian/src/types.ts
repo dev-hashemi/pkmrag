@@ -1,5 +1,5 @@
 /**
- * Data models and configuration interfaces for Orbit Insights Obsidian Plugin.
+ * Data models and configuration interfaces for PKMRAG Insights Obsidian Plugin.
  */
 
 export interface DismissedSuggestion {
@@ -9,7 +9,7 @@ export interface DismissedSuggestion {
   dismissedAt: number;
 }
 
-export interface OrbitPluginSettings {
+export interface PkmragPluginSettings {
   serverUrl: string;
   authToken: string;
   autoSyncOnSave: boolean;
@@ -28,7 +28,7 @@ export interface OrbitPluginSettings {
   llmTpm: number;
 }
 
-export const DEFAULT_SETTINGS: OrbitPluginSettings = {
+export const DEFAULT_SETTINGS: PkmragPluginSettings = {
   serverUrl: "http://127.0.0.1:3747",
   authToken: "",
   autoSyncOnSave: true,

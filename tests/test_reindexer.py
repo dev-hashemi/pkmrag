@@ -134,7 +134,7 @@ def test_reindexer_security_boundaries(tmp_path: Path) -> None:
     assert r1.status == "error"
     assert "outside vault" in (r1.error_message or "").lower()
 
-    # 2. Protected directory (.orbit)
+    # 2. Protected directory (.pkmrag)
     r2 = reindexer.reindex_note(".pkmrag/graph/fake.md")
     assert r2.status == "error"
     assert "protected" in (r2.error_message or "").lower()

@@ -44,7 +44,6 @@ htmlcov/
 *.sqlite
 *.sqlite3
 .pkmrag/
-.orbit/
 
 # IDE & OS
 .vscode/

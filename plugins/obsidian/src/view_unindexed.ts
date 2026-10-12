@@ -3,28 +3,28 @@
  */
 
 import { Notice, setIcon } from "obsidian";
-import type OrbitInsightsPlugin from "./main";
+import type PkmragPlugin from "./main";
 
 export function renderUnindexedView(
   container: HTMLElement,
-  plugin: OrbitInsightsPlugin,
+  plugin: PkmragPlugin,
   onIndex: () => void
 ): void {
-  const wrapper = container.createDiv({ cls: "orbit-offline-container orbit-unindexed-container" });
+  const wrapper = container.createDiv({ cls: "pkmrag-offline-container pkmrag-unindexed-container" });
 
-  const iconEl = wrapper.createDiv({ cls: "orbit-offline-icon" });
+  const iconEl = wrapper.createDiv({ cls: "pkmrag-offline-icon" });
   setIcon(iconEl, "pkmrag-ribbon");
 
-  wrapper.createEl("h3", { text: "Vault Not Indexed Yet", cls: "orbit-offline-title" });
+  wrapper.createEl("h3", { text: "Vault Not Indexed Yet", cls: "pkmrag-offline-title" });
 
   wrapper.createEl("p", {
-    cls: "orbit-offline-desc",
+    cls: "pkmrag-offline-desc",
     text: "PKMRAG is connected, but your vault has not been indexed into LadybugDB and LanceDB yet. Index notes to build graph relationships, semantic vector search, and AI discovery.",
   });
 
-  const btnRow = wrapper.createDiv({ cls: "orbit-offline-actions" });
+  const btnRow = wrapper.createDiv({ cls: "pkmrag-offline-actions" });
   const indexBtn = btnRow.createEl("button", {
-    cls: "orbit-btn-sm mod-cta",
+    cls: "pkmrag-btn-sm mod-cta",
     text: "⚡ Index Vault Now",
   });
 
@@ -44,7 +44,7 @@ export function renderUnindexedView(
   };
 
   const settingsBtn = btnRow.createEl("button", {
-    cls: "orbit-btn-sm",
+    cls: "pkmrag-btn-sm",
     text: "Settings",
   });
   settingsBtn.onclick = () => {

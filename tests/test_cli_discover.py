@@ -1,4 +1,4 @@
-"""Tests for orbit discover CLI command."""
+"""Tests for pkmrag discover CLI command."""
 
 from __future__ import annotations
 
@@ -60,7 +60,7 @@ def _setup_vault(vault: Path) -> None:
 
 
 def test_cli_discover_help() -> None:
-    """Verify orbit discover --help renders options correctly."""
+    """Verify pkmrag discover --help renders options correctly."""
     result = runner.invoke(app, ["discover", "--help"], color=False)
     assert result.exit_code == 0
     clean = re.sub(r"\x1b\[[0-9;]*[a-zA-Z]", "", result.output)
@@ -71,7 +71,7 @@ def test_cli_discover_help() -> None:
 
 
 def test_cli_discover_dry_run(tmp_path: Path) -> None:
-    """Verify orbit discover --dry-run executes successfully and lists candidates."""
+    """Verify pkmrag discover --dry-run executes successfully and lists candidates."""
     vault = tmp_path / "vault"
     _setup_vault(vault)
 
@@ -86,7 +86,7 @@ def test_cli_discover_dry_run(tmp_path: Path) -> None:
 
 
 def test_cli_discover_json_dry_run(tmp_path: Path) -> None:
-    """Verify orbit discover --dry-run --json outputs structured valid JSON."""
+    """Verify pkmrag discover --dry-run --json outputs structured valid JSON."""
     vault = tmp_path / "vault"
     _setup_vault(vault)
 
@@ -105,7 +105,7 @@ def test_cli_discover_json_dry_run(tmp_path: Path) -> None:
 
 
 def test_cli_discover_ollama_flag(tmp_path: Path) -> None:
-    """Verify orbit discover accepts --provider ollama and --model flags."""
+    """Verify pkmrag discover accepts --provider ollama and --model flags."""
     vault = tmp_path / "vault"
     _setup_vault(vault)
 

@@ -1,13 +1,13 @@
 [
   {
     "id": "q1",
-    "query": "What embedded databases does Orbit use for storage?",
+    "query": "What embedded databases does PKMRAG use for storage?",
     "near": null,
-    "expected_notes": ["Projects/Storage Layer.md", "Projects/Orbit Core.md"]
+    "expected_notes": ["Projects/Storage Layer.md", "Projects/PKMRAG Core.md"]
   },
   {
     "id": "q2",
-    "query": "How are dense and sparse search combined in Orbit?",
+    "query": "How are dense and sparse search combined in PKMRAG?",
     "near": null,
     "expected_notes": ["Concepts/Hybrid Search.md", "Concepts/Reciprocal Rank Fusion.md"]
   },
@@ -37,9 +37,9 @@
   },
   {
     "id": "q7",
-    "query": "What is the high-level architecture of Orbit Core?",
+    "query": "What is the high-level architecture of PKMRAG Core?",
     "near": null,
-    "expected_notes": ["Projects/Orbit Core.md"]
+    "expected_notes": ["Projects/PKMRAG Core.md"]
   },
   {
     "id": "q8",

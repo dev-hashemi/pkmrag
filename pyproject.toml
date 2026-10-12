@@ -59,7 +59,6 @@ dev = [
 
 [project.scripts]
 pkmrag = "pkmrag.cli:app"
-orbit = "pkmrag.cli:app"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pkmrag"]

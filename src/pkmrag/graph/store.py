@@ -34,13 +34,13 @@ class GraphStore:
         target_path = Path(db_path).resolve()
         if target_path.is_dir() or target_path.suffix != ".ladybug":
             self.db_dir = target_path
-            self.db_path = self.db_dir / "orbit.ladybug"
+            self.db_path = self.db_dir / "pkmrag.ladybug"
         else:
             self.db_path = target_path
             self.db_dir = self.db_path.parent
 
         if rebuild and not read_only and self.db_dir.exists():
-            for p in self.db_dir.glob("orbit.ladybug*"):
+            for p in self.db_dir.glob("pkmrag.ladybug*"):
                 if p.is_dir():
                     shutil.rmtree(p)
                 else:

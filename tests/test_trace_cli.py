@@ -23,7 +23,7 @@ def clean_telemetry() -> Generator[None, None, None]:
 
 
 def test_cli_search_with_trace_flag(tmp_path: Path) -> None:
-    """orbit search --trace outputs both search results and Rich waterfall trace tree."""
+    """pkmrag search --trace outputs both search results and Rich waterfall trace tree."""
     vault = tmp_path / "vault"
     vault.mkdir()
 
@@ -50,7 +50,7 @@ def test_cli_search_with_trace_flag(tmp_path: Path) -> None:
 
 
 def test_cli_ingest_with_trace_flag(tmp_path: Path) -> None:
-    """orbit ingest --trace outputs both ingestion report and execution trace tree."""
+    """pkmrag ingest --trace outputs both ingestion report and execution trace tree."""
     vault = tmp_path / "vault"
     vault.mkdir()
 
@@ -63,7 +63,7 @@ def test_cli_ingest_with_trace_flag(tmp_path: Path) -> None:
 
 
 def test_cli_discover_with_trace_flag(tmp_path: Path) -> None:
-    """orbit discover --trace outputs discovery report and execution trace tree."""
+    """pkmrag discover --trace outputs discovery report and execution trace tree."""
     vault = tmp_path / "vault"
     vault.mkdir()
 

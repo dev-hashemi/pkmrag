@@ -1,6 +1,6 @@
 # Subsystem: L1 Query Caching & On-Demand Digestion
 
-Project Orbit incorporates a high-performance, embedded L1 query cache and a sub-40ms targeted single-note reindexing engine. This provides sub-millisecond retrieval on repeat queries and enables frontier AI agents (Claude Code, Cursor) and humans (Obsidian) to synchronize external note edits in real time without full vault scans.
+PKMRAG incorporates a high-performance, embedded L1 query cache and a sub-40ms targeted single-note reindexing engine. This provides sub-millisecond retrieval on repeat queries and enables frontier AI agents (Claude Code, Cursor) and humans (Obsidian) to synchronize external note edits in real time without full vault scans.
 
 ---
 
@@ -41,7 +41,7 @@ flowchart TD
 ## ⚡ L1 SQLite Query Cache
 
 ### 1. Composite Key Formulation
-Search requests are heavily parameterized. Hashing solely on raw query text causes severe cache contamination across different search parameters. Orbit computes a canonical SHA-256 composite hash over all execution arguments:
+Search requests are heavily parameterized. Hashing solely on raw query text causes severe cache contamination across different search parameters. PKMRAG computes a canonical SHA-256 composite hash over all execution arguments:
 
 $$\text{Key} = \text{SHA256}\Big(\text{norm}(q) \mathbin{\Vert} \text{mode} \mathbin{\Vert} \text{near} \mathbin{\Vert} \text{limit} \mathbin{\Vert} \text{folder} \mathbin{\Vert} \text{sorted\_tags}\Big)$$
 
@@ -49,10 +49,10 @@ $$\text{Key} = \text{SHA256}\Big(\text{norm}(q) \mathbin{\Vert} \text{mode} \mat
 - Tag list order-invariant (`["db", "arch"]` produces the same key as `["arch", "db"]`).
 
 ### 2. Inverted Note Dependency Tracking (`cache_dependencies`)
-To avoid flushing the entire cache when a single document is modified, Orbit records reverse dependencies between cached queries and the notes included in their result sets:
+To avoid flushing the entire cache when a single document is modified, PKMRAG records reverse dependencies between cached queries and the notes included in their result sets:
 - **Table `query_cache`:** Stores serialized `SearchResult` JSON, created timestamp, and LRU access timestamp.
 - **Table `cache_dependencies`:** Maps `(cache_key, note_path)`.
-- When note `DocA.md` is modified, Orbit executes:
+- When note `DocA.md` is modified, PKMRAG executes:
   ```sql
   DELETE FROM query_cache WHERE cache_key IN (
       SELECT cache_key FROM cache_dependencies WHERE note_path = 'DocA.md'
@@ -71,7 +71,7 @@ To avoid flushing the entire cache when a single document is modified, Orbit rec
 
 Full vault scans on large vaults (5,000+ notes) can take several seconds. The `SingleNoteReindexer` performs isolated, incremental digestion in **< 40ms**:
 
-1. **Security & Containment:** Validates that the requested path resides strictly within vault boundaries and does not intersect with internal directories (`.orbit`, `.git`, `.obsidian`).
+1. **Security & Containment:** Validates that the requested path resides strictly within vault boundaries and does not intersect with internal directories (`.pkmrag`, `.git`, `.obsidian`).
 2. **Deterministic AST Extraction:** Uses the active dialect to parse frontmatter, extract wikilinks, and collect tags.
 3. **Graph Synchronization (LadybugDB):**
    - Deletes prior outgoing relationships for the note (`delete_outgoing_edges`).

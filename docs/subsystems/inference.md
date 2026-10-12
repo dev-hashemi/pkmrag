@@ -5,9 +5,9 @@ The inference subsystem abstracts frontier LLM reasoning capabilities for classi
 ---
 
 ## 🏗️ Architecture & Protocols
-- **Protocol:** [`InferenceProvider`](file:///home/ali/projects/my/project-orbit/src/pkmrag/inference/base.py)
-- **Default Implementation:** [`OpenAICompatibleProvider`](file:///home/ali/projects/my/project-orbit/src/pkmrag/inference/provider.py)
-- **Rate Limiting:** [`RateLimiter`](file:///home/ali/projects/my/project-orbit/src/pkmrag/inference/limiter.py)
+- **Protocol:** [`InferenceProvider`](file:///home/ali/projects/my/pkmrag/src/pkmrag/inference/base.py)
+- **Default Implementation:** [`OpenAICompatibleProvider`](file:///home/ali/projects/my/pkmrag/src/pkmrag/inference/provider.py)
+- **Rate Limiting:** [`RateLimiter`](file:///home/ali/projects/my/pkmrag/src/pkmrag/inference/limiter.py)
 
 ---
 

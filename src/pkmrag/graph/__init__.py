@@ -1,4 +1,4 @@
-"""Graph database storage and schema package for Project Orbit."""
+"""Graph database storage and schema package for PKMRAG."""
 
 from pkmrag.graph.schema import SCHEMA_DDL_STATEMENTS
 from pkmrag.graph.store import GraphStore

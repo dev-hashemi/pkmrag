@@ -158,9 +158,7 @@ def render_plugin_install_result(result: PluginInstallResult, console: Console) 
     console.print()
     console.print("[bold]Next Steps:[/bold]")
     console.print("  1. In Obsidian: Reload plugins (or restart Obsidian).")
-    console.print(
-        "  2. Open [bold]Settings → Community Plugins[/bold] to verify Orbit Insights is active."
-    )
+    console.print("  2. Open [bold]Settings → Community Plugins[/bold] to verify PKMRAG is active.")
     console.print("  3. Start the PKMRAG background daemon:")
     console.print(
         f'     [bold green]uv run pkmrag serve "{result.vault_path}" '

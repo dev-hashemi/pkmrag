@@ -1,4 +1,4 @@
-"""Telemetry and distributed tracing subsystem for Project Orbit."""
+"""Telemetry and distributed tracing subsystem for PKMRAG."""
 
 from __future__ import annotations
 

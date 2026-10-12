@@ -1,4 +1,4 @@
-"""Markdown and vault parsing package for Project Orbit."""
+"""Markdown and vault parsing package for PKMRAG."""
 
 from pkmrag.parser.indexer import VaultIndexer
 from pkmrag.parser.markdown import (

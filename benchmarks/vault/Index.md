@@ -1,13 +1,13 @@
 ---
-title: Orbit Knowledge Base Index
+title: PKMRAG Knowledge Base Index
 tags: [hub, index/root]
 ---
-# Orbit Knowledge Base Index
+# PKMRAG Knowledge Base Index
 
-Welcome to the Project Orbit research and engineering vault.
+Welcome to the PKMRAG research and engineering vault.
 
 ## Quick Links
-- Core Project: [[Projects/Orbit Core]]
+- Core Project: [[Projects/PKMRAG Core]]
 - Key Research: [[Research/GraphRAG Paradigms|GraphRAG Paradigms & Taxonomy]]
 - Retrieval Engine: [[Hybrid Search]]
 - Tool Plane: [[Model Context Protocol]]

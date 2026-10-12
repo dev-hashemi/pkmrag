@@ -1,11 +1,11 @@
 ---
 title: FastMCP Server Integration
-tags: [project/orbit/mcp, protocol/mcp]
-aliases: [Orbit MCP]
+tags: [project/pkmrag/mcp, protocol/mcp]
+aliases: [PKMRAG MCP]
 ---
 # FastMCP Server Integration
 
-Exposes Orbit graph traversals and semantic search to agentic reasoning tools like Claude Code and Cursor.
+Exposes PKMRAG graph traversals and semantic search to agentic reasoning tools like Claude Code and Cursor.
 
 ## Tool Schema
 - `query_vault(query: str, hops: int = 1)`
@@ -13,7 +13,7 @@ Exposes Orbit graph traversals and semantic search to agentic reasoning tools li
 - `find_bridges(note_a: str, note_b: str)`
 
 See specifications in [[Model Context Protocol]].
-Builds directly on [[Projects/Orbit Core]].
+Builds directly on [[Projects/PKMRAG Core]].
 
 Self section reference: [[#Tool Schema]].
 #mcp/tools #integration

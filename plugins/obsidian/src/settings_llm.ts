@@ -1,13 +1,13 @@
 /**
- * AI Discovery and Custom LLM configuration tab section for Orbit Insights.
+ * AI Discovery and Custom LLM configuration tab section for PKMRAG Insights.
  */
 
 import { Notice, Setting } from "obsidian";
-import type OrbitInsightsPlugin from "./main";
+import type PkmragPlugin from "./main";
 
 export function renderLlmSection(
   containerEl: HTMLElement,
-  plugin: OrbitInsightsPlugin,
+  plugin: PkmragPlugin,
   refreshTab: () => void
 ): void {
   containerEl.createEl("h3", { text: "AI Discovery & Custom LLM Configuration" });
@@ -99,7 +99,7 @@ export function renderLlmSection(
     );
 }
 
-export async function syncVaultLlmConfig(plugin: OrbitInsightsPlugin): Promise<void> {
+export async function syncVaultLlmConfig(plugin: PkmragPlugin): Promise<void> {
   try {
     await plugin.client.saveVaultConfig({
       llm_provider: plugin.settings.llmProvider,

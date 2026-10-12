@@ -197,18 +197,18 @@ def test_openai_provider_handles_429_retry() -> None:
 def test_dotenv_loading(tmp_path: Path, monkeypatch: Any) -> None:
     """Verify load_vault_env reads variables from a .env file."""
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-    monkeypatch.delenv("ORBIT_LLM_API_KEY", raising=False)
-    monkeypatch.delenv("ORBIT_LLM_MODEL", raising=False)
-    monkeypatch.delenv("ORBIT_LLM_RPM", raising=False)
-    monkeypatch.delenv("ORBIT_LLM_TPM", raising=False)
+    monkeypatch.delenv("PKMRAG_LLM_API_KEY", raising=False)
+    monkeypatch.delenv("PKMRAG_LLM_MODEL", raising=False)
+    monkeypatch.delenv("PKMRAG_LLM_RPM", raising=False)
+    monkeypatch.delenv("PKMRAG_LLM_TPM", raising=False)
 
     vault = tmp_path / "vault"
     vault.mkdir()
     (vault / ".env").write_text(
         "OPENAI_API_KEY=sk-test-secret-env\n"
-        "ORBIT_LLM_MODEL=custom-llm\n"
-        "ORBIT_LLM_RPM=45\n"
-        "ORBIT_LLM_TPM=12000\n"
+        "PKMRAG_LLM_MODEL=custom-llm\n"
+        "PKMRAG_LLM_RPM=45\n"
+        "PKMRAG_LLM_TPM=12000\n"
     )
 
     from pkmrag.config import load_vault_env

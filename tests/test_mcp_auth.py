@@ -60,9 +60,9 @@ def test_extract_request_token() -> None:
     req1.query_params = {}
     assert extract_request_token(req1) == "secret_bearer_token"
 
-    # 2. X-Orbit-Token: <tok>
+    # 2. X-Pkmrag-Token: <tok>
     req2 = MagicMock(spec=Request)
-    req2.headers = {"x-orbit-token": "secret_custom_token"}
+    req2.headers = {"x-pkmrag-token": "secret_custom_token"}
     req2.query_params = {}
     assert extract_request_token(req2) == "secret_custom_token"
 

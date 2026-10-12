@@ -107,7 +107,7 @@ def test_commonmark_dialect_strict_relative() -> None:
 
 
 def test_custom_app_dialect_extensibility(tmp_path: Path) -> None:
-    """Demonstrate how easily a new third-party app dialect can be plugged into Orbit."""
+    """Demonstrate how easily a new third-party app dialect can be plugged into PKMRAG."""
 
     class CustomZettelDialect:
         """Hypothetical Zettelkasten app where IDs are timestamps [[20260101]]."""
@@ -167,7 +167,7 @@ def test_custom_app_dialect_extensibility(tmp_path: Path) -> None:
 
 
 def test_cli_dialect_selection(tmp_path: Path) -> None:
-    """Verify --dialect option in orbit ingest CLI."""
+    """Verify --dialect option in pkmrag ingest CLI."""
     vault = tmp_path / "cli_dialect_test"
     vault.mkdir()
     (vault / "readme.md").write_text("# Readme\n[Guide](guide.md)")

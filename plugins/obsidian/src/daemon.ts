@@ -3,7 +3,7 @@
  */
 
 import { FileSystemAdapter, Notice, Platform } from "obsidian";
-import type OrbitInsightsPlugin from "./main";
+import type PkmragPlugin from "./main";
 
 interface SpawnedProcess {
   pid?: number;
@@ -18,12 +18,12 @@ interface ChildProcessModule {
 }
 
 export class DaemonManager {
-  private plugin: OrbitInsightsPlugin;
+  private plugin: PkmragPlugin;
   private process: SpawnedProcess | null = null;
   private isStarting = false;
   private lastError: string | null = null;
 
-  constructor(plugin: OrbitInsightsPlugin) {
+  constructor(plugin: PkmragPlugin) {
     this.plugin = plugin;
   }
 

@@ -1,4 +1,4 @@
-"""Tool implementations exposed by the Project Orbit MCP server."""
+"""Tool implementations exposed by the PKMRAG MCP server."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Unit tests for Project Orbit MCP tools and security boundaries."""
+"""Unit tests for PKMRAG MCP tools and security boundaries."""
 
 from __future__ import annotations
 
@@ -225,19 +225,21 @@ def test_execute_tags_tools(tmp_path: Path) -> None:
     )
     store.conn.execute(create_note, {"p": "Note1.md", "t": "First Note", "h": "h1"})
     store.conn.execute(create_note, {"p": "Note2.md", "t": "Second Note", "h": "h2"})
-    store.conn.execute("CREATE (t:Tag {name: 'orbit'});")
+    store.conn.execute("CREATE (t:Tag {name: 'pkmrag'});")
     store.conn.execute(
-        "MATCH (a:Note {path: 'Note1.md'}), (t:Tag {name: 'orbit'}) CREATE (a)-[:TAGGED_WITH]->(t);"
+        "MATCH (a:Note {path: 'Note1.md'}), (t:Tag {name: 'pkmrag'}) "
+        "CREATE (a)-[:TAGGED_WITH]->(t);"
     )
     store.conn.execute(
-        "MATCH (a:Note {path: 'Note2.md'}), (t:Tag {name: 'orbit'}) CREATE (a)-[:TAGGED_WITH]->(t);"
+        "MATCH (a:Note {path: 'Note2.md'}), (t:Tag {name: 'pkmrag'}) "
+        "CREATE (a)-[:TAGGED_WITH]->(t);"
     )
 
     tags_res = execute_list_tags(store)
-    assert "`#orbit`" in tags_res
+    assert "`#pkmrag`" in tags_res
     assert "| 2 |" in tags_res
 
-    search_res = execute_search_by_tag(store, "orbit")
+    search_res = execute_search_by_tag(store, "pkmrag")
     assert "Note1.md" in search_res
     assert "Note2.md" in search_res
 

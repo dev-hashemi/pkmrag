@@ -15,5 +15,5 @@ WHERE b.is_unresolved = false
 RETURN a.title, r.anchor, b.title;
 ```
 
-Used by [[Projects/Orbit Core]] and discussed in [[Research/GraphRAG Paradigms]].
+Used by [[Projects/PKMRAG Core]] and discussed in [[Research/GraphRAG Paradigms]].
 #graph-theory

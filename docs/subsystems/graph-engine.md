@@ -5,8 +5,8 @@ The graph engine manages the deterministic topological backbone of notes, tags, 
 ---
 
 ## 💾 Storage & Lifecycle
-- **Implementation:** [`src/pkmrag/graph/store.py`](file:///home/ali/projects/my/project-orbit/src/pkmrag/graph/store.py) & [`src/pkmrag/graph/traversal.py`](file:///home/ali/projects/my/project-orbit/src/pkmrag/graph/traversal.py)
-- **Path:** `<vault>/.orbit/graph/orbit.ladybug`
+- **Implementation:** [`src/pkmrag/graph/store.py`](file:///home/ali/projects/my/pkmrag/src/pkmrag/graph/store.py) & [`src/pkmrag/graph/traversal.py`](file:///home/ali/projects/my/pkmrag/src/pkmrag/graph/traversal.py)
+- **Path:** `<vault>/.pkmrag/graph/pkmrag.ladybug`
 - **Execution:** In-process C++ binding via `ladybug.Database` and `ladybug.Connection`. Zero network daemons.
 
 ---
@@ -46,7 +46,7 @@ CREATE REL TABLE FOLDER_CONTAINED_IN (FROM Folder TO Folder);
 
 ## 🔍 Undirected Neighborhood Traversal
 
-In knowledge bases, relationships indicate conceptual closeness regardless of arrow direction. Orbit uses undirected pattern matching to expand graph neighborhoods:
+In knowledge bases, relationships indicate conceptual closeness regardless of arrow direction. PKMRAG uses undirected pattern matching to expand graph neighborhoods:
 
 ### 1-Hop Expansion (Direct link or inbound backlink)
 ```cypher

@@ -12,5 +12,5 @@ Uses [[Reciprocal Rank Fusion#Score Normalization|Reciprocal Rank Fusion]] to bl
 - Dense: [[Vector Retrieval]]
 - Sparse: [[Lexical BM25]]
 
-Essential retrieval tier for [[Orbit Core]].
+Essential retrieval tier for [[PKMRAG Core]].
 #hybrid/fusion

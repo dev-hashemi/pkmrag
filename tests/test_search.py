@@ -75,12 +75,12 @@ def test_search_service_and_incremental_indexing(tmp_path: Path) -> None:
 
 
 def test_cli_search_command(tmp_path: Path) -> None:
-    """Verify CLI orbit search command with human and JSON output."""
+    """Verify CLI pkmrag search command with human and JSON output."""
     vault = tmp_path / "cli_vault"
     vault.mkdir()
 
     (vault / "Arch.md").write_text(
-        "# Architecture\n\nOrbit uses a 3-tier architecture with graph, vector, and LLM tiers.\n"
+        "# Architecture\n\nPKMRAG uses a 3-tier architecture with graph, vector, and LLM tiers.\n"
     )
 
     # Ingest first
@@ -104,7 +104,7 @@ def test_cli_search_command(tmp_path: Path) -> None:
 
 
 def test_cli_ingest_targets(tmp_path: Path) -> None:
-    """Verify orbit ingest supports --target graph and --target vector."""
+    """Verify pkmrag ingest supports --target graph and --target vector."""
     vault = tmp_path / "target_vault"
     vault.mkdir()
     (vault / "note.md").write_text("# Target Note\nTesting specific target flags.")

@@ -15,7 +15,7 @@ PKMRAG is designed from the ground up as a **local-first** knowledge retrieval e
 
 ## 2. Authentication & Credential Storage
 
-- **Automated Local Token Security:** The daemon generates a secure random Bearer token upon startup and writes it to `<vault>/.pkmrag/server_token` (with backward-compatible support for `.orbit/server_token`) with restrictive owner-only permissions (`0o600`).
+- **Automated Local Token Security:** The daemon generates a secure random Bearer token upon startup and writes it to `<vault>/.pkmrag/server_token` with restrictive owner-only permissions (`0o600`).
 - **Zero Hardcoded Secrets:** Authentication credentials are exchanged strictly over loopback IPC. No passwords or API keys are stored in source code or sent to external servers.
 
 ---

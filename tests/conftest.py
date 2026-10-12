@@ -1,4 +1,4 @@
-"""Shared pytest fixtures for Project Orbit test suite."""
+"""Shared pytest fixtures for PKMRAG test suite."""
 
 from __future__ import annotations
 
@@ -18,11 +18,11 @@ def mock_vault(tmp_path: Path) -> Path:
 
     (vault / "Alpha.md").write_text(
         "# Alpha\n\nCore architecture documentation linking to [[Beta]] and [[UnresolvedNote]].\n\n"
-        "#orbit\n",
+        "#pkmrag\n",
         encoding="utf-8",
     )
     (vault / "Beta.md").write_text(
-        "# Beta\n\nBeta subsystem extending Alpha concepts.\n\n#orbit #systems\n",
+        "# Beta\n\nBeta subsystem extending Alpha concepts.\n\n#pkmrag #systems\n",
         encoding="utf-8",
     )
     (vault / "Gamma.md").write_text(

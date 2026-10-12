@@ -1,12 +1,12 @@
 # Local Model Inference (Ollama & FastEmbed)
 
-Orbit is built from the ground up as a **local-first** knowledge retrieval engine. It enables completely offline semantic gap detection and relationship inference using local models via Ollama, complementing Orbit's already 100% local in-process embedding engine.
+PKMRAG is built from the ground up as a **local-first** knowledge retrieval engine. It enables completely offline semantic gap detection and relationship inference using local models via Ollama, complementing PKMRAG's already 100% local in-process embedding engine.
 
 ---
 
 ## 1. Dual-Layer Local Architecture
 
-Orbit achieves 100% on-device operation with zero cloud API dependencies:
+PKMRAG achieves 100% on-device operation with zero cloud API dependencies:
 
 | Task | Engine | Runtime | Network / Daemon |
 |------|--------|---------|-------------------|
@@ -18,7 +18,7 @@ Orbit achieves 100% on-device operation with zero cloud API dependencies:
 
 ---
 
-## 2. Setting Up Ollama for Orbit
+## 2. Setting Up Ollama for PKMRAG
 
 ### 2.1 Install & Pull Models
 
@@ -35,7 +35,7 @@ ollama pull mistral:7b
 
 ### 2.2 Verify with `pkmrag doctor`
 
-Orbit's diagnostic command automatically probes your local Ollama daemon:
+PKMRAG's diagnostic command automatically probes your local Ollama daemon:
 
 ```bash
 uv run pkmrag doctor
@@ -80,9 +80,9 @@ You can set Ollama as the default provider in your global or vault-level `.env`:
 
 ```ini
 # Global or Vault .env
-ORBIT_LLM_PROVIDER=ollama
-ORBIT_OLLAMA_BASE_URL=http://localhost:11434/v1
-ORBIT_OLLAMA_MODEL=llama3.2
+PKMRAG_LLM_PROVIDER=ollama
+PKMRAG_OLLAMA_BASE_URL=http://localhost:11434/v1
+PKMRAG_OLLAMA_MODEL=llama3.2
 ```
 
 Once configured in `.env`, simply run:
@@ -96,15 +96,15 @@ uv run pkmrag discover /path/to/vault
 ## 4. Key Engineering Safeguards
 
 ### 4.1 URL Auto-Normalization
-Users often supply `http://localhost:11434` without the `/v1` suffix. Because OpenAI-compatible endpoints reside under `/chat/completions`, hitting Ollama without `/v1` results in a 404 error. Orbit automatically appends `/v1` if targeting localhost or loopback IPs.
+Users often supply `http://localhost:11434` without the `/v1` suffix. Because OpenAI-compatible endpoints reside under `/chat/completions`, hitting Ollama without `/v1` results in a 404 error. PKMRAG automatically appends `/v1` if targeting localhost or loopback IPs.
 
 ### 4.2 Conversational Validation Feedback Retries
 Smaller 3B/7B models occasionally deviate slightly from strict JSON schemas (e.g. returning an unlisted relationship type or malformed syntax). 
 
-Rather than failing or silently dropping the candidate, Orbit intercepts Pydantic validation errors and initiates an in-loop conversational retry:
+Rather than failing or silently dropping the candidate, PKMRAG intercepts Pydantic validation errors and initiates an in-loop conversational retry:
 1. The assistant's invalid output is appended to the message history.
 2. A targeted corrective prompt is submitted (e.g. `Output failed validation: Invalid relationship type 'EXTEND'. Must be one of: EXTENDS, CONTRADICTS...`).
 3. The local model corrects itself on the subsequent turn, dramatically improving yield on lightweight edge models.
 
 ### 4.3 Rate Limit Bypass
-Unlike public cloud APIs (OpenAI, Anthropic) which enforce token-bucket throttling (`RPM` and `TPM`), local models run on private hardware. Orbit marks local providers with `is_local=True`, completely bypassing token wait times and running inference at maximum hardware speed.
+Unlike public cloud APIs (OpenAI, Anthropic) which enforce token-bucket throttling (`RPM` and `TPM`), local models run on private hardware. PKMRAG marks local providers with `is_local=True`, completely bypassing token wait times and running inference at maximum hardware speed.

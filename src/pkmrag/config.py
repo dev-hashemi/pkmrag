@@ -21,59 +21,53 @@ class PkmragSettings(BaseSettings):
     # LLM Inference
     llm_provider: str = Field(
         default="openai",
-        validation_alias=AliasChoices("PKMRAG_LLM_PROVIDER", "ORBIT_LLM_PROVIDER", "LLM_PROVIDER"),
+        validation_alias=AliasChoices("PKMRAG_LLM_PROVIDER", "LLM_PROVIDER"),
     )
     openai_api_key: str = Field(
         default="",
-        validation_alias=AliasChoices("PKMRAG_LLM_API_KEY", "ORBIT_LLM_API_KEY", "OPENAI_API_KEY"),
+        validation_alias=AliasChoices("PKMRAG_LLM_API_KEY", "OPENAI_API_KEY"),
     )
     openai_base_url: str = Field(
         default="https://api.openai.com/v1",
-        validation_alias=AliasChoices(
-            "PKMRAG_LLM_BASE_URL", "ORBIT_LLM_BASE_URL", "OPENAI_BASE_URL"
-        ),
+        validation_alias=AliasChoices("PKMRAG_LLM_BASE_URL", "OPENAI_BASE_URL"),
     )
     llm_model: str = Field(
         default="gpt-4o-mini",
-        validation_alias=AliasChoices("PKMRAG_LLM_MODEL", "ORBIT_LLM_MODEL", "LLM_MODEL"),
+        validation_alias=AliasChoices("PKMRAG_LLM_MODEL", "LLM_MODEL"),
     )
     ollama_base_url: str = Field(
         default="http://localhost:11434/v1",
-        validation_alias=AliasChoices(
-            "PKMRAG_OLLAMA_BASE_URL", "ORBIT_OLLAMA_BASE_URL", "OLLAMA_BASE_URL"
-        ),
+        validation_alias=AliasChoices("PKMRAG_OLLAMA_BASE_URL", "OLLAMA_BASE_URL"),
     )
     ollama_model: str = Field(
         default="llama3.2",
-        validation_alias=AliasChoices("PKMRAG_OLLAMA_MODEL", "ORBIT_OLLAMA_MODEL", "OLLAMA_MODEL"),
+        validation_alias=AliasChoices("PKMRAG_OLLAMA_MODEL", "OLLAMA_MODEL"),
     )
     llm_rpm: int = Field(
         default=30,
-        validation_alias=AliasChoices("PKMRAG_LLM_RPM", "ORBIT_LLM_RPM", "LLM_RPM"),
+        validation_alias=AliasChoices("PKMRAG_LLM_RPM", "LLM_RPM"),
     )
     llm_tpm: int = Field(
         default=8000,
-        validation_alias=AliasChoices("PKMRAG_LLM_TPM", "ORBIT_LLM_TPM", "LLM_TPM"),
+        validation_alias=AliasChoices("PKMRAG_LLM_TPM", "LLM_TPM"),
     )
     llm_max_retries: int = Field(
         default=3,
-        validation_alias=AliasChoices(
-            "PKMRAG_LLM_MAX_RETRIES", "ORBIT_LLM_MAX_RETRIES", "LLM_MAX_RETRIES"
-        ),
+        validation_alias=AliasChoices("PKMRAG_LLM_MAX_RETRIES", "LLM_MAX_RETRIES"),
     )
 
     # HTTP & SSE Server
     server_host: str = Field(
         default="127.0.0.1",
-        validation_alias=AliasChoices("PKMRAG_SERVER_HOST", "ORBIT_SERVER_HOST", "SERVER_HOST"),
+        validation_alias=AliasChoices("PKMRAG_SERVER_HOST", "SERVER_HOST"),
     )
     server_port: int = Field(
         default=3747,
-        validation_alias=AliasChoices("PKMRAG_SERVER_PORT", "ORBIT_SERVER_PORT", "SERVER_PORT"),
+        validation_alias=AliasChoices("PKMRAG_SERVER_PORT", "SERVER_PORT"),
     )
     server_token: str = Field(
         default="",
-        validation_alias=AliasChoices("PKMRAG_SERVER_TOKEN", "ORBIT_SERVER_TOKEN", "SERVER_TOKEN"),
+        validation_alias=AliasChoices("PKMRAG_SERVER_TOKEN", "SERVER_TOKEN"),
     )
     cors_origins: list[str] = Field(
         default_factory=lambda: [
@@ -95,7 +89,6 @@ class PkmragSettings(BaseSettings):
         ".obsidian",
         ".git",
         ".pkmrag",
-        ".orbit",
         ".trash",
         ".trash-bin",
         ".vscode",
@@ -115,18 +108,14 @@ class PkmragSettings(BaseSettings):
     # Storage Directory Overrides
     vault_path: Optional[Path] = Field(
         default=None,
-        validation_alias=AliasChoices(
-            "PKMRAG_VAULT_PATH", "ORBIT_VAULT_PATH", "VAULT_PATH", "OBSIDIAN_VAULT_PATH"
-        ),
+        validation_alias=AliasChoices("PKMRAG_VAULT_PATH", "VAULT_PATH", "OBSIDIAN_VAULT_PATH"),
     )
-    db_dir: Optional[Path] = Field(
-        default=None, validation_alias=AliasChoices("PKMRAG_DB_DIR", "ORBIT_DB_DIR")
-    )
+    db_dir: Optional[Path] = Field(default=None, validation_alias=AliasChoices("PKMRAG_DB_DIR"))
     vector_dir: Optional[Path] = Field(
-        default=None, validation_alias=AliasChoices("PKMRAG_VECTOR_DIR", "ORBIT_VECTOR_DIR")
+        default=None, validation_alias=AliasChoices("PKMRAG_VECTOR_DIR")
     )
     cache_dir: Optional[Path] = Field(
-        default=None, validation_alias=AliasChoices("PKMRAG_CACHE_DIR", "ORBIT_CACHE_DIR")
+        default=None, validation_alias=AliasChoices("PKMRAG_CACHE_DIR")
     )
 
     @field_validator("vault_path", mode="after")
@@ -144,7 +133,7 @@ class PkmragSettings(BaseSettings):
     # Observability & Distributed Tracing
     tracing_enabled: bool = Field(
         default=False,
-        validation_alias=AliasChoices("PKMRAG_TRACING", "ORBIT_TRACING", "TRACING_ENABLED"),
+        validation_alias=AliasChoices("PKMRAG_TRACING", "TRACING_ENABLED"),
     )
     otlp_endpoint: Optional[str] = Field(
         default=None, validation_alias=AliasChoices("OTEL_EXPORTER_OTLP_ENDPOINT")
@@ -159,9 +148,6 @@ class PkmragSettings(BaseSettings):
         if self.db_dir:
             return self.db_dir.resolve()
         v = Path(vault_path).resolve()
-        legacy = v / ".orbit" / "graph"
-        if not (v / ".pkmrag" / "graph").exists() and legacy.exists():
-            return legacy.resolve()
         return (v / ".pkmrag" / "graph").resolve()
 
     def get_vector_dir(self, vault_path: Path | str) -> Path:
@@ -169,9 +155,6 @@ class PkmragSettings(BaseSettings):
         if self.vector_dir:
             return self.vector_dir.resolve()
         v = Path(vault_path).resolve()
-        legacy = v / ".orbit" / "vectors"
-        if not (v / ".pkmrag" / "vectors").exists() and legacy.exists():
-            return legacy.resolve()
         return (v / ".pkmrag" / "vectors").resolve()
 
     def get_cache_db_path(self, vault_path: Path | str) -> Path:
@@ -179,13 +162,9 @@ class PkmragSettings(BaseSettings):
         if self.cache_dir:
             return (self.cache_dir.resolve() / "cache.db").resolve()
         v = Path(vault_path).resolve()
-        legacy = v / ".orbit" / "cache.db"
-        if not (v / ".pkmrag" / "cache.db").exists() and legacy.exists():
-            return legacy.resolve()
         return (v / ".pkmrag" / "cache.db").resolve()
 
 
-OrbitSettings = PkmragSettings
 settings = PkmragSettings()
 
 
@@ -194,7 +173,7 @@ def load_vault_env(vault_path: Path | str | None = None) -> PkmragSettings:
     env_file: Optional[Path] = None
     if vault_path:
         v_path = Path(vault_path).resolve()
-        for candidate in (v_path / ".pkmrag" / ".env", v_path / ".orbit" / ".env", v_path / ".env"):
+        for candidate in (v_path / ".pkmrag" / ".env", v_path / ".env"):
             if candidate.is_file():
                 env_file = candidate
                 break

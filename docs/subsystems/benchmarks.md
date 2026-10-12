@@ -1,16 +1,16 @@
 # Subsystem: Benchmarks & Evaluation
 
-Orbit features a deterministic, in-process Information Retrieval (IR) evaluation harness to guard against retrieval regression. Curated ground-truth benchmarks are evaluated directly in CI with zero external API calls or LLM dependencies.
+PKMRAG features a deterministic, in-process Information Retrieval (IR) evaluation harness to guard against retrieval regression. Curated ground-truth benchmarks are evaluated directly in CI with zero external API calls or LLM dependencies.
 
 ---
 
 ## 🎯 Datasets & Golden Benchmarks
 
-Orbit maintains two automated ground-truth benchmarks:
+PKMRAG maintains two automated ground-truth benchmarks:
 
 ### 1. Synthetic Golden 10 (Fast CI Quality Gate)
-- **Dataset:** [`benchmarks/golden_10.json`](file:///home/ali/projects/my/project-orbit/benchmarks/golden_10.json)
-- **Reference Vault:** [`benchmarks/vault/`](file:///home/ali/projects/my/project-orbit/benchmarks/vault/) (12 notes, 17 vertices, 39 links, 36 tags)
+- **Dataset:** [`benchmarks/golden_10.json`](file:///home/ali/projects/my/pkmrag/benchmarks/golden_10.json)
+- **Reference Vault:** [`benchmarks/vault/`](file:///home/ali/projects/my/pkmrag/benchmarks/vault/) (12 notes, 17 vertices, 39 links, 36 tags)
 - **CLI Command:** `uv run pkmrag eval`
 - **Execution Time:** ~35ms warm cache, ~1.5s cold
 - **CI Quality Gates:** `MRR >= 0.80`, `Recall@5 >= 0.80`
@@ -26,9 +26,9 @@ Orbit maintains two automated ground-truth benchmarks:
 | **Multi-Hop Completeness** | - | **50.0%** | ⚠️ Partial |
 
 ### 2. Canonical Obsidian Help 50 (Comprehensive Real-World Evaluation)
-- **Dataset:** [`benchmarks/golden_50_obsidian_help.json`](file:///home/ali/projects/my/project-orbit/benchmarks/golden_50_obsidian_help.json)
+- **Dataset:** [`benchmarks/golden_50_obsidian_help.json`](file:///home/ali/projects/my/pkmrag/benchmarks/golden_50_obsidian_help.json)
 - **Reference Vault:** `/home/ali/Vaults/obsidian-help` (176 notes, 345 note vertices, 1,611 wikilinks, 1,100 chunks)
-- **Harness:** [`tests/test_benchmark_obsidian_help.py`](file:///home/ali/projects/my/project-orbit/tests/test_benchmark_obsidian_help.py)
+- **Harness:** [`tests/test_benchmark_obsidian_help.py`](file:///home/ali/projects/my/pkmrag/tests/test_benchmark_obsidian_help.py)
 - **Test Categories:**
   - 15 Exact keyword / syntax queries (BM25 testing)
   - 20 Semantic / paraphrased queries (FastEmbed dense vector testing)
@@ -61,14 +61,14 @@ uv run pkmrag eval /path/to/vault -b /path/to/benchmark.json
 
 ### 📊 Metrics Explained
 
-Orbit's evaluation harness tracks two classes of metrics: **Quality Gates** (strict pass/fail thresholds that block CI) and **Informational Telemetry** (diagnostic metrics for ranking distribution).
+PKMRAG's evaluation harness tracks two classes of metrics: **Quality Gates** (strict pass/fail thresholds that block CI) and **Informational Telemetry** (diagnostic metrics for ranking distribution).
 
 | Metric | Type | What It Measures | How It Is Interpreted |
 | :--- | :---: | :--- | :--- |
 | **Mean Reciprocal Rank (MRR)** | **Quality Gate** | **Position of the first hit.** $\frac{1}{\|Q\|} \sum \frac{1}{\text{rank}_i}$. | A score of `1.0` means the right note was ranked #1 on every query. `0.950` means 9 out of 10 queries had the right note at #1, and 1 at #2. |
 | **Context Recall@5** | **Quality Gate** | **Completeness of context.** Fraction of all ground-truth notes retrieved within top 5. | Crucial for multi-hop questions. If an answer requires Note A and Note B, both must appear in top 5 to get full recall. |
 | **Hits@1, 3, 5** | Telemetry | **Top-K Hit Rate.** Percentage of queries where at least one correct note appeared in the top $K$. | `Hits@1 = 90%` means 9/10 top results were relevant. `Hits@3 = 100%` means zero questions completely missed the top 3. |
-| **Context Precision@5** | Telemetry | **Signal-to-noise ratio.** Fraction of the 5 retrieved notes that are relevant. | Naturally low (~`0.20`–`0.25`) because Orbit retrieves 5 notes (`limit=5`), but most queries only have 1 correct answer note ($\frac{1}{5} = 20\%$). |
+| **Context Precision@5** | Telemetry | **Signal-to-noise ratio.** Fraction of the 5 retrieved notes that are relevant. | Naturally low (~`0.20`–`0.25`) because PKMRAG retrieves 5 notes (`limit=5`), but most queries only have 1 correct answer note ($\frac{1}{5} = 20\%$). |
 | **MAP@5** | Telemetry | **Mean Average Precision.** Evaluates how high relevant notes are ranked throughout the list. | Penalizes placing relevant notes low in the list (e.g., at #4 or #5). Our score of `0.925` shows heavy front-loading. |
 | **Multi-Hop Completeness** | Telemetry | **Complete multi-note chains.** Percentage of multi-target queries where *100%* of required notes were retrieved. | Assesses whether interconnected notes were both surfaced to supply complete context to downstream LLM reasoning. |
 

@@ -1,27 +1,27 @@
 /**
- * Orbit Insights Obsidian Plugin Entry Point.
+ * PKMRAG Insights Obsidian Plugin Entry Point.
  */
 
 import { MarkdownView, Notice, Plugin, TFile, WorkspaceLeaf, addIcon } from "obsidian";
-import { OrbitClient } from "./client";
+import { PkmragClient } from "./client";
 import { DaemonManager } from "./daemon";
 import { registerPluginCommands } from "./commands";
-import { createOrbitEditorExtension } from "./extension";
-import { OrbitSettingTab } from "./settings";
+import { createPkmragEditorExtension } from "./extension";
+import { PkmragSettingTab } from "./settings";
 import { renderStatusBar, setupEventStream } from "./status_bar";
 
 import {
   ActiveJobState,
   DEFAULT_SETTINGS,
   InferredRelationship,
-  OrbitPluginSettings,
+  PkmragPluginSettings,
   SemanticGapCandidate,
 } from "./types";
-import { OrbitInsightsView, VIEW_TYPE_ORBIT_INSIGHTS } from "./view";
+import { PkmragInsightsView, VIEW_TYPE_PKMRAG_INSIGHTS } from "./view";
 
-export default class OrbitInsightsPlugin extends Plugin {
-  settings: OrbitPluginSettings = DEFAULT_SETTINGS;
-  client!: OrbitClient;
+export default class PkmragPlugin extends Plugin {
+  settings: PkmragPluginSettings = DEFAULT_SETTINGS;
+  client!: PkmragClient;
   daemonManager!: DaemonManager;
   activeJob: ActiveJobState | null = null;
   isVaultIndexed = true;
@@ -34,7 +34,7 @@ export default class OrbitInsightsPlugin extends Plugin {
 
   async onload(): Promise<void> {
     await this.loadSettings();
-    this.client = new OrbitClient(this.settings);
+    this.client = new PkmragClient(this.settings);
     this.daemonManager = new DaemonManager(this);
 
     // Auto-discover vault token if not set
@@ -55,8 +55,8 @@ export default class OrbitInsightsPlugin extends Plugin {
 
     // Register Sidebar View
     this.registerView(
-      VIEW_TYPE_ORBIT_INSIGHTS,
-      (leaf: WorkspaceLeaf) => new OrbitInsightsView(leaf, this)
+      VIEW_TYPE_PKMRAG_INSIGHTS,
+      (leaf: WorkspaceLeaf) => new PkmragInsightsView(leaf, this)
     );
 
     // Ribbon Icon
@@ -74,7 +74,7 @@ export default class OrbitInsightsPlugin extends Plugin {
 
     // Register CodeMirror 6 Editor Extension
 
-    this.registerEditorExtension(createOrbitEditorExtension(this));
+    this.registerEditorExtension(createPkmragEditorExtension(this));
 
     // Auto-Sync on Save (debounced 1500ms)
     this.registerEvent(
@@ -109,7 +109,7 @@ export default class OrbitInsightsPlugin extends Plugin {
     );
 
     // Register Settings Tab
-    this.addSettingTab(new OrbitSettingTab(this.app, this));
+    this.addSettingTab(new PkmragSettingTab(this.app, this));
 
     // Connect SSE Stream
     this.initEventStream();
@@ -141,14 +141,14 @@ export default class OrbitInsightsPlugin extends Plugin {
   async activateView(): Promise<void> {
     const { workspace } = this.app;
     let leaf: WorkspaceLeaf | null = null;
-    const leaves = workspace.getLeavesOfType(VIEW_TYPE_ORBIT_INSIGHTS);
+    const leaves = workspace.getLeavesOfType(VIEW_TYPE_PKMRAG_INSIGHTS);
 
     if (leaves.length > 0) {
       leaf = leaves[0];
     } else {
       leaf = workspace.getRightLeaf(false);
       if (leaf) {
-        await leaf.setViewState({ type: VIEW_TYPE_ORBIT_INSIGHTS, active: true });
+        await leaf.setViewState({ type: VIEW_TYPE_PKMRAG_INSIGHTS, active: true });
       }
     }
 
@@ -156,16 +156,16 @@ export default class OrbitInsightsPlugin extends Plugin {
       workspace.revealLeaf(leaf);
       const activeFile = workspace.getActiveFile();
       if (activeFile && activeFile.extension === "md") {
-        const view = leaf.view as OrbitInsightsView;
+        const view = leaf.view as PkmragInsightsView;
         await view.loadInsightsForNote(activeFile.path);
       }
     }
   }
 
   refreshActiveView(notePath?: string): void {
-    const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_ORBIT_INSIGHTS);
+    const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_PKMRAG_INSIGHTS);
     if (leaves.length === 0) return;
-    const view = leaves[0].view as OrbitInsightsView;
+    const view = leaves[0].view as PkmragInsightsView;
     const path = notePath || this.app.workspace.getActiveFile()?.path;
     if (path) {
       view.loadInsightsForNote(path);

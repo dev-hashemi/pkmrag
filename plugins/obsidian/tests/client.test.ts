@@ -1,14 +1,14 @@
 /**
- * Unit tests for OrbitClient and token discovery logic.
+ * Unit tests for PkmragClient and token discovery logic.
  */
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { OrbitClient } from "../src/client.js";
+import { PkmragClient } from "../src/client.js";
 import { DEFAULT_SETTINGS } from "../src/types.js";
 
-test("OrbitClient headers include Bearer token when configured", () => {
-  const client = new OrbitClient({
+test("PkmragClient headers include Bearer token when configured", () => {
+  const client = new PkmragClient({
     ...DEFAULT_SETTINGS,
     authToken: "sample_secret_token",
   });
@@ -19,8 +19,8 @@ test("OrbitClient headers include Bearer token when configured", () => {
   assert.equal(headers["Authorization"], "Bearer sample_secret_token");
 });
 
-test("OrbitClient headers omit Authorization when authToken is empty", () => {
-  const client = new OrbitClient({
+test("PkmragClient headers omit Authorization when authToken is empty", () => {
+  const client = new PkmragClient({
     ...DEFAULT_SETTINGS,
     authToken: "",
   });
@@ -30,13 +30,13 @@ test("OrbitClient headers omit Authorization when authToken is empty", () => {
   assert.equal(headers["Authorization"], undefined);
 });
 
-test("OrbitClient autoDiscoverVaultToken reads .orbit/server_token", async () => {
-  const client = new OrbitClient({ ...DEFAULT_SETTINGS });
+test("PkmragClient autoDiscoverVaultToken reads .pkmrag/server_token", async () => {
+  const client = new PkmragClient({ ...DEFAULT_SETTINGS });
 
   const mockApp = {
     vault: {
       adapter: {
-        exists: async (p: string) => p === ".orbit/server_token",
+        exists: async (p: string) => p === ".pkmrag/server_token",
         read: async (p: string) => "vault_generated_token_42",
       },
     },
@@ -47,8 +47,8 @@ test("OrbitClient autoDiscoverVaultToken reads .orbit/server_token", async () =>
   assert.equal(client.settings.authToken, "vault_generated_token_42");
 });
 
-test("OrbitClient autoDiscoverVaultToken handles missing file gracefully", async () => {
-  const client = new OrbitClient({ ...DEFAULT_SETTINGS });
+test("PkmragClient autoDiscoverVaultToken handles missing file gracefully", async () => {
+  const client = new PkmragClient({ ...DEFAULT_SETTINGS });
 
   const mockApp = {
     vault: {
@@ -64,8 +64,8 @@ test("OrbitClient autoDiscoverVaultToken handles missing file gracefully", async
   assert.equal(client.settings.authToken, "");
 });
 
-test("OrbitClient searchVault dispatches POST request with query and near note", async () => {
-  const client = new OrbitClient({
+test("PkmragClient searchVault dispatches POST request with query and near note", async () => {
+  const client = new PkmragClient({
     ...DEFAULT_SETTINGS,
     serverUrl: "http://127.0.0.1:3747",
     authToken: "search_token_123",
@@ -115,8 +115,8 @@ test("OrbitClient searchVault dispatches POST request with query and near note",
   }
 });
 
-test("OrbitClient searchVault throws error on non-200 response", async () => {
-  const client = new OrbitClient({ ...DEFAULT_SETTINGS });
+test("PkmragClient searchVault throws error on non-200 response", async () => {
+  const client = new PkmragClient({ ...DEFAULT_SETTINGS });
   const originalFetch = globalThis.fetch;
 
   globalThis.fetch = async (): Promise<Response> => {
@@ -163,8 +163,8 @@ test("Dismissed suggestions filter removes dismissed items matching source and t
   assert.equal(filtered[0].target_title, "Paxos");
 });
 
-test("OrbitClient testLlm dispatches POST request with provider and model", async () => {
-  const client = new OrbitClient({
+test("PkmragClient testLlm dispatches POST request with provider and model", async () => {
+  const client = new PkmragClient({
     ...DEFAULT_SETTINGS,
     llmProvider: "custom",
     llmBaseUrl: "https://api.test.com/v1",
@@ -199,8 +199,8 @@ test("OrbitClient testLlm dispatches POST request with provider and model", asyn
   }
 });
 
-test("OrbitClient triggerDiscover and triggerIngest dispatch operational requests", async () => {
-  const client = new OrbitClient({ ...DEFAULT_SETTINGS });
+test("PkmragClient triggerDiscover and triggerIngest dispatch operational requests", async () => {
+  const client = new PkmragClient({ ...DEFAULT_SETTINGS });
   const originalFetch = globalThis.fetch;
 
   globalThis.fetch = async (): Promise<Response> => {

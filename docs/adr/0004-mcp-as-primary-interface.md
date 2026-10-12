@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-28
-- **Deciders:** Orbit Core Team
+- **Deciders:** PKMRAG Core Team
 
 ---
 
@@ -17,7 +17,7 @@ Developing and maintaining custom chat and graph rendering frontends creates imm
 ---
 
 ## Decision
-Orbit exposes its capabilities primarily as a **Model Context Protocol (MCP) server**:
+PKMRAG exposes its capabilities primarily as a **Model Context Protocol (MCP) server**:
 - Transport: Standard input/output (stdio) and Server-Sent Events (SSE).
 - Interface: Deterministic tools (`query_vault`, `read_note`, `find_bridges`) and graph resources.
 - CLI serves as a local developer inspection tool (`pkmrag search`, `pkmrag ingest`, `pkmrag doctor`).
@@ -28,7 +28,7 @@ Orbit exposes its capabilities primarily as a **Model Context Protocol (MCP) ser
 ## Consequences
 
 ### Positive
-- Keeps Orbit lean, focused entirely on indexing and retrieval performance.
+- Keeps PKMRAG lean, focused entirely on indexing and retrieval performance.
 - Seamless, zero-glue integration into frontier AI agent tools.
 - Decouples UI evolution from backend retrieval logic.
 

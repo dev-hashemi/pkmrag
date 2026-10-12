@@ -3,34 +3,34 @@
  */
 
 import { Notice, setIcon } from "obsidian";
-import type OrbitInsightsPlugin from "./main";
+import type PkmragPlugin from "./main";
 
 export function renderSetupWizardView(
   container: HTMLElement,
-  plugin: OrbitInsightsPlugin,
+  plugin: PkmragPlugin,
   onConnected: () => void
 ): void {
-  const wrapper = container.createDiv({ cls: "orbit-offline-container orbit-wizard-container" });
+  const wrapper = container.createDiv({ cls: "pkmrag-offline-container pkmrag-wizard-container" });
 
-  const iconEl = wrapper.createDiv({ cls: "orbit-offline-icon" });
+  const iconEl = wrapper.createDiv({ cls: "pkmrag-offline-icon" });
   setIcon(iconEl, "pkmrag-ribbon");
 
-  wrapper.createEl("h3", { text: "PKMRAG Engine Setup Required", cls: "orbit-offline-title" });
+  wrapper.createEl("h3", { text: "PKMRAG Engine Setup Required", cls: "pkmrag-offline-title" });
 
   wrapper.createEl("p", {
-    cls: "orbit-offline-desc",
+    cls: "pkmrag-offline-desc",
     text: "PKMRAG's local Hybrid GraphRAG engine needs to be installed on your machine. Install the companion CLI package using pipx (recommended) or uv tool:",
   });
 
   // Step 1: Install command snippet
-  const step1Box = wrapper.createDiv({ cls: "orbit-wizard-step" });
-  step1Box.createDiv({ cls: "orbit-wizard-step-title", text: "Step 1: Install via Terminal" });
+  const step1Box = wrapper.createDiv({ cls: "pkmrag-wizard-step" });
+  step1Box.createDiv({ cls: "pkmrag-wizard-step-title", text: "Step 1: Install via Terminal" });
 
-  const codeBox = step1Box.createDiv({ cls: "orbit-code-box" });
+  const codeBox = step1Box.createDiv({ cls: "pkmrag-code-box" });
   const cmd = "pipx install pkmrag";
   codeBox.createEl("code", { text: cmd });
 
-  const copyBtn = codeBox.createEl("button", { cls: "orbit-copy-btn", text: "Copy" });
+  const copyBtn = codeBox.createEl("button", { cls: "pkmrag-copy-btn", text: "Copy" });
   copyBtn.onclick = () => {
     navigator.clipboard.writeText(cmd);
     new Notice("Copied 'pipx install pkmrag' to clipboard!");
@@ -38,17 +38,17 @@ export function renderSetupWizardView(
 
   // Alternative uv tool note
   step1Box.createDiv({
-    cls: "orbit-wizard-hint",
+    cls: "pkmrag-wizard-hint",
     text: "Using uv? You can also run: uv tool install pkmrag",
   });
 
   // Step 2: Connect & Verify
-  const step2Box = wrapper.createDiv({ cls: "orbit-wizard-step" });
-  step2Box.createDiv({ cls: "orbit-wizard-step-title", text: "Step 2: Verify & Connect" });
+  const step2Box = wrapper.createDiv({ cls: "pkmrag-wizard-step" });
+  step2Box.createDiv({ cls: "pkmrag-wizard-step-title", text: "Step 2: Verify & Connect" });
 
-  const actions = step2Box.createDiv({ cls: "orbit-offline-actions" });
+  const actions = step2Box.createDiv({ cls: "pkmrag-offline-actions" });
   const verifyBtn = actions.createEl("button", {
-    cls: "orbit-btn-sm mod-cta",
+    cls: "pkmrag-btn-sm mod-cta",
     text: "🔍 Verify & Start Engine",
   });
 
@@ -67,7 +67,7 @@ export function renderSetupWizardView(
   };
 
   const settingsBtn = actions.createEl("button", {
-    cls: "orbit-btn-sm",
+    cls: "pkmrag-btn-sm",
     text: "Settings",
   });
   settingsBtn.onclick = () => {

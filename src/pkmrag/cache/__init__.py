@@ -1,4 +1,4 @@
-"""Query cache package for Project Orbit."""
+"""Query cache package for PKMRAG."""
 
 from __future__ import annotations
 

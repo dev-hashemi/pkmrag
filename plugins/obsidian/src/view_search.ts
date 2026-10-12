@@ -1,8 +1,8 @@
 /**
- * Proximity concept search bar and result renderer for Orbit sidebar.
+ * Proximity concept search bar and result renderer for PKMRAG sidebar.
  */
 
-import type OrbitInsightsPlugin from "./main";
+import type PkmragPlugin from "./main";
 import { SearchResult } from "./types";
 
 export class ProximitySearchDrawer {
@@ -14,28 +14,28 @@ export class ProximitySearchDrawer {
 
   constructor(
     private parentEl: HTMLElement,
-    private plugin: OrbitInsightsPlugin,
+    private plugin: PkmragPlugin,
     private getCurrentNotePath: () => string | null
   ) {
     this.render();
   }
 
   private render(): void {
-    this.containerEl = this.parentEl.createDiv({ cls: "orbit-search-container" });
+    this.containerEl = this.parentEl.createDiv({ cls: "pkmrag-search-container" });
 
-    const toggleRow = this.containerEl.createDiv({ cls: "orbit-search-toggle" });
+    const toggleRow = this.containerEl.createDiv({ cls: "pkmrag-search-toggle" });
     const toggleBtn = toggleRow.createEl("button", {
-      cls: "orbit-btn-sm orbit-search-btn",
+      cls: "pkmrag-btn-sm pkmrag-search-btn",
       text: "🔍 Concept Explorer",
     });
 
     const searchBox = this.containerEl.createDiv({
-      cls: "orbit-search-box orbit-hidden",
+      cls: "pkmrag-search-box pkmrag-hidden",
     });
 
     toggleBtn.onclick = () => {
       this.isOpen = !this.isOpen;
-      searchBox.toggleClass("orbit-hidden", !this.isOpen);
+      searchBox.toggleClass("pkmrag-hidden", !this.isOpen);
       if (this.isOpen) {
         this.inputEl.focus();
       } else {
@@ -47,7 +47,7 @@ export class ProximitySearchDrawer {
     this.inputEl = searchBox.createEl("input", {
       type: "text",
       placeholder: "Search concepts near this note...",
-      cls: "orbit-search-input",
+      cls: "pkmrag-search-input",
     });
 
     this.inputEl.oninput = () => {
@@ -61,13 +61,13 @@ export class ProximitySearchDrawer {
       this.searchTimer = window.setTimeout(() => this.executeSearch(query), 350);
     };
 
-    this.resultsEl = searchBox.createDiv({ cls: "orbit-search-results" });
+    this.resultsEl = searchBox.createDiv({ cls: "pkmrag-search-results" });
   }
 
   private async executeSearch(query: string): Promise<void> {
     this.resultsEl.empty();
     const loadingEl = this.resultsEl.createDiv({
-      cls: "orbit-empty-state",
+      cls: "pkmrag-empty-state",
       text: "Searching graph...",
     });
 
@@ -78,7 +78,7 @@ export class ProximitySearchDrawer {
 
       if (results.length === 0) {
         this.resultsEl.createDiv({
-          cls: "orbit-empty-state",
+          cls: "pkmrag-empty-state",
           text: `No matching chunks found for "${query}".`,
         });
         return;
@@ -93,25 +93,25 @@ export class ProximitySearchDrawer {
   }
 
   private renderResultCard(res: SearchResult): void {
-    const card = this.resultsEl.createDiv({ cls: "orbit-card orbit-search-card" });
-    const head = card.createDiv({ cls: "orbit-card-header" });
+    const card = this.resultsEl.createDiv({ cls: "pkmrag-card pkmrag-search-card" });
+    const head = card.createDiv({ cls: "pkmrag-card-header" });
 
     const titleEl = head.createEl("a", {
-      cls: "orbit-card-target",
+      cls: "pkmrag-card-target",
       text: res.title || res.path.replace(/\.md$/, ""),
     });
     titleEl.onclick = () => this.plugin.app.workspace.openLinkText(res.path, "");
 
     if (res.heading) {
-      head.createSpan({ cls: "orbit-badge", text: `# ${res.heading}` });
+      head.createSpan({ cls: "pkmrag-badge", text: `# ${res.heading}` });
     }
 
     const excerpt = res.content.length > 120 ? res.content.slice(0, 120) + "..." : res.content;
-    card.createDiv({ cls: "orbit-card-reason", text: excerpt });
+    card.createDiv({ cls: "pkmrag-card-reason", text: excerpt });
 
-    const actions = card.createDiv({ cls: "orbit-card-actions" });
+    const actions = card.createDiv({ cls: "pkmrag-card-actions" });
     const insertBtn = actions.createEl("button", {
-      cls: "orbit-btn-sm",
+      cls: "pkmrag-btn-sm",
       text: "+ Insert Ref",
     });
     insertBtn.onclick = () => {

@@ -23,10 +23,10 @@ def _populate_test_graph(store: GraphStore) -> None:
     store.add_links_to("B.md", "C.md")
 
     # Tags
-    store.upsert_tag("orbit")
+    store.upsert_tag("pkmrag")
     store.upsert_tag("deep")
-    store.add_tagged_with("A.md", "orbit")
-    store.add_tagged_with("B.md", "orbit")
+    store.add_tagged_with("A.md", "pkmrag")
+    store.add_tagged_with("B.md", "pkmrag")
     store.add_tagged_with("B.md", "deep")
 
 
@@ -88,7 +88,7 @@ def test_get_note_structural_context(empty_graph_store: GraphStore) -> None:
     assert context.path == "B.md"
     assert "A.md" in context.backlinks
     assert "C.md" in context.outgoing_links
-    assert "orbit" in context.tags
+    assert "pkmrag" in context.tags
     assert "deep" in context.tags
 
     # Nonexistent note returns None
@@ -115,4 +115,4 @@ def test_get_vault_overview_typed_models(empty_graph_store: GraphStore) -> None:
     assert len(overview.top_tags) >= 1
     assert all(isinstance(t, TagStat) for t in overview.top_tags)
     tag_names = [t.tag for t in overview.top_tags]
-    assert "orbit" in tag_names
+    assert "pkmrag" in tag_names

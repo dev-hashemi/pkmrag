@@ -1,31 +1,31 @@
 /**
- * Friendly offline recovery screen rendered when Orbit daemon is unreachable.
+ * Friendly offline recovery screen rendered when PKMRAG daemon is unreachable.
  */
 
 import { Notice, setIcon } from "obsidian";
-import type OrbitInsightsPlugin from "./main";
+import type PkmragPlugin from "./main";
 
 export function renderOfflineView(
   container: HTMLElement,
-  plugin: OrbitInsightsPlugin,
+  plugin: PkmragPlugin,
   onRetry: () => void
 ): void {
-  const wrapper = container.createDiv({ cls: "orbit-offline-container" });
+  const wrapper = container.createDiv({ cls: "pkmrag-offline-container" });
 
-  const iconEl = wrapper.createDiv({ cls: "orbit-offline-icon" });
+  const iconEl = wrapper.createDiv({ cls: "pkmrag-offline-icon" });
   setIcon(iconEl, "pkmrag-ribbon");
-  wrapper.createEl("h3", { text: "PKMRAG Daemon Offline", cls: "orbit-offline-title" });
+  wrapper.createEl("h3", { text: "PKMRAG Daemon Offline", cls: "pkmrag-offline-title" });
 
   wrapper.createEl("p", {
-    cls: "orbit-offline-desc",
+    cls: "pkmrag-offline-desc",
     text: `PKMRAG daemon is not reachable at ${plugin.settings.serverUrl}. Start the local daemon to inspect graph insights, missing links, and AI suggestions:`,
   });
 
   // Actions
-  const btnRow = wrapper.createDiv({ cls: "orbit-offline-actions" });
+  const btnRow = wrapper.createDiv({ cls: "pkmrag-offline-actions" });
 
   const startBtn = btnRow.createEl("button", {
-    cls: "orbit-btn-sm mod-cta",
+    cls: "pkmrag-btn-sm mod-cta",
     text: "🚀 Start Daemon",
   });
   startBtn.onclick = async () => {
@@ -43,7 +43,7 @@ export function renderOfflineView(
   };
 
   const retryBtn = btnRow.createEl("button", {
-    cls: "orbit-btn-sm",
+    cls: "pkmrag-btn-sm",
     text: "Retry Connection",
   });
   retryBtn.onclick = () => {
@@ -53,7 +53,7 @@ export function renderOfflineView(
   };
 
   const settingsBtn = btnRow.createEl("button", {
-    cls: "orbit-btn-sm",
+    cls: "pkmrag-btn-sm",
     text: "Settings",
   });
   settingsBtn.onclick = () => {
@@ -62,11 +62,11 @@ export function renderOfflineView(
   };
 
   // Advanced / manual command info
-  const codeBox = wrapper.createDiv({ cls: "orbit-code-box" });
+  const codeBox = wrapper.createDiv({ cls: "pkmrag-code-box" });
   const cmd = `uv run pkmrag serve . -t http --port 3747`;
   codeBox.createEl("code", { text: cmd });
 
-  const copyBtn = codeBox.createEl("button", { cls: "orbit-copy-btn", text: "Copy" });
+  const copyBtn = codeBox.createEl("button", { cls: "pkmrag-copy-btn", text: "Copy" });
   copyBtn.onclick = () => {
     navigator.clipboard.writeText(cmd);
     new Notice("Copied command to clipboard!");

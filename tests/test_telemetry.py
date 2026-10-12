@@ -1,4 +1,4 @@
-"""Unit tests for the Orbit telemetry and distributed tracing subsystem."""
+"""Unit tests for the PKMRAG telemetry and distributed tracing subsystem."""
 
 from __future__ import annotations
 

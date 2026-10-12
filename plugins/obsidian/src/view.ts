@@ -1,10 +1,10 @@
 /**
- * "Orbit Insights" Sidebar Panel View implementation for Obsidian.
+ * "PKMRAG Insights" Sidebar Panel View implementation for Obsidian.
  */
 
 import { ItemView, Notice, WorkspaceLeaf } from "obsidian";
 
-import type OrbitInsightsPlugin from "./main";
+import type PkmragPlugin from "./main";
 import { NoteContext, SemanticGapCandidate } from "./types";
 import { renderOfflineView } from "./view_offline";
 import { renderUnindexedView } from "./view_unindexed";
@@ -15,11 +15,11 @@ import { ProximitySearchDrawer } from "./view_search";
 import { renderInferencesSection } from "./view_inferences";
 
 
-export const VIEW_TYPE_ORBIT_INSIGHTS = "orbit-insights-view";
+export const VIEW_TYPE_PKMRAG_INSIGHTS = "pkmrag-insights-view";
 
 
-export class OrbitInsightsView extends ItemView {
-  plugin: OrbitInsightsPlugin;
+export class PkmragInsightsView extends ItemView {
+  plugin: PkmragPlugin;
   private currentNotePath: string | null = null;
   private context: NoteContext | null = null;
   private gaps: SemanticGapCandidate[] = [];
@@ -30,13 +30,13 @@ export class OrbitInsightsView extends ItemView {
   private errorMessage: string | null = null;
   private showDismissed = false;
 
-  constructor(leaf: WorkspaceLeaf, plugin: OrbitInsightsPlugin) {
+  constructor(leaf: WorkspaceLeaf, plugin: PkmragPlugin) {
     super(leaf);
     this.plugin = plugin;
   }
 
   getViewType(): string {
-    return VIEW_TYPE_ORBIT_INSIGHTS;
+    return VIEW_TYPE_PKMRAG_INSIGHTS;
   }
 
   getDisplayText(): string {
@@ -95,7 +95,7 @@ export class OrbitInsightsView extends ItemView {
   public render(): void {
     const container = this.containerEl.children[1] as HTMLElement;
     container.empty();
-    container.addClass("orbit-insights-container");
+    container.addClass("pkmrag-insights-container");
 
     // Live Background Job Banner (rendered at top if active)
     if (this.plugin.activeJob) {
@@ -103,17 +103,17 @@ export class OrbitInsightsView extends ItemView {
     }
 
     // Header
-    const headerEl = container.createDiv({ cls: "orbit-header" });
-    const topRow = headerEl.createDiv({ cls: "orbit-header-top" });
+    const headerEl = container.createDiv({ cls: "pkmrag-header" });
+    const topRow = headerEl.createDiv({ cls: "pkmrag-header-top" });
     const title = this.currentNotePath
       ? this.currentNotePath.replace(/\.md$/, "")
       : "No Note Active";
-    topRow.createDiv({ cls: "orbit-header-title", text: title });
+    topRow.createDiv({ cls: "pkmrag-header-title", text: title });
 
-    const actions = topRow.createDiv({ cls: "orbit-header-actions" });
+    const actions = topRow.createDiv({ cls: "pkmrag-header-actions" });
 
     const discoverBtn = actions.createEl("button", {
-      cls: "orbit-btn-sm",
+      cls: "pkmrag-btn-sm",
       text: "⚡",
     });
     discoverBtn.title = "Run AI Gap Discovery & Relationship Inference";
@@ -130,7 +130,7 @@ export class OrbitInsightsView extends ItemView {
       }
     };
 
-    const refreshBtn = actions.createEl("button", { cls: "orbit-btn-sm", text: "⟳" });
+    const refreshBtn = actions.createEl("button", { cls: "pkmrag-btn-sm", text: "⟳" });
     refreshBtn.title = "Refresh Insights";
     refreshBtn.onclick = () => {
       if (this.currentNotePath) this.loadInsightsForNote(this.currentNotePath);
@@ -141,7 +141,7 @@ export class OrbitInsightsView extends ItemView {
       : this.lastUpdated
       ? `Updated ${this.lastUpdated.toLocaleTimeString()}`
       : "Idle";
-    headerEl.createDiv({ cls: "orbit-sync-status", text: statusText });
+    headerEl.createDiv({ cls: "pkmrag-sync-status", text: statusText });
 
     if (!this.plugin.isServerConnected || this.isOffline) {
       if (!this.plugin.daemonManager.isBinaryAvailable()) {
@@ -167,7 +167,7 @@ export class OrbitInsightsView extends ItemView {
 
     if (!this.currentNotePath) {
       container.createDiv({
-        cls: "orbit-empty-state",
+        cls: "pkmrag-empty-state",
         text: "Open a markdown note to inspect graph context and suggestions.",
       });
       new ProximitySearchDrawer(container, this.plugin, () => null);
@@ -178,14 +178,14 @@ export class OrbitInsightsView extends ItemView {
     new ProximitySearchDrawer(container, this.plugin, () => this.currentNotePath);
 
     if (!this.context) {
-      const noteCard = container.createDiv({ cls: "orbit-card" });
-      noteCard.createDiv({ cls: "orbit-card-target", text: "Note Not Indexed Yet" });
+      const noteCard = container.createDiv({ cls: "pkmrag-card" });
+      noteCard.createDiv({ cls: "pkmrag-card-target", text: "Note Not Indexed Yet" });
       noteCard.createDiv({
-        cls: "orbit-card-reason",
+        cls: "pkmrag-card-reason",
         text: "This note has not been parsed into LadybugDB yet.",
       });
       const reindexBtn = noteCard.createEl("button", {
-        cls: "orbit-btn-sm mod-cta",
+        cls: "pkmrag-btn-sm mod-cta",
         text: "Index This Note",
       });
       reindexBtn.onclick = async () => {
@@ -220,20 +220,20 @@ export class OrbitInsightsView extends ItemView {
 
   private renderContextSection(container: HTMLElement): void {
 
-    const sec = container.createDiv({ cls: "orbit-section" });
-    sec.createDiv({ cls: "orbit-section-header", text: "Graph Context" });
+    const sec = container.createDiv({ cls: "pkmrag-section" });
+    sec.createDiv({ cls: "pkmrag-section-header", text: "Graph Context" });
 
     const tags = this.context?.tags || [];
     if (tags.length > 0) {
-      const tagChips = sec.createDiv({ cls: "orbit-chip-container", attr: { style: "margin-bottom: 8px;" } });
+      const tagChips = sec.createDiv({ cls: "pkmrag-chip-container", attr: { style: "margin-bottom: 8px;" } });
       for (const t of tags) {
-        tagChips.createSpan({ cls: "orbit-chip", text: `#${t}` });
+        tagChips.createSpan({ cls: "pkmrag-chip", text: `#${t}` });
       }
     }
 
     const backlinks = this.context?.backlinks || [];
     sec.createDiv({
-      cls: "orbit-card-reason",
+      cls: "pkmrag-card-reason",
       text: `Backlinks: ${backlinks.length}  |  Outgoing: ${
         this.context?.outgoing_links?.length || 0
       }  |  2-Hop Cluster: ${this.context?.neighbors_2hop?.length || 0}`,

@@ -1,4 +1,4 @@
-"""Integration and protocol tests for Project Orbit FastMCP server."""
+"""Integration and protocol tests for PKMRAG FastMCP server."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ async def test_mcp_server_initialization_and_tool_registration(tmp_path: Path) -
     """Verify MCPServer registers all 5 core tools with valid schemas."""
     vault_dir = tmp_path / "test_kb"
     vault_dir.mkdir()
-    (vault_dir / "Readme.md").write_text("# Readme\nWelcome to Orbit.", encoding="utf-8")
+    (vault_dir / "Readme.md").write_text("# Readme\nWelcome to PKMRAG.", encoding="utf-8")
 
     server = create_mcp_server(vault_dir)
     assert server.name == "pkmrag"
@@ -48,7 +48,7 @@ async def test_mcp_server_initialization_and_tool_registration(tmp_path: Path) -
     assert not result.is_error
     assert len(result.content) > 0
     text_val = result.content[0].text  # type: ignore[union-attr]
-    assert "Welcome to Orbit." in text_val
+    assert "Welcome to PKMRAG." in text_val
 
     # Test list_notes tool call
     list_res = await server.call_tool("list_notes", {})
@@ -81,7 +81,7 @@ async def test_mcp_server_query_vault_integration(tmp_path: Path) -> None:
 
 
 def test_cli_mcp_config(tmp_path: Path) -> None:
-    """Verify orbit mcp-config CLI outputs valid JSON configuration."""
+    """Verify pkmrag mcp-config CLI outputs valid JSON configuration."""
     vault = tmp_path / "sample_vault"
     vault.mkdir()
 
@@ -98,14 +98,14 @@ def test_cli_mcp_config(tmp_path: Path) -> None:
     cfg = json.loads(res.output[json_start:json_end])
     assert "mcpServers" in cfg
     assert "pkmrag" in cfg["mcpServers"]
-    orbit_cfg = cfg["mcpServers"]["pkmrag"]
-    assert orbit_cfg["command"] == "uv"
-    assert "serve" in orbit_cfg["args"]
-    assert str(vault.resolve()) in orbit_cfg["args"]
+    pkmrag_cfg = cfg["mcpServers"]["pkmrag"]
+    assert pkmrag_cfg["command"] == "uv"
+    assert "serve" in pkmrag_cfg["args"]
+    assert str(vault.resolve()) in pkmrag_cfg["args"]
 
 
 def test_cli_mcp_config_sse(tmp_path: Path) -> None:
-    """Verify orbit mcp-config --transport sse outputs valid SSE configuration."""
+    """Verify pkmrag mcp-config --transport sse outputs valid SSE configuration."""
     vault = tmp_path / "sample_vault"
     vault.mkdir()
 
@@ -118,5 +118,5 @@ def test_cli_mcp_config_sse(tmp_path: Path) -> None:
     cfg = json.loads(res.output[json_start:json_end])
     assert "mcpServers" in cfg
     assert "pkmrag" in cfg["mcpServers"]
-    orbit_cfg = cfg["mcpServers"]["pkmrag"]
-    assert orbit_cfg["url"] == "http://127.0.0.1:3747/sse"
+    pkmrag_cfg = cfg["mcpServers"]["pkmrag"]
+    assert pkmrag_cfg["url"] == "http://127.0.0.1:3747/sse"

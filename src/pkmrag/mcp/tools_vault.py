@@ -1,4 +1,4 @@
-"""Vault browsing and navigation tools for the Orbit MCP server."""
+"""Vault browsing and navigation tools for the PKMRAG MCP server."""
 
 from __future__ import annotations
 

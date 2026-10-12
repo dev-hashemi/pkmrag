@@ -2,12 +2,12 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-27
-- **Deciders:** Orbit Core Team
+- **Deciders:** PKMRAG Core Team
 
 ---
 
 ## Context
-While Project Orbit is primarily designed for Obsidian vaults, different tools format note-to-note links and metadata differently:
+While PKMRAG is primarily designed for Obsidian vaults, different tools format note-to-note links and metadata differently:
 - Obsidian: `[[Note|Alias]]`, `![[embed]]`, `#tag`.
 - CommonMark: `[text](target.md)`.
 - Other tools (Logseq, Roam, Foam): Outliner bullets, page properties, or block references.

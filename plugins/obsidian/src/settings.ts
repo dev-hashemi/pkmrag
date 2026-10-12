@@ -1,15 +1,15 @@
 /**
- * Configuration and Settings Tab for Orbit Insights Plugin.
+ * Configuration and Settings Tab for PKMRAG Insights Plugin.
  */
 
 import { App, Notice, PluginSettingTab, Setting } from "obsidian";
-import type OrbitInsightsPlugin from "./main";
+import type PkmragPlugin from "./main";
 import { renderLlmSection } from "./settings_llm";
 
-export class OrbitSettingTab extends PluginSettingTab {
-  plugin: OrbitInsightsPlugin;
+export class PkmragSettingTab extends PluginSettingTab {
+  plugin: PkmragPlugin;
 
-  constructor(app: App, plugin: OrbitInsightsPlugin) {
+  constructor(app: App, plugin: PkmragPlugin) {
     super(app, plugin);
     this.plugin = plugin;
   }

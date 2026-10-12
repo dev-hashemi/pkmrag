@@ -31,7 +31,7 @@ def get_memory_collector() -> Optional[InMemorySpanCollector]:
 
 
 def setup_telemetry(
-    service_name: str = "project-orbit",
+    service_name: str = "pkmrag",
     enable_memory_collector: bool = False,
     otlp_endpoint: Optional[str] = None,
     otlp_headers: Optional[str] = None,
@@ -94,7 +94,7 @@ def shutdown_telemetry() -> None:
     _is_active = False
 
 
-def get_tracer(name: str = "project-orbit") -> trace.Tracer:
+def get_tracer(name: str = "pkmrag") -> trace.Tracer:
     """Get an OpenTelemetry Tracer instance."""
     if _tracer_provider is not None:
         return _tracer_provider.get_tracer(name)

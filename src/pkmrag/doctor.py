@@ -113,7 +113,7 @@ def check_lancedb_engine() -> CheckResult:
 
             table = db.create_table("health_check", schema=schema)
             test_vector = [0.1, 0.2, 0.3, 0.4]
-            table.add([{"id": 1, "text": "orbit-smoke-test", "vector": test_vector}])
+            table.add([{"id": 1, "text": "pkmrag-smoke-test", "vector": test_vector}])
 
             search_results = table.search(test_vector).limit(1).to_list()
             if not search_results:
@@ -124,7 +124,7 @@ def check_lancedb_engine() -> CheckResult:
 
             return CheckResult(
                 name="LanceDB Vector Engine",
-                passed=matched_text == "orbit-smoke-test",
+                passed=matched_text == "pkmrag-smoke-test",
                 version=getattr(lancedb, "__version__", "unknown"),
                 latency_ms=round(latency, 2),
                 details=f"Arrow-backed vector index read/write verified ('{matched_text}')",

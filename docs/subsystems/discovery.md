@@ -1,11 +1,11 @@
 # Subsystem: Semantic Gap Discovery
 
-The discovery subsystem implements Tier 3 of Orbit's Hybrid GraphRAG architecture: discovering implicit conceptual relationships between notes that share high semantic similarity but lack explicit human graph links.
+The discovery subsystem implements Tier 3 of PKMRAG's Hybrid GraphRAG architecture: discovering implicit conceptual relationships between notes that share high semantic similarity but lack explicit human graph links.
 
 ---
 
 ## 💾 Storage & Lifecycle
-- **Implementation:** [`src/pkmrag/discovery/engine.py`](file:///home/ali/projects/my/project-orbit/src/pkmrag/discovery/engine.py)
+- **Implementation:** [`src/pkmrag/discovery/engine.py`](file:///home/ali/projects/my/pkmrag/src/pkmrag/discovery/engine.py)
 - **Graph Storage:** Persisted to LadybugDB in the `[:INFERRED_REL]` edge table.
 - **CLI Interface:** `pkmrag discover <vault> --threshold 0.80`
 
@@ -30,7 +30,7 @@ The discovery subsystem implements Tier 3 of Orbit's Hybrid GraphRAG architectur
 Scans chunk embeddings across notes in LanceDB using cosine similarity to discover unlinked notes discussing similar concepts.
 
 ### Step 2: Deterministic Graph Distance Filtering
-For each high-similarity note pair $(A, B)$, Orbit queries LadybugDB to evaluate existing topological connectivity:
+For each high-similarity note pair $(A, B)$, PKMRAG queries LadybugDB to evaluate existing topological connectivity:
 - If $B$ is reachable from $A$ within $\le 2$ hops via explicit `[:LINKS_TO]` edges, the pair is **pruned** (as the relationship is already known/structured).
 - If the pair already has an evaluated `[:INFERRED_REL]` edge, it is skipped.
 - Only topologically disconnected note pairs proceed to inference.

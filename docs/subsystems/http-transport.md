@@ -1,16 +1,16 @@
 # HTTP & SSE Server Transport
 
-Project Orbit exposes its Hybrid GraphRAG retrieval engine and knowledge graph through a dual-protocol HTTP/SSE daemon. This transport enables web applications, Electron desktop clients (such as the Obsidian desktop plugin), and external HTTP agents to consume Orbit services over a single local network port.
+PKMRAG exposes its Hybrid GraphRAG retrieval engine and knowledge graph through a dual-protocol HTTP/SSE daemon. This transport enables web applications, Electron desktop clients (such as the Obsidian desktop plugin), and external HTTP agents to consume PKMRAG services over a single local network port.
 
 ---
 
 ## 1. Dual Protocol Plane on Port 3747
 
-Orbit runs an asynchronous Starlette/Uvicorn server hosting two distinct API planes concurrently on port `3747`:
+PKMRAG runs an asynchronous Starlette/Uvicorn server hosting two distinct API planes concurrently on port `3747`:
 
 ```
                            ┌────────────────────────────────────────────────────────┐
-                           │               Project Orbit HTTP Server                │
+                           │                 PKMRAG HTTP Server                     │
                            │                 (Default: 127.0.0.1:3747)              │
                            └────────────────────────────────────────────────────────┘
                                       │                                 │
@@ -29,7 +29,7 @@ Orbit runs an asynchronous Starlette/Uvicorn server hosting two distinct API pla
    - Standard `/sse` endpoint opening an EventSource stream emitting session URLs.
    - Standard `/messages/` endpoint receiving JSON-RPC tool calls from Claude Desktop, Cursor, or MCP clients.
 2. **Ergonomic REST API:**
-   - Structured JSON endpoints designed specifically for direct consumption by frontend panels (e.g., the Obsidian "Orbit Insights" sidebar) without requiring MCP client wrappers.
+   - Structured JSON endpoints designed specifically for direct consumption by frontend panels (e.g., the Obsidian "PKMRAG Insights" sidebar) without requiring MCP client wrappers.
 3. **Reactive Event Stream (`/api/v1/events`):**
    - Push-based Server-Sent Events broadcasting live reindexing and sync notifications to keep connected views fresh.
 
@@ -39,7 +39,7 @@ Orbit runs an asynchronous Starlette/Uvicorn server hosting two distinct API pla
 
 ### 2.1 Starting the Server
 ```bash
-# Start HTTP/SSE server (generates or reads .orbit/server_token)
+# Start HTTP/SSE server (generates or reads .pkmrag/server_token)
 uv run pkmrag serve /path/to/vault --transport http --port 3747
 
 # Start with an explicit authentication token
@@ -63,18 +63,18 @@ uv run pkmrag mcp-config /path/to/vault --transport sse --port 3747
 ## 3. Security & Authentication
 
 ### 3.1 Loopback Binding by Default
-To defend against browser-based DNS rebinding attacks, Orbit binds strictly to `127.0.0.1` by default.
+To defend against browser-based DNS rebinding attacks, PKMRAG binds strictly to `127.0.0.1` by default.
 
 ### 3.2 Vault Token File Persistence
 When started without an explicit token:
-1. Orbit generates a cryptographically secure 32-character hex token (`secrets.token_hex(16)`).
-2. Orbit writes the token to `<vault>/.orbit/server_token` with restricted owner-only permissions (`0o600`).
+1. PKMRAG generates a cryptographically secure 32-character hex token (`secrets.token_hex(16)`).
+2. PKMRAG writes the token to `<vault>/.pkmrag/server_token` with restricted owner-only permissions (`0o600`).
 3. Local applications (like the Obsidian plugin running inside the vault) can auto-discover this token from disk for **zero-configuration authentication**.
 
 ### 3.3 Accepted Authentication Methods
 Non-public endpoints (`/api/*`, `/sse`, `/messages/*`) require authentication via any of:
 - `Authorization: Bearer <token>`
-- `X-Orbit-Token: <token>`
+- `X-Pkmrag-Token: <token>`
 - Query parameter `?token=<token>` (required for browser/Electron `EventSource` which cannot send custom HTTP headers).
 
 ### 3.4 CORS Origins

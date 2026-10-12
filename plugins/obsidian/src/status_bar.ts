@@ -1,25 +1,25 @@
 /**
- * Status bar presentation and SSE background event handling for Orbit Insights.
+ * Status bar presentation and SSE background event handling for PKMRAG Insights.
  */
 
 import { Notice } from "obsidian";
-import type OrbitInsightsPlugin from "./main";
-import { VIEW_TYPE_ORBIT_INSIGHTS, OrbitInsightsView } from "./view";
+import type PkmragPlugin from "./main";
+import { VIEW_TYPE_PKMRAG_INSIGHTS, PkmragInsightsView } from "./view";
 
 export function renderStatusBar(
   statusBarEl: HTMLElement,
-  plugin: OrbitInsightsPlugin
+  plugin: PkmragPlugin
 ): void {
   statusBarEl.empty();
   statusBarEl.onclick = () => plugin.activateView();
 
   if (!plugin.isServerConnected) {
     if (!plugin.daemonManager.isBinaryAvailable()) {
-      statusBarEl.createSpan({ text: "⚪ PKMRAG: Setup Required", cls: "orbit-status-setup" });
+      statusBarEl.createSpan({ text: "⚪ PKMRAG: Setup Required", cls: "pkmrag-status-setup" });
       statusBarEl.setAttribute("title", "PKMRAG engine is not installed. Click to open setup wizard.");
       return;
     }
-    statusBarEl.createSpan({ text: "🔴 PKMRAG: Offline", cls: "orbit-status-disconnected" });
+    statusBarEl.createSpan({ text: "🔴 PKMRAG: Offline", cls: "pkmrag-status-disconnected" });
     statusBarEl.setAttribute("title", "PKMRAG daemon is offline. Click to open panel.");
     return;
   }
@@ -31,7 +31,7 @@ export function renderStatusBar(
     const pct = Math.min(100, Math.max(0, plugin.activeJob.percent));
     statusBarEl.createSpan({
       text: `${icon} PKMRAG: ${name} (${pct}%)`,
-      cls: "orbit-status-busy",
+      cls: "pkmrag-status-busy",
     });
     const desc = plugin.activeJob.message || plugin.activeJob.desc || plugin.activeJob.phase;
     statusBarEl.setAttribute("title", `PKMRAG ${name}: ${desc} (${pct}%)`);
@@ -39,16 +39,16 @@ export function renderStatusBar(
   }
 
   if (!plugin.isVaultIndexed) {
-    statusBarEl.createSpan({ text: "⚠️ PKMRAG: Unindexed", cls: "orbit-status-warning" });
+    statusBarEl.createSpan({ text: "⚠️ PKMRAG: Unindexed", cls: "pkmrag-status-warning" });
     statusBarEl.setAttribute("title", "Vault not indexed. Click to open setup.");
     return;
   }
 
-  statusBarEl.createSpan({ text: "🟢 PKMRAG: Ready", cls: "orbit-status-connected" });
+  statusBarEl.createSpan({ text: "🟢 PKMRAG: Ready", cls: "pkmrag-status-connected" });
   statusBarEl.setAttribute("title", "PKMRAG is ready. Click to open panel.");
 }
 
-export function setupEventStream(plugin: OrbitInsightsPlugin): EventSource | null {
+export function setupEventStream(plugin: PkmragPlugin): EventSource | null {
   return plugin.client.connectEvents((event, data) => {
     const activeFile = plugin.app.workspace.getActiveFile();
     if (event === "ingest_progress") {
@@ -102,9 +102,9 @@ export function setupEventStream(plugin: OrbitInsightsPlugin): EventSource | nul
   });
 }
 
-function notifySidebar(plugin: OrbitInsightsPlugin): void {
-  const leaves = plugin.app.workspace.getLeavesOfType(VIEW_TYPE_ORBIT_INSIGHTS);
+function notifySidebar(plugin: PkmragPlugin): void {
+  const leaves = plugin.app.workspace.getLeavesOfType(VIEW_TYPE_PKMRAG_INSIGHTS);
   if (leaves.length > 0) {
-    (leaves[0].view as OrbitInsightsView).render();
+    (leaves[0].view as PkmragInsightsView).render();
   }
 }

@@ -12,11 +12,11 @@ tags: [test]
 ---
 # System Architecture
 
-The high-level architecture of Orbit.
+The high-level architecture of PKMRAG.
 
 ## Storage Layer
 
-Orbit uses embedded databases for local-first storage.
+PKMRAG uses embedded databases for local-first storage.
 
 ### LadybugDB
 

@@ -1,4 +1,4 @@
-"""Vault ingestion pipeline package for Project Orbit."""
+"""Vault ingestion pipeline package for PKMRAG."""
 
 from __future__ import annotations
 

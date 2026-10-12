@@ -1,4 +1,4 @@
-"""Obsidian vault dialect implementation for Project Orbit."""
+"""Obsidian vault dialect implementation for PKMRAG."""
 
 from __future__ import annotations
 

@@ -13,7 +13,7 @@ Traditional GraphRAG uses LLMs to extract entity triples `(subject, predicate, o
 2. Ontological drift and hallucination
 3. Noisy entity resolution
 
-In contrast, Orbit leverages the human-curated wikilink topology:
+In contrast, PKMRAG leverages the human-curated wikilink topology:
 - Notes connect via [[Property Graphs]]
 - Hybrid ranking connects via [[Hybrid Search]]
 - Agent query plane via [[FastMCP Server]]

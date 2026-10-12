@@ -1,4 +1,4 @@
-"""Integration tests for Project Orbit CLI commands."""
+"""Integration tests for PKMRAG CLI commands."""
 
 from __future__ import annotations
 
@@ -47,14 +47,14 @@ def _extract_json(text: str) -> Any:
 
 
 def test_cli_version() -> None:
-    """Verify orbit --version outputs the correct version."""
+    """Verify pkmrag --version outputs the correct version."""
     result = runner.invoke(app, ["--version"])
     assert result.exit_code == 0
     assert __version__ in result.output
 
 
 def test_cli_doctor_json() -> None:
-    """Verify orbit doctor --json executes and outputs valid JSON report."""
+    """Verify pkmrag doctor --json executes and outputs valid JSON report."""
     result = runner.invoke(app, ["doctor", "--json"])
     assert result.exit_code == 0
     data = _extract_json(result.output)
@@ -64,7 +64,7 @@ def test_cli_doctor_json() -> None:
 
 
 def test_cli_mcp_config(mock_vault: Path) -> None:
-    """Verify orbit mcp-config outputs JSON configuration containing vault path."""
+    """Verify pkmrag mcp-config outputs JSON configuration containing vault path."""
     result = runner.invoke(app, ["mcp-config", str(mock_vault)])
     assert result.exit_code == 0
     assert "mcpServers" in result.output
@@ -73,7 +73,7 @@ def test_cli_mcp_config(mock_vault: Path) -> None:
 
 
 def test_cli_ingest_and_search_json(mock_vault: Path) -> None:
-    """Verify orbit ingest --json indexes notes and orbit search --json finds results."""
+    """Verify pkmrag ingest --json indexes notes and pkmrag search --json finds results."""
     # 1. Ingest
     ingest_res = runner.invoke(app, ["ingest", str(mock_vault), "--target", "all", "--json"])
     assert ingest_res.exit_code == 0

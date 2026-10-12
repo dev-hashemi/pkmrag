@@ -3,23 +3,23 @@
  */
 
 import { Notice } from "obsidian";
-import type OrbitInsightsPlugin from "./main";
+import type PkmragPlugin from "./main";
 
-export function registerPluginCommands(plugin: OrbitInsightsPlugin): void {
+export function registerPluginCommands(plugin: PkmragPlugin): void {
   plugin.addCommand({
-    id: "open-orbit-insights",
+    id: "open-pkmrag-insights",
     name: "Open Insights Sidebar",
     callback: () => plugin.activateView(),
   });
 
   plugin.addCommand({
-    id: "refresh-orbit-insights",
+    id: "refresh-pkmrag-insights",
     name: "Refresh Insights for Active Note",
     callback: () => plugin.refreshActiveView(),
   });
 
   plugin.addCommand({
-    id: "run-orbit-discover",
+    id: "run-pkmrag-discover",
     name: "Run AI Gap Discovery",
     callback: async () => {
       new Notice("PKMRAG: AI Gap Discovery started in background...");
@@ -33,7 +33,7 @@ export function registerPluginCommands(plugin: OrbitInsightsPlugin): void {
   });
 
   plugin.addCommand({
-    id: "rebuild-orbit-index",
+    id: "rebuild-pkmrag-index",
     name: "Rebuild Vault Index (Full)",
     callback: async () => {
       new Notice("PKMRAG: Full index rebuild started in background...");
@@ -47,7 +47,7 @@ export function registerPluginCommands(plugin: OrbitInsightsPlugin): void {
   });
 
   plugin.addCommand({
-    id: "restart-orbit-daemon",
+    id: "restart-pkmrag-daemon",
     name: "Restart Background Daemon",
     callback: async () => {
       new Notice("PKMRAG: Restarting daemon...");
@@ -57,7 +57,7 @@ export function registerPluginCommands(plugin: OrbitInsightsPlugin): void {
   });
 
   plugin.addCommand({
-    id: "sync-orbit-vault",
+    id: "sync-pkmrag-vault",
     name: "Sync Vault Index (Incremental)",
     callback: async () => {
       new Notice("PKMRAG: Synchronizing vault delta...");
@@ -72,7 +72,7 @@ export function registerPluginCommands(plugin: OrbitInsightsPlugin): void {
   });
 
   plugin.addCommand({
-    id: "toggle-orbit-inline-indicators",
+    id: "toggle-pkmrag-inline-indicators",
     name: "Toggle Inline Heading Indicators",
     callback: async () => {
       plugin.settings.showInlineIndicators = !plugin.settings.showInlineIndicators;
@@ -85,7 +85,7 @@ export function registerPluginCommands(plugin: OrbitInsightsPlugin): void {
   });
 
   plugin.addCommand({
-    id: "clear-orbit-dismissed",
+    id: "clear-pkmrag-dismissed",
     name: "Clear Dismissed Suggestions",
     callback: async () => {
       plugin.settings.dismissedSuggestions = {};

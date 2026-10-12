@@ -1,14 +1,14 @@
 /**
- * Semantic gaps (missing links) section renderer for Orbit Insights sidebar.
+ * Semantic gaps (missing links) section renderer for PKMRAG Insights sidebar.
  */
 
-import type OrbitInsightsPlugin from "./main";
+import type PkmragPlugin from "./main";
 import { SemanticGapCandidate } from "./types";
 import { renderDismissedDrawer } from "./view_inferences";
 
 export function renderGapsSection(
   container: HTMLElement,
-  plugin: OrbitInsightsPlugin,
+  plugin: PkmragPlugin,
   gaps: SemanticGapCandidate[],
   currentNotePath: string | null,
   onUpdate: () => void
@@ -18,14 +18,14 @@ export function renderGapsSection(
     (g) => !dismissed[`${g.source_path}::${g.target_path}`]
   );
 
-  const sec = container.createDiv({ cls: "orbit-section" });
+  const sec = container.createDiv({ cls: "pkmrag-section" });
   sec.createDiv({
-    cls: "orbit-section-header",
+    cls: "pkmrag-section-header",
     text: `Missing Links (${visibleGaps.length})`,
   });
 
   if (visibleGaps.length === 0) {
-    sec.createDiv({ cls: "orbit-empty-state", text: "No unlinked semantic gaps detected." });
+    sec.createDiv({ cls: "pkmrag-empty-state", text: "No unlinked semantic gaps detected." });
   } else {
     for (const gap of visibleGaps) {
       renderGapCard(sec, plugin, gap, currentNotePath, onUpdate);
@@ -38,7 +38,7 @@ export function renderGapsSection(
 
 function renderGapCard(
   sec: HTMLElement,
-  plugin: OrbitInsightsPlugin,
+  plugin: PkmragPlugin,
   gap: SemanticGapCandidate,
   currentNotePath: string | null,
   onUpdate: () => void
@@ -47,30 +47,30 @@ function renderGapCard(
   const otherTitle = isTarget ? gap.target_title : gap.source_title;
   const otherPath = isTarget ? gap.target_path : gap.source_path;
 
-  const card = sec.createDiv({ cls: "orbit-card" });
-  const cardHead = card.createDiv({ cls: "orbit-card-header" });
+  const card = sec.createDiv({ cls: "pkmrag-card" });
+  const cardHead = card.createDiv({ cls: "pkmrag-card-header" });
   const targetLink = cardHead.createEl("a", {
-    cls: "orbit-card-target",
+    cls: "pkmrag-card-target",
     text: otherTitle || otherPath.replace(/\.md$/, ""),
   });
   targetLink.onclick = () => plugin.app.workspace.openLinkText(otherPath, "");
 
   const pct = Math.round(gap.similarity * 100);
-  cardHead.createSpan({ cls: "orbit-badge", text: `${pct}% similar` });
+  cardHead.createSpan({ cls: "pkmrag-badge", text: `${pct}% similar` });
 
   card.createDiv({
-    cls: "orbit-card-reason",
+    cls: "pkmrag-card-reason",
     text: `Graph distance: ${gap.hops} hops away with high semantic proximity.`,
   });
 
-  const actions = card.createDiv({ cls: "orbit-card-actions" });
+  const actions = card.createDiv({ cls: "pkmrag-card-actions" });
   const insertBtn = actions.createEl("button", {
-    cls: "orbit-btn-sm mod-cta",
+    cls: "pkmrag-btn-sm mod-cta",
     text: "+ Link",
   });
   insertBtn.onclick = () => plugin.insertLink(otherTitle || otherPath.replace(/\.md$/, ""));
 
-  const dismissBtn = actions.createEl("button", { cls: "orbit-btn-sm", text: "Dismiss" });
+  const dismissBtn = actions.createEl("button", { cls: "pkmrag-btn-sm", text: "Dismiss" });
   dismissBtn.onclick = async () => {
     const key = `${gap.source_path}::${gap.target_path}`;
     if (!plugin.settings.dismissedSuggestions) {

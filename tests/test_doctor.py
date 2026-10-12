@@ -1,4 +1,4 @@
-"""Tests for the Orbit diagnostic health checks and CLI."""
+"""Tests for the PKMRAG diagnostic health checks and CLI."""
 
 from unittest.mock import MagicMock, patch
 
@@ -79,14 +79,14 @@ def test_run_diagnostics() -> None:
 
 
 def test_cli_version() -> None:
-    """Verify orbit --version command."""
+    """Verify pkmrag --version command."""
     result = runner.invoke(app, ["--version"])
     assert result.exit_code == 0
     assert __version__ in result.stdout
 
 
 def test_cli_doctor_text() -> None:
-    """Verify orbit doctor standard output."""
+    """Verify pkmrag doctor standard output."""
     result = runner.invoke(app, ["doctor"])
     assert result.exit_code == 0
     assert "LadybugDB" in result.stdout
@@ -95,7 +95,7 @@ def test_cli_doctor_text() -> None:
 
 
 def test_cli_doctor_json() -> None:
-    """Verify orbit doctor --json output format."""
+    """Verify pkmrag doctor --json output format."""
     result = runner.invoke(app, ["doctor", "--json"])
     assert result.exit_code == 0
     stdout_lower = result.stdout.lower()

@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-27
-- **Deciders:** Orbit Core Team
+- **Deciders:** PKMRAG Core Team
 
 ---
 
@@ -16,7 +16,7 @@ Running external daemons or Docker containers imposes significant barrier to ent
 ---
 
 ## Decision
-Orbit will exclusively utilize **embedded, zero-daemon, in-process storage engines**:
+PKMRAG will exclusively utilize **embedded, zero-daemon, in-process storage engines**:
 1. **LadybugDB:** In-process C++ graph database engine executing OpenCypher queries directly in the host process memory space.
 2. **LanceDB:** In-process columnar vector and FTS engine backed by Apache Arrow and disk-persisted Lance datasets.
 
@@ -27,7 +27,7 @@ Orbit will exclusively utilize **embedded, zero-daemon, in-process storage engin
 ### Positive
 - Zero deployment overhead (no Docker, no background services, no port conflicts).
 - Sub-millisecond read/write latency via in-process memory sharing.
-- Portable storage: Graph and vector databases are stored locally within `<vault>/.orbit/`.
+- Portable storage: Graph and vector databases are stored locally within `<vault>/.pkmrag/`.
 
 ### Negative
 - Concurrent multi-process write access requires single-process locking.
