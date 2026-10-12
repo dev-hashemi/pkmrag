@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/pkmrag-logo-text-dark.svg">
-    <img alt="PKMRAG" src="assets/pkmrag-logo-text.svg" width="520">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/dev-hashemi/pkmrag/main/assets/pkmrag-logo-text-dark.svg">
+    <img alt="PKMRAG" src="https://raw.githubusercontent.com/dev-hashemi/pkmrag/main/assets/pkmrag-logo-text.svg" width="520">
   </picture>
 </p>
 
@@ -10,17 +10,17 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/dev-hashemi/project-orbit/actions"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/dev-hashemi/project-orbit/ci.yml?branch=main&style=flat&label=CI&logo=githubactions&logoColor=white"></a>
-  <a href="https://github.com/dev-hashemi/project-orbit"><img alt="Coverage" src="https://img.shields.io/badge/coverage-89%25-brightgreen?style=flat&logo=pytest"></a>
+  <a href="https://github.com/dev-hashemi/pkmrag/actions"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/dev-hashemi/pkmrag/ci.yml?branch=main&style=flat&label=CI&logo=githubactions&logoColor=white"></a>
+  <a href="https://github.com/dev-hashemi/pkmrag"><img alt="Coverage" src="https://img.shields.io/badge/coverage-89%25-brightgreen?style=flat&logo=pytest"></a>
   <a href="https://www.python.org/downloads/"><img alt="Python" src="https://img.shields.io/badge/python-%3E%3D3.12-3776AB?style=flat&logo=python&logoColor=white"></a>
-  <a href="https://github.com/dev-hashemi/project-orbit/releases"><img alt="Version" src="https://img.shields.io/github/v/tag/dev-hashemi/project-orbit?style=flat&label=version&logo=github&logoColor=white"></a>
-  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-green?style=flat&logo=opensourceinitiative&logoColor=white"></a>
+  <a href="https://pypi.org/project/pkmrag/"><img alt="Version" src="https://img.shields.io/pypi/v/pkmrag?style=flat&label=version&logo=pypi&logoColor=white"></a>
+  <a href="https://github.com/dev-hashemi/pkmrag/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-green?style=flat&logo=opensourceinitiative&logoColor=white"></a>
   <a href="http://mypy-lang.org/"><img alt="Mypy" src="https://img.shields.io/badge/types-mypy_strict-2A6DB5?style=flat&logo=python&logoColor=white"></a>
 </p>
 
 PKMRAG is an open-source, local-first retrieval engine designed for linked personal knowledge bases (PKMs). While Obsidian serves as our primary reference dialect, PKMRAG operates on an abstract knowledge model supporting any linked document system (Logseq, Foam, CommonMark docs) via pluggable dialects. It combines an explicit structural property graph with an Arrow-backed vector and keyword search index, exposing contextual intelligence to frontier AI reasoning tools via the Model Context Protocol (MCP).
 
-📖 **Technical Documentation:** [System Architecture & Subsystems](docs/architecture.md)
+📖 **Technical Documentation:** [System Architecture & Subsystems](https://github.com/dev-hashemi/pkmrag/blob/main/docs/architecture.md)
 
 ---
 
@@ -75,7 +75,7 @@ uv tool install pkmrag
 
 For local development or cloning from source:
 ```bash
-git clone https://github.com/dev-hashemi/project-orbit.git pkmrag
+git clone https://github.com/dev-hashemi/pkmrag.git
 cd pkmrag
 uv sync
 ```
@@ -192,7 +192,7 @@ pkmrag install-plugin /path/to/vault
 pkmrag install-plugin /path/to/vault --symlink
 ```
 
-See [docs/subsystems/obsidian-plugin.md](docs/subsystems/obsidian-plugin.md) for installation and developer guides.
+See [docs/subsystems/obsidian-plugin.md](https://github.com/dev-hashemi/pkmrag/blob/main/docs/subsystems/obsidian-plugin.md) for installation and developer guides.
 
 
 ---
