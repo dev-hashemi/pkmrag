@@ -5,6 +5,7 @@
 import { MarkdownView, Notice, Plugin, TFile, WorkspaceLeaf, addIcon } from "obsidian";
 import { PkmragClient } from "./client";
 import { DaemonManager } from "./daemon";
+import { HostInstaller } from "./installer";
 import { registerPluginCommands } from "./commands";
 import { createPkmragEditorExtension } from "./extension";
 import { PkmragSettingTab } from "./settings";
@@ -23,6 +24,7 @@ export default class PkmragPlugin extends Plugin {
   settings: PkmragPluginSettings = DEFAULT_SETTINGS;
   client!: PkmragClient;
   daemonManager!: DaemonManager;
+  installer!: HostInstaller;
   activeJob: ActiveJobState | null = null;
   isVaultIndexed = true;
   isServerConnected = false;
@@ -36,6 +38,7 @@ export default class PkmragPlugin extends Plugin {
     await this.loadSettings();
     this.client = new PkmragClient(this.settings);
     this.daemonManager = new DaemonManager(this);
+    this.installer = new HostInstaller(this);
 
     // Auto-discover vault token if not set
     if (!this.settings.authToken) {
@@ -116,6 +119,7 @@ export default class PkmragPlugin extends Plugin {
   }
 
   onunload(): void {
+    this.installer?.cancel();
     this.daemonManager.stop();
     if (this.eventSource) {
       this.eventSource.close();

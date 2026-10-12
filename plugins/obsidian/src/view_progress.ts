@@ -11,8 +11,14 @@ export function renderProgressBanner(
   const banner = container.createDiv({ cls: "pkmrag-progress-banner" });
 
   const headerRow = banner.createDiv({ cls: "pkmrag-progress-header" });
-  const icon = job.type === "discover" ? "🧠" : "🔄";
-  const titleText = job.type === "discover" ? "AI Gap Discovery" : "Vault Indexing";
+  const phaseLower = (job.phase || "").toLowerCase();
+  const isModel = phaseLower.includes("model") || phaseLower.includes("download");
+  const icon = job.type === "discover" ? "🧠" : isModel ? "📥" : "🔄";
+  const titleText = job.type === "discover"
+    ? "AI Gap Discovery"
+    : isModel
+    ? "Downloading Embedding Model"
+    : "Vault Indexing";
 
   const titleWrapper = headerRow.createDiv({ cls: "pkmrag-progress-title-wrapper" });
   titleWrapper.createSpan({ cls: "pkmrag-progress-icon", text: icon });

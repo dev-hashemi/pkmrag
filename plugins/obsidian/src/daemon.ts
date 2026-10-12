@@ -42,31 +42,65 @@ export class DaemonManager {
     return "Stopped";
   }
 
-  isBinaryAvailable(): boolean {
-    if (this.plugin.settings.customBinaryPath.trim().length > 0) {
-      return true;
-    }
+  private getPlatformInfo(): { home: string; isWin: boolean; fs: { existsSync: (p: string) => boolean } | null } {
     const req = (window as unknown as { require?: (name: string) => unknown }).require;
     const fs = req ? (req(["f", "s"].join("")) as { existsSync: (p: string) => boolean }) : null;
-    const os = req ? (req(["o", "s"].join("")) as { homedir: () => string }) : null;
+    const os = req ? (req(["o", "s"].join("")) as { homedir: () => string; platform?: () => string }) : null;
+    const proc = (window as unknown as { process?: { platform?: string } }).process;
     const home = os ? os.homedir() : "";
+    const isWin = (os && os.platform ? os.platform() === "win32" : false) || proc?.platform === "win32";
+    return { home, isWin, fs };
+  }
 
-    const candidates = [
+  private getPkmragCandidates(home: string, isWin: boolean): string[] {
+    const proc = (window as unknown as { process?: { env?: Record<string, string> } }).process;
+    const localAppData = proc?.env?.LOCALAPPDATA || "";
+    if (isWin) {
+      const list = [
+        `${home}/.local/bin/pkmrag.exe`,
+        `${home}/.cargo/bin/pkmrag.exe`,
+        `${home}/.local/bin/pkmrag`,
+      ];
+      if (localAppData) {
+        list.push(`${localAppData}/pipx/venvs/pkmrag/Scripts/pkmrag.exe`);
+        list.push(`${localAppData}/Programs/Python/Python311/Scripts/pkmrag.exe`);
+        list.push(`${localAppData}/Programs/Python/Python312/Scripts/pkmrag.exe`);
+      }
+      return list;
+    }
+    return [
       `${home}/.local/bin/pkmrag`,
       `${home}/.cargo/bin/pkmrag`,
       `/usr/local/bin/pkmrag`,
       `/usr/bin/pkmrag`,
+    ];
+  }
+
+  private getUvCandidates(home: string, isWin: boolean): string[] {
+    if (isWin) {
+      return [
+        `${home}/.local/bin/uv.exe`,
+        `${home}/.cargo/bin/uv.exe`,
+        `${home}/.local/bin/uv`,
+      ];
+    }
+    return [
       `${home}/.local/bin/uv`,
       `${home}/.cargo/bin/uv`,
+      `${home}/envs/base/bin/uv`,
       `/usr/local/bin/uv`,
     ];
+  }
 
-    if (fs) {
-      for (const cand of candidates) {
-        if (cand && fs.existsSync(cand)) return true;
-      }
+  isBinaryAvailable(): boolean {
+    if (this.plugin.settings.customBinaryPath.trim().length > 0) {
+      return true;
     }
-    return false;
+    const { home, isWin, fs } = this.getPlatformInfo();
+    if (!fs || !home) return false;
+
+    const candidates = [...this.getPkmragCandidates(home, isWin), ...this.getUvCandidates(home, isWin)];
+    return candidates.some((cand) => cand && fs.existsSync(cand));
   }
 
   private getChildProcessModule(): ChildProcessModule | null {
@@ -95,42 +129,22 @@ export class DaemonManager {
       return { command: custom, args: ["serve", vaultPath, "-t", "http", "--port", "3747"] };
     }
 
-    const req = (window as unknown as { require?: (name: string) => unknown }).require;
-    const fs = req ? (req(["f", "s"].join("")) as { existsSync: (p: string) => boolean }) : null;
-    const os = req ? (req(["o", "s"].join("")) as { homedir: () => string }) : null;
-    const home = os ? os.homedir() : "";
-
-    const pkmragCandidates = [
-      `${home}/.local/bin/pkmrag`,
-      `${home}/.cargo/bin/pkmrag`,
-      `/usr/local/bin/pkmrag`,
-      `/usr/bin/pkmrag`,
-    ];
-
+    const { home, isWin, fs } = this.getPlatformInfo();
     if (fs && home) {
-      for (const cand of pkmragCandidates) {
+      for (const cand of this.getPkmragCandidates(home, isWin)) {
         if (fs.existsSync(cand)) {
           return { command: cand, args: ["serve", vaultPath, "-t", "http", "--port", "3747"] };
         }
       }
-    }
 
-    const uvCandidates = [
-      `${home}/.local/bin/uv`,
-      `${home}/.cargo/bin/uv`,
-      `${home}/envs/base/bin/uv`,
-      `/usr/local/bin/uv`,
-    ];
-
-    if (fs && home) {
-      for (const uv of uvCandidates) {
+      for (const uv of this.getUvCandidates(home, isWin)) {
         if (fs.existsSync(uv)) {
           return { command: uv, args: ["run", "pkmrag", "serve", vaultPath, "-t", "http", "--port", "3747"] };
         }
       }
     }
 
-    return { command: "pkmrag", args: ["serve", vaultPath, "-t", "http", "--port", "3747"] };
+    return { command: isWin ? "pkmrag.exe" : "pkmrag", args: ["serve", vaultPath, "-t", "http", "--port", "3747"] };
   }
 
   async start(): Promise<boolean> {
@@ -165,13 +179,13 @@ export class DaemonManager {
 
     const { command, args } = this.resolveBinary(vaultPath);
 
-    const req = (window as unknown as { require?: (name: string) => unknown }).require;
-    const os = req ? (req(["o", "s"].join("")) as { homedir: () => string }) : null;
-    const home = os ? os.homedir() : "";
-
+    const { home, isWin } = this.getPlatformInfo();
     const procEnv = (window as unknown as { process?: { env: Record<string, string> } }).process?.env || {};
-    const extraPaths = [`${home}/.local/bin`, `${home}/.cargo/bin`, `${home}/envs/base/bin`, "/usr/local/bin", "/usr/bin"];
-    const enhancedPath = extraPaths.concat((procEnv.PATH || "").split(":")).filter(Boolean).join(":");
+    const pathSep = isWin ? ";" : ":";
+    const extraPaths = isWin
+      ? [`${home}/.local/bin`, `${home}/.cargo/bin`]
+      : [`${home}/.local/bin`, `${home}/.cargo/bin`, `${home}/envs/base/bin`, "/usr/local/bin", "/usr/bin"];
+    const enhancedPath = extraPaths.concat((procEnv.PATH || "").split(pathSep)).filter(Boolean).join(pathSep);
 
     try {
       this.process = cp.spawn(command, args, {

@@ -11,23 +11,36 @@ export function renderStatusBar(
   plugin: PkmragPlugin
 ): void {
   statusBarEl.empty();
-  statusBarEl.onclick = () => plugin.activateView();
+  statusBarEl.onclick = async () => {
+    plugin.activateView();
+    if (!plugin.isServerConnected && plugin.daemonManager.isBinaryAvailable()) {
+      await plugin.daemonManager.start();
+    }
+  };
+
+  if (plugin.installer?.inProgress) {
+    statusBarEl.createSpan({ text: "📥 PKMRAG: Installing...", cls: "pkmrag-status-busy" });
+    statusBarEl.setAttribute("title", "PKMRAG engine installation in progress...");
+    return;
+  }
 
   if (!plugin.isServerConnected) {
     if (!plugin.daemonManager.isBinaryAvailable()) {
-      statusBarEl.createSpan({ text: "⚪ PKMRAG: Setup Required", cls: "pkmrag-status-setup" });
-      statusBarEl.setAttribute("title", "PKMRAG engine is not installed. Click to open setup wizard.");
+      statusBarEl.createSpan({ text: "⚪ PKMRAG: Setup Engine", cls: "pkmrag-status-setup" });
+      statusBarEl.setAttribute("title", "PKMRAG companion is not installed. Click to open 1-click setup.");
       return;
     }
-    statusBarEl.createSpan({ text: "🔴 PKMRAG: Offline", cls: "pkmrag-status-disconnected" });
-    statusBarEl.setAttribute("title", "PKMRAG daemon is offline. Click to open panel.");
+    statusBarEl.createSpan({ text: "🔴 PKMRAG: Offline (Click to start)", cls: "pkmrag-status-disconnected" });
+    statusBarEl.setAttribute("title", "PKMRAG daemon is stopped. Click to auto-start background engine.");
     return;
   }
 
   if (plugin.activeJob) {
+    const phaseLower = (plugin.activeJob.phase || "").toLowerCase();
+    const isModel = phaseLower.includes("model") || phaseLower.includes("download");
     const isDisc = plugin.activeJob.type === "discover";
-    const icon = isDisc ? "🧠" : "🔄";
-    const name = isDisc ? "Discovering" : "Indexing";
+    const icon = isDisc ? "🧠" : isModel ? "📥" : "🔄";
+    const name = isDisc ? "Discovering" : isModel ? "Downloading Model" : "Indexing";
     const pct = Math.min(100, Math.max(0, plugin.activeJob.percent));
     statusBarEl.createSpan({
       text: `${icon} PKMRAG: ${name} (${pct}%)`,
@@ -40,7 +53,7 @@ export function renderStatusBar(
 
   if (!plugin.isVaultIndexed) {
     statusBarEl.createSpan({ text: "⚠️ PKMRAG: Unindexed", cls: "pkmrag-status-warning" });
-    statusBarEl.setAttribute("title", "Vault not indexed. Click to open setup.");
+    statusBarEl.setAttribute("title", "Vault not indexed. Click to open panel and start initial indexing.");
     return;
   }
 

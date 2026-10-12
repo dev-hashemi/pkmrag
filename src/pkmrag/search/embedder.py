@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any, Optional, Protocol, runtime_checkable
 
 from pkmrag.config import settings
@@ -59,6 +60,13 @@ class FastEmbedProvider:
 
             self._model = TextEmbedding(model_name=self._model_name)
         return self._model
+
+    def warm_up(self, progress_callback: Optional[Callable[[str, int, int], None]] = None) -> None:
+        """Ensure the embedding model is downloaded and loaded into memory."""
+        if self._model is None:
+            if progress_callback:
+                progress_callback(f"Downloading/loading embedding model ({self._model_name})", 0, 1)
+            self._get_model()
 
     def embed_texts(self, texts: list[str]) -> list[list[float]]:
         """Compute embeddings for a collection of chunk texts."""

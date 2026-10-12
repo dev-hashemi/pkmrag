@@ -206,6 +206,16 @@ class IngestPipeline:
             chunks_created = 0
             total_items = len(to_embed)
 
+            if to_embed:
+                if progress_callback:
+                    progress_callback(
+                        f"Downloading/loading embedding model ({self.embedder.model_name})",
+                        0,
+                        total_items,
+                    )
+                if hasattr(self.embedder, "warm_up"):
+                    self.embedder.warm_up(progress_callback)
+
             for idx, rel_path in enumerate(to_embed, start=1):
                 if progress_callback:
                     progress_callback("Vectorizing chunks", idx, total_items)

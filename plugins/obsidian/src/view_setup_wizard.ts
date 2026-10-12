@@ -1,5 +1,5 @@
 /**
- * Setup Wizard view rendered when PKMRAG engine executable is not installed on the system.
+ * Interactive Setup Wizard view rendered when PKMRAG engine executable is not installed.
  */
 
 import { Notice, setIcon } from "obsidian";
@@ -15,18 +15,135 @@ export function renderSetupWizardView(
   const iconEl = wrapper.createDiv({ cls: "pkmrag-offline-icon" });
   setIcon(iconEl, "pkmrag-ribbon");
 
-  wrapper.createEl("h3", { text: "PKMRAG Engine Setup Required", cls: "pkmrag-offline-title" });
+  wrapper.createEl("h3", { text: "PKMRAG Engine Setup", cls: "pkmrag-offline-title" });
 
   wrapper.createEl("p", {
     cls: "pkmrag-offline-desc",
-    text: "PKMRAG's local Hybrid GraphRAG engine needs to be installed on your machine. Install the companion CLI package using pipx (recommended) or uv tool:",
+    text: "PKMRAG requires a local companion engine to power deterministic graph queries, semantic vector search, and AI discovery on your notes.",
   });
 
-  // Step 1: Install command snippet
-  const step1Box = wrapper.createDiv({ cls: "pkmrag-wizard-step" });
-  step1Box.createDiv({ cls: "pkmrag-wizard-step-title", text: "Step 1: Install via Terminal" });
+  const env = plugin.installer.detectEnvironment();
 
-  const codeBox = step1Box.createDiv({ cls: "pkmrag-code-box" });
+  // 1. One-Click Automated Installer Card
+  const installerCard = wrapper.createDiv({ cls: "pkmrag-installer-card" });
+
+  const badgeText = env.hasUv
+    ? "Fast Install (uv detected)"
+    : env.hasPipx
+    ? "Standard Install (pipx detected)"
+    : "Zero-Dependency Bootstrap";
+  installerCard.createDiv({ cls: "pkmrag-installer-badge", text: badgeText });
+
+  const descText = env.hasUv
+    ? "Installs PKMRAG into an isolated environment using uv in seconds."
+    : env.hasPipx
+    ? "Installs PKMRAG into an isolated virtual environment using pipx."
+    : "No Python or package manager needed. Automatically bootstraps standalone uv and installs PKMRAG.";
+  installerCard.createDiv({ cls: "pkmrag-installer-desc", text: descText });
+
+  const cardActions = installerCard.createDiv({ cls: "pkmrag-offline-actions" });
+  const installBtn = cardActions.createEl("button", {
+    cls: "pkmrag-btn-sm mod-cta",
+    text: "⚡ Install PKMRAG Engine (One-Click)",
+  });
+
+  // State containers (log, progress, confirm)
+  const confirmBox = installerCard.createDiv({ cls: "pkmrag-installer-confirm pkmrag-hidden" });
+  const logBox = installerCard.createDiv({ cls: "pkmrag-installer-log pkmrag-hidden" });
+  const cancelBtn = installerCard.createEl("button", {
+    cls: "pkmrag-btn-sm pkmrag-hidden",
+    text: "Cancel",
+  });
+
+  installBtn.onclick = () => {
+    installBtn.addClass("pkmrag-hidden");
+    confirmBox.removeClass("pkmrag-hidden");
+    confirmBox.empty();
+
+    const toolName = env.hasUv ? "uv" : env.hasPipx ? "pipx" : "standalone uv";
+    confirmBox.createEl("p", {
+      text: `Install PKMRAG using ${toolName}? This will install the package into your user directory (~/.local/bin) without modifying system files.`,
+    });
+
+    const confirmActions = confirmBox.createDiv({ cls: "pkmrag-offline-actions" });
+    const proceedBtn = confirmActions.createEl("button", {
+      cls: "pkmrag-btn-sm mod-cta",
+      text: "Proceed with Install",
+    });
+    const abortBtn = confirmActions.createEl("button", {
+      cls: "pkmrag-btn-sm",
+      text: "Cancel",
+    });
+
+    abortBtn.onclick = () => {
+      confirmBox.addClass("pkmrag-hidden");
+      installBtn.removeClass("pkmrag-hidden");
+    };
+
+    proceedBtn.onclick = async () => {
+      confirmBox.addClass("pkmrag-hidden");
+      logBox.removeClass("pkmrag-hidden");
+      cancelBtn.removeClass("pkmrag-hidden");
+      logBox.empty();
+
+      cancelBtn.onclick = () => {
+        plugin.installer.cancel();
+        logBox.createDiv({ text: "\nInstallation cancelled by user." });
+        cancelBtn.addClass("pkmrag-hidden");
+        installBtn.removeClass("pkmrag-hidden");
+      };
+
+      const success = await plugin.installer.install({
+        onPhase: (phase) => {
+          logBox.createDiv({ text: `>>> ${phase}` });
+          logBox.scrollTop = logBox.scrollHeight;
+        },
+        onLog: (line) => {
+          logBox.createDiv({ text: line });
+          logBox.scrollTop = logBox.scrollHeight;
+        },
+        onSuccess: async () => {
+          new Notice("PKMRAG Engine installed successfully!");
+          cancelBtn.addClass("pkmrag-hidden");
+          const ok = await plugin.daemonManager.start();
+          if (ok) {
+            onConnected();
+          } else {
+            new Notice("PKMRAG installed. Click 'Verify & Start Engine' to connect.");
+          }
+        },
+        onError: (err) => {
+          new Notice(`Installation error: ${err}`);
+          logBox.createDiv({ text: `\n[ERROR] ${err}` });
+          cancelBtn.addClass("pkmrag-hidden");
+          installBtn.removeClass("pkmrag-hidden");
+          installBtn.setText("Retry Install");
+        },
+      });
+
+      if (!success) {
+        installBtn.removeClass("pkmrag-hidden");
+      }
+    };
+  };
+
+  // 2. Expandable Advanced / Manual Section
+  const toggle = wrapper.createDiv({ cls: "pkmrag-installer-toggle", text: "▶ Advanced: Manual Installation" });
+  const manualBox = wrapper.createDiv({ cls: "pkmrag-wizard-step pkmrag-hidden" });
+
+  toggle.onclick = () => {
+    const isHidden = manualBox.hasClass("pkmrag-hidden");
+    if (isHidden) {
+      manualBox.removeClass("pkmrag-hidden");
+      toggle.setText("▼ Advanced: Manual Installation");
+    } else {
+      manualBox.addClass("pkmrag-hidden");
+      toggle.setText("▶ Advanced: Manual Installation");
+    }
+  };
+
+  manualBox.createDiv({ cls: "pkmrag-wizard-step-title", text: "Run via Terminal:" });
+  const codeBox = manualBox.createDiv({ cls: "pkmrag-code-box" });
   const cmd = "pipx install pkmrag";
   codeBox.createEl("code", { text: cmd });
 
@@ -36,22 +153,17 @@ export function renderSetupWizardView(
     new Notice("Copied 'pipx install pkmrag' to clipboard!");
   };
 
-  // Alternative uv tool note
-  step1Box.createDiv({
+  manualBox.createDiv({
     cls: "pkmrag-wizard-hint",
     text: "Using uv? You can also run: uv tool install pkmrag",
   });
 
-  // Step 2: Connect & Verify
-  const step2Box = wrapper.createDiv({ cls: "pkmrag-wizard-step" });
-  step2Box.createDiv({ cls: "pkmrag-wizard-step-title", text: "Step 2: Verify & Connect" });
-
-  const actions = step2Box.createDiv({ cls: "pkmrag-offline-actions" });
-  const verifyBtn = actions.createEl("button", {
-    cls: "pkmrag-btn-sm mod-cta",
+  // Verify and Settings Buttons
+  const footerActions = wrapper.createDiv({ cls: "pkmrag-offline-actions" });
+  const verifyBtn = footerActions.createEl("button", {
+    cls: "pkmrag-btn-sm",
     text: "🔍 Verify & Start Engine",
   });
-
   verifyBtn.onclick = async () => {
     verifyBtn.setText("Searching for engine...");
     verifyBtn.setAttribute("disabled", "true");
@@ -62,11 +174,11 @@ export function renderSetupWizardView(
     } else {
       verifyBtn.setText("🔍 Verify & Start Engine");
       verifyBtn.removeAttribute("disabled");
-      new Notice("Could not detect pkmrag binary. Ensure pipx install finished or enter path in Settings.");
+      new Notice("Could not detect pkmrag binary. Install using button above or check Settings.");
     }
   };
 
-  const settingsBtn = actions.createEl("button", {
+  const settingsBtn = footerActions.createEl("button", {
     cls: "pkmrag-btn-sm",
     text: "Settings",
   });

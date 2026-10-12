@@ -14,11 +14,11 @@ export function renderOfflineView(
 
   const iconEl = wrapper.createDiv({ cls: "pkmrag-offline-icon" });
   setIcon(iconEl, "pkmrag-ribbon");
-  wrapper.createEl("h3", { text: "PKMRAG Daemon Offline", cls: "pkmrag-offline-title" });
+  wrapper.createEl("h3", { text: "PKMRAG Background Engine Stopped", cls: "pkmrag-offline-title" });
 
   wrapper.createEl("p", {
     cls: "pkmrag-offline-desc",
-    text: `PKMRAG daemon is not reachable at ${plugin.settings.serverUrl}. Start the local daemon to inspect graph insights, missing links, and AI suggestions:`,
+    text: "The local PKMRAG engine daemon is not running. Click 'Start Engine' below to launch the background process automatically (no terminal required):",
   });
 
   // Actions
@@ -26,19 +26,19 @@ export function renderOfflineView(
 
   const startBtn = btnRow.createEl("button", {
     cls: "pkmrag-btn-sm mod-cta",
-    text: "🚀 Start Daemon",
+    text: "🚀 Start Engine",
   });
   startBtn.onclick = async () => {
-    startBtn.setText("Starting...");
+    startBtn.setText("Starting engine...");
     startBtn.setAttribute("disabled", "true");
     const ok = await plugin.daemonManager.start();
     if (ok) {
-      new Notice("PKMRAG: Daemon started successfully.");
+      new Notice("PKMRAG: Engine started successfully.");
       onRetry();
     } else {
-      startBtn.setText("🚀 Start Daemon");
+      startBtn.setText("🚀 Start Engine");
       startBtn.removeAttribute("disabled");
-      new Notice("Could not auto-start daemon. Check settings or executable path.");
+      new Notice("Could not auto-start engine. Ensure pipx install finished or check Settings.");
     }
   };
 
@@ -59,16 +59,5 @@ export function renderOfflineView(
   settingsBtn.onclick = () => {
     (plugin.app as any).setting?.open?.();
     (plugin.app as any).setting?.openTabById?.(plugin.manifest.id);
-  };
-
-  // Advanced / manual command info
-  const codeBox = wrapper.createDiv({ cls: "pkmrag-code-box" });
-  const cmd = `uv run pkmrag serve . -t http --port 3747`;
-  codeBox.createEl("code", { text: cmd });
-
-  const copyBtn = codeBox.createEl("button", { cls: "pkmrag-copy-btn", text: "Copy" });
-  copyBtn.onclick = () => {
-    navigator.clipboard.writeText(cmd);
-    new Notice("Copied command to clipboard!");
   };
 }

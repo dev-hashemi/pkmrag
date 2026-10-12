@@ -15,11 +15,11 @@ export function renderUnindexedView(
   const iconEl = wrapper.createDiv({ cls: "pkmrag-offline-icon" });
   setIcon(iconEl, "pkmrag-ribbon");
 
-  wrapper.createEl("h3", { text: "Vault Not Indexed Yet", cls: "pkmrag-offline-title" });
+  wrapper.createEl("h3", { text: "Vault Setup & Initial Indexing", cls: "pkmrag-offline-title" });
 
   wrapper.createEl("p", {
     cls: "pkmrag-offline-desc",
-    text: "PKMRAG is connected, but your vault has not been indexed into LadybugDB and LanceDB yet. Index notes to build graph relationships, semantic vector search, and AI discovery.",
+    text: "PKMRAG is connected, but your vault has not been indexed yet. Initial setup will build your LadybugDB graph and download the local BAAI/bge-small-en-v1.5 embedding model (~130 MB, runs 100% on-device via ONNX with zero API fees) for semantic vector search.",
   });
 
   const btnRow = wrapper.createDiv({ cls: "pkmrag-offline-actions" });
@@ -32,7 +32,7 @@ export function renderUnindexedView(
     indexBtn.setText("Starting indexing...");
     indexBtn.setAttribute("disabled", "true");
     try {
-      new Notice("PKMRAG: Vault indexing started in background...");
+      new Notice("PKMRAG: Indexing started (downloading embedding model in background)...");
       await plugin.client.triggerIngest({ rebuild: true });
       onIndex();
     } catch (err: unknown) {

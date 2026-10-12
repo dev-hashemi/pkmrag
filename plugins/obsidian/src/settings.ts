@@ -103,6 +103,38 @@ export class PkmragSettingTab extends PluginSettingTab {
         this.display();
       })
     );
+
+    const env = this.plugin.installer.detectEnvironment();
+    const envDesc = env.hasUv
+      ? "uv detected on system"
+      : env.hasPipx
+      ? "pipx detected on system"
+      : "standalone bootstrap mode";
+
+    new Setting(containerEl)
+      .setName("Upgrade / Reinstall Engine")
+      .setDesc(`Reinstall or upgrade PKMRAG package from PyPI (${envDesc})`)
+      .addButton((btn) =>
+        btn.setButtonText("Upgrade Engine").onClick(async () => {
+          btn.setDisabled(true);
+          new Notice("Upgrading PKMRAG engine in background...");
+          const ok = await this.plugin.installer.install({
+            onPhase: () => {},
+            onLog: () => {},
+            onSuccess: async () => {
+              new Notice("PKMRAG Engine upgraded successfully!");
+              await this.plugin.daemonManager.restart();
+              btn.setDisabled(false);
+              this.display();
+            },
+            onError: (err) => {
+              new Notice(`Upgrade failed: ${err}`);
+              btn.setDisabled(false);
+            },
+          });
+          if (!ok) btn.setDisabled(false);
+        })
+      );
   }
 
   private renderEmbeddingsSection(containerEl: HTMLElement): void {
