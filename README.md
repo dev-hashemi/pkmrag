@@ -188,8 +188,14 @@ A native desktop companion plugin (`plugins/obsidian/`) connecting Obsidian to P
 # Install companion plugin into your Obsidian vault:
 pkmrag install-plugin /path/to/vault
 
-# Or for plugin developers:
+# Or for plugin developers (live symlink):
 pkmrag install-plugin /path/to/vault --symlink
+
+# Or build & install from source via npm (no Python CLI required):
+cd plugins/obsidian
+npm run install-vault -- /path/to/vault
+# (or for live symlink):
+npm run install-vault:symlink -- /path/to/vault
 ```
 
 See [docs/subsystems/obsidian-plugin.md](https://github.com/dev-hashemi/pkmrag/blob/main/docs/subsystems/obsidian-plugin.md) for installation and developer guides.

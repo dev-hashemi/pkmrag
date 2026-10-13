@@ -90,7 +90,15 @@ pkmrag install-plugin /path/to/my-vault
 pkmrag install-plugin /path/to/my-vault --symlink
 ```
 
-Alternatively, you can manually copy or symlink the build files:
+Alternatively, you can build and install directly from source using npm:
+```bash
+cd plugins/obsidian
+npm run install-vault -- /path/to/my-vault
+# Or with live symlink:
+npm run install-vault:symlink -- /path/to/my-vault
+```
+
+Or manually copy/symlink the build files:
 ```bash
 mkdir -p "/path/to/my-vault/.obsidian/plugins/pkmrag"
 cp plugins/obsidian/manifest.json \
