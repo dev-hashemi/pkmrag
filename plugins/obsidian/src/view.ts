@@ -146,12 +146,20 @@ export class PkmragInsightsView extends ItemView {
     if (!this.plugin.isServerConnected || this.isOffline) {
       if (!this.plugin.daemonManager.isBinaryAvailable()) {
         renderSetupWizardView(container, this.plugin, () => {
-          if (this.currentNotePath) this.loadInsightsForNote(this.currentNotePath);
+          if (this.currentNotePath) {
+            this.loadInsightsForNote(this.currentNotePath);
+          } else {
+            this.render();
+          }
         });
         return;
       }
       renderOfflineView(container, this.plugin, () => {
-        if (this.currentNotePath) this.loadInsightsForNote(this.currentNotePath);
+        if (this.currentNotePath) {
+          this.loadInsightsForNote(this.currentNotePath);
+        } else {
+          this.render();
+        }
       });
       return;
     }

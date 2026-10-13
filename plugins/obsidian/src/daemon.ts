@@ -38,68 +38,73 @@ export class DaemonManager {
   get statusMessage(): string {
     if (this.isStarting) return "Starting...";
     if (this.process && this.process.pid) return `Running (PID: ${this.process.pid})`;
+    if (!this.isBinaryAvailable()) return "Engine not installed";
     if (this.lastError) return `Error: ${this.lastError}`;
     return "Stopped";
   }
 
   private getPlatformInfo(): { home: string; isWin: boolean; fs: { existsSync: (p: string) => boolean } | null } {
-    const req = (window as unknown as { require?: (name: string) => unknown }).require;
+    const winObj = typeof window !== "undefined" ? (window as any) : (globalThis as any);
+    const req = winObj.require;
     const fs = req ? (req(["f", "s"].join("")) as { existsSync: (p: string) => boolean }) : null;
     const os = req ? (req(["o", "s"].join("")) as { homedir: () => string; platform?: () => string }) : null;
-    const proc = (window as unknown as { process?: { platform?: string } }).process;
+    const proc = winObj.process;
     const home = os ? os.homedir() : "";
     const isWin = (os && os.platform ? os.platform() === "win32" : false) || proc?.platform === "win32";
     return { home, isWin, fs };
   }
 
   private getPkmragCandidates(home: string, isWin: boolean): string[] {
-    const proc = (window as unknown as { process?: { env?: Record<string, string> } }).process;
-    const localAppData = proc?.env?.LOCALAPPDATA || "";
+    const winObj = typeof window !== "undefined" ? (window as any) : (globalThis as any);
+    const proc = winObj.process;
+    const procEnv = proc?.env || {};
+    const localAppData = procEnv.LOCALAPPDATA || "";
+    const list: string[] = [];
     if (isWin) {
-      const list = [
+      list.push(
         `${home}/.local/bin/pkmrag.exe`,
         `${home}/.cargo/bin/pkmrag.exe`,
-        `${home}/.local/bin/pkmrag`,
-      ];
+        `${home}/.local/bin/pkmrag`
+      );
       if (localAppData) {
         list.push(`${localAppData}/pipx/venvs/pkmrag/Scripts/pkmrag.exe`);
+        list.push(`${localAppData}/uv/tools/pkmrag/Scripts/pkmrag.exe`);
         list.push(`${localAppData}/Programs/Python/Python311/Scripts/pkmrag.exe`);
         list.push(`${localAppData}/Programs/Python/Python312/Scripts/pkmrag.exe`);
       }
-      return list;
+    } else {
+      list.push(
+        `${home}/.local/bin/pkmrag`,
+        `${home}/.cargo/bin/pkmrag`,
+        `${home}/.local/share/uv/tools/pkmrag/bin/pkmrag`,
+        `${home}/.local/share/pipx/venvs/pkmrag/bin/pkmrag`,
+        `/opt/homebrew/bin/pkmrag`,
+        `/usr/local/bin/pkmrag`,
+        `/usr/bin/pkmrag`
+      );
     }
-    return [
-      `${home}/.local/bin/pkmrag`,
-      `${home}/.cargo/bin/pkmrag`,
-      `/usr/local/bin/pkmrag`,
-      `/usr/bin/pkmrag`,
-    ];
-  }
-
-  private getUvCandidates(home: string, isWin: boolean): string[] {
-    if (isWin) {
-      return [
-        `${home}/.local/bin/uv.exe`,
-        `${home}/.cargo/bin/uv.exe`,
-        `${home}/.local/bin/uv`,
-      ];
+    const pathSep = isWin ? ";" : ":";
+    const binName = isWin ? "pkmrag.exe" : "pkmrag";
+    const pathDirs = (procEnv.PATH || "").split(pathSep).filter(Boolean);
+    for (const dir of pathDirs) {
+      list.push(`${dir}/${binName}`);
     }
-    return [
-      `${home}/.local/bin/uv`,
-      `${home}/.cargo/bin/uv`,
-      `${home}/envs/base/bin/uv`,
-      `/usr/local/bin/uv`,
-    ];
+    return list;
   }
 
   isBinaryAvailable(): boolean {
-    if (this.plugin.settings.customBinaryPath.trim().length > 0) {
+    const custom = this.plugin.settings.customBinaryPath.trim();
+    if (custom.length > 0) {
+      const { fs } = this.getPlatformInfo();
+      if (fs) {
+        return fs.existsSync(custom);
+      }
       return true;
     }
     const { home, isWin, fs } = this.getPlatformInfo();
     if (!fs || !home) return false;
 
-    const candidates = [...this.getPkmragCandidates(home, isWin), ...this.getUvCandidates(home, isWin)];
+    const candidates = this.getPkmragCandidates(home, isWin);
     return candidates.some((cand) => cand && fs.existsSync(cand));
   }
 
@@ -136,12 +141,6 @@ export class DaemonManager {
           return { command: cand, args: ["serve", vaultPath, "-t", "http", "--port", "3747"] };
         }
       }
-
-      for (const uv of this.getUvCandidates(home, isWin)) {
-        if (fs.existsSync(uv)) {
-          return { command: uv, args: ["run", "pkmrag", "serve", vaultPath, "-t", "http", "--port", "3747"] };
-        }
-      }
     }
 
     return { command: isWin ? "pkmrag.exe" : "pkmrag", args: ["serve", vaultPath, "-t", "http", "--port", "3747"] };
@@ -162,6 +161,11 @@ export class DaemonManager {
       // Not running, proceed with spawning
     }
 
+    if (!this.isBinaryAvailable()) {
+      this.lastError = "PKMRAG engine is not installed. Use Setup Wizard to install.";
+      return false;
+    }
+
     const cp = this.getChildProcessModule();
     if (!cp) {
       this.lastError = "Desktop Node environment unavailable.";
@@ -180,11 +184,19 @@ export class DaemonManager {
     const { command, args } = this.resolveBinary(vaultPath);
 
     const { home, isWin } = this.getPlatformInfo();
-    const procEnv = (window as unknown as { process?: { env: Record<string, string> } }).process?.env || {};
+    const winObj = typeof window !== "undefined" ? (window as any) : (globalThis as any);
+    const procEnv = winObj.process?.env || {};
     const pathSep = isWin ? ";" : ":";
     const extraPaths = isWin
       ? [`${home}/.local/bin`, `${home}/.cargo/bin`]
-      : [`${home}/.local/bin`, `${home}/.cargo/bin`, `${home}/envs/base/bin`, "/usr/local/bin", "/usr/bin"];
+      : [
+          `${home}/.local/bin`,
+          `${home}/.cargo/bin`,
+          `${home}/envs/base/bin`,
+          "/opt/homebrew/bin",
+          "/usr/local/bin",
+          "/usr/bin",
+        ];
     const enhancedPath = extraPaths.concat((procEnv.PATH || "").split(pathSep)).filter(Boolean).join(pathSep);
 
     try {

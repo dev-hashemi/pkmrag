@@ -45,8 +45,8 @@ export default class PkmragPlugin extends Plugin {
       await this.client.autoDiscoverVaultToken(this.app);
     }
 
-    // Auto-start daemon on desktop if enabled
-    if (this.settings.autoStartDaemon) {
+    // Auto-start daemon on desktop if enabled and binary is available
+    if (this.settings.autoStartDaemon && this.daemonManager.isBinaryAvailable()) {
       this.daemonManager.start();
     }
 

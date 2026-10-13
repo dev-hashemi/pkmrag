@@ -65,9 +65,9 @@ export class PkmragSettingTab extends PluginSettingTab {
         btn.setButtonText("Auto-Detect").onClick(() => {
           const avail = this.plugin.daemonManager.isBinaryAvailable();
           if (avail) {
-            new Notice("PKMRAG executable detected in standard PATH (~/.local/bin/pkmrag)!");
+            new Notice("PKMRAG executable detected!");
           } else {
-            new Notice("PKMRAG executable not found. Install via: pipx install pkmrag");
+            new Notice("PKMRAG executable not found. Open Insights panel to run 1-click install.");
           }
         })
       );
@@ -75,6 +75,17 @@ export class PkmragSettingTab extends PluginSettingTab {
     const daemonStatusSetting = new Setting(containerEl)
       .setName("Daemon Process Control")
       .setDesc(`Current Status: ${this.plugin.daemonManager.statusMessage}`);
+
+    if (!this.plugin.daemonManager.isBinaryAvailable()) {
+      daemonStatusSetting.addButton((btn) =>
+        btn
+          .setButtonText("⚡ Install Engine")
+          .setCta()
+          .onClick(() => {
+            this.plugin.activateView();
+          })
+      );
+    }
 
     daemonStatusSetting.addButton((btn) =>
       btn.setButtonText("Start").onClick(async () => {

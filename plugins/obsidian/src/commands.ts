@@ -13,6 +13,12 @@ export function registerPluginCommands(plugin: PkmragPlugin): void {
   });
 
   plugin.addCommand({
+    id: "setup-pkmrag-engine",
+    name: "Install / Setup Engine",
+    callback: () => plugin.activateView(),
+  });
+
+  plugin.addCommand({
     id: "refresh-pkmrag-insights",
     name: "Refresh Insights for Active Note",
     callback: () => plugin.refreshActiveView(),

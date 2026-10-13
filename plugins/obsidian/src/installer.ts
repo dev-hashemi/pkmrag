@@ -21,7 +21,7 @@ export interface HostEnvironment {
 export interface InstallCallbacks {
   onPhase: (phase: string, percent?: number) => void;
   onLog: (line: string) => void;
-  onSuccess: () => void;
+  onSuccess: () => Promise<void> | void;
   onError: (error: string) => void;
 }
 
@@ -88,8 +88,18 @@ export class HostInstaller {
 
     // 1. Check pkmrag
     const pkmragCands = isWin
-      ? [`${home}/.local/bin/pkmrag.exe`, `${home}/.cargo/bin/pkmrag.exe`, `${home}/.local/bin/pkmrag`]
-      : [`${home}/.local/bin/pkmrag`, `${home}/.cargo/bin/pkmrag`, `/usr/local/bin/pkmrag`, `/usr/bin/pkmrag`];
+      ? [`${home}/.local/bin/pkmrag.exe`, `${home}/.cargo/bin/pkmrag.exe`, `${home}/.local/bin/pkmrag`,
+         `${procEnv.LOCALAPPDATA || ""}/pipx/venvs/pkmrag/Scripts/pkmrag.exe`,
+         `${procEnv.LOCALAPPDATA || ""}/uv/tools/pkmrag/Scripts/pkmrag.exe`]
+      : [`${home}/.local/bin/pkmrag`, `${home}/.cargo/bin/pkmrag`,
+         `${home}/.local/share/uv/tools/pkmrag/bin/pkmrag`, `${home}/.local/share/pipx/venvs/pkmrag/bin/pkmrag`,
+         `/opt/homebrew/bin/pkmrag`, `/usr/local/bin/pkmrag`, `/usr/bin/pkmrag`];
+    const pathSep = isWin ? ";" : ":";
+    const binName = isWin ? "pkmrag.exe" : "pkmrag";
+    const pathDirs = (procEnv.PATH || "").split(pathSep).filter(Boolean);
+    for (const dir of pathDirs) {
+      pkmragCands.push(`${dir}/${binName}`);
+    }
     for (const c of pkmragCands) {
       if (fs.existsSync(c)) {
         env.hasPkmrag = true;
@@ -218,7 +228,7 @@ export class HostInstaller {
       const pathSep = isWin ? ";" : ":";
       const extraPaths = isWin
         ? [`${home}/.local/bin`, `${home}/.cargo/bin`]
-        : [`${home}/.local/bin`, `${home}/.cargo/bin`, `${home}/envs/base/bin`, "/usr/local/bin", "/usr/bin"];
+        : [`${home}/.local/bin`, `${home}/.cargo/bin`, `${home}/envs/base/bin`, "/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"];
       const enhancedPath = extraPaths.concat((procEnv.PATH || "").split(pathSep)).filter(Boolean).join(pathSep);
       const cwd = home || undefined;
 
@@ -254,11 +264,16 @@ export class HostInstaller {
           resolve(false);
         });
 
-        proc.on("exit", (code: unknown) => {
+        proc.on("exit", async (code: unknown) => {
           this.activeProcess = null;
           if (code === 0) {
             callbacks.onLog("✓ Installation finished with exit code 0.");
-            callbacks.onSuccess();
+            try {
+              await callbacks.onSuccess();
+            } catch (err: unknown) {
+              const msg = err instanceof Error ? err.message : String(err);
+              callbacks.onError(`Post-install hook failed: ${msg}`);
+            }
             resolve(true);
           } else {
             callbacks.onError(`Process exited with code ${code}`);

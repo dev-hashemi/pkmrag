@@ -4,12 +4,18 @@
 
 import { Notice, setIcon } from "obsidian";
 import type PkmragPlugin from "./main";
+import { renderSetupWizardView } from "./view_setup_wizard";
 
 export function renderOfflineView(
   container: HTMLElement,
   plugin: PkmragPlugin,
   onRetry: () => void
 ): void {
+  if (!plugin.daemonManager.isBinaryAvailable()) {
+    renderSetupWizardView(container, plugin, onRetry);
+    return;
+  }
+
   const wrapper = container.createDiv({ cls: "pkmrag-offline-container" });
 
   const iconEl = wrapper.createDiv({ cls: "pkmrag-offline-icon" });
@@ -38,7 +44,13 @@ export function renderOfflineView(
     } else {
       startBtn.setText("🚀 Start Engine");
       startBtn.removeAttribute("disabled");
-      new Notice("Could not auto-start engine. Ensure pipx install finished or check Settings.");
+      if (!plugin.daemonManager.isBinaryAvailable()) {
+        new Notice("PKMRAG engine is not installed. Switching to Setup Wizard...");
+        container.empty();
+        renderSetupWizardView(container, plugin, onRetry);
+      } else {
+        new Notice("Could not auto-start engine. Ensure engine is installed or check Settings.");
+      }
     }
   };
 
