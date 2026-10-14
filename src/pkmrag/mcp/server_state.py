@@ -35,16 +35,25 @@ class ServerState:
         self.reload_stores()
 
     def is_indexed(self) -> bool:
-        """Check whether deterministic graph and semantic vector stores exist on disk."""
+        """Check whether deterministic graph store exists on disk and contains indexed notes."""
         db_dir = settings.get_db_dir(self.vault_path)
-        vec_dir = settings.get_vector_dir(self.vault_path)
-        return db_dir.exists() and vec_dir.exists()
+        ladybug_file = db_dir / "pkmrag.ladybug"
+        if not (db_dir.exists() and ladybug_file.exists()):
+            return False
+        if self.graph_store is None:
+            return False
+        try:
+            overview = get_vault_overview(self.graph_store.conn, limit=1)
+            return overview.total_notes > 0
+        except Exception:
+            return False
 
     def reload_stores(self) -> None:
         """Safely re-open database stores and search service upon ingest completion."""
         with self._lock:
             db_dir = settings.get_db_dir(self.vault_path)
             vec_dir = settings.get_vector_dir(self.vault_path)
+            ladybug_file = db_dir / "pkmrag.ladybug"
 
             if self.graph_store is not None:
                 try:
@@ -53,7 +62,11 @@ class ServerState:
                     logger.debug("Error closing old graph store: %s", e)
                 self.graph_store = None
 
-            self.graph_store = GraphStore(db_dir, read_only=False) if db_dir.exists() else None
+            self.graph_store = (
+                GraphStore(db_dir, read_only=False)
+                if (db_dir.exists() and ladybug_file.exists())
+                else None
+            )
             self.vector_store = VectorStore(vec_dir) if vec_dir.exists() else None
             self.search_service = SearchService(
                 self.vault_path,

@@ -24,6 +24,12 @@ export function renderStatusBar(
     return;
   }
 
+  if (plugin.daemonManager.isStarting) {
+    statusBarEl.createSpan({ text: "⏳ PKMRAG: Starting Engine...", cls: "pkmrag-status-busy" });
+    statusBarEl.setAttribute("title", "PKMRAG background daemon is launching...");
+    return;
+  }
+
   if (!plugin.isServerConnected) {
     if (!plugin.daemonManager.isBinaryAvailable()) {
       statusBarEl.createSpan({ text: "⚪ PKMRAG: Setup Engine", cls: "pkmrag-status-setup" });
@@ -42,8 +48,11 @@ export function renderStatusBar(
     const icon = isDisc ? "🧠" : isModel ? "📥" : "🔄";
     const name = isDisc ? "Discovering" : isModel ? "Downloading Model" : "Indexing";
     const pct = Math.min(100, Math.max(0, plugin.activeJob.percent));
+    const statusText = isModel
+      ? `${icon} PKMRAG: Downloading Model (~130MB)`
+      : `${icon} PKMRAG: ${name} (${pct}%)`;
     statusBarEl.createSpan({
-      text: `${icon} PKMRAG: ${name} (${pct}%)`,
+      text: statusText,
       cls: "pkmrag-status-busy",
     });
     const desc = plugin.activeJob.message || plugin.activeJob.desc || plugin.activeJob.phase;
@@ -88,17 +97,24 @@ export function setupEventStream(plugin: PkmragPlugin): EventSource | null {
       notifySidebar(plugin);
     } else if (event === "ingest_complete") {
       plugin.activeJob = null;
+      plugin.lastTaskError = null;
       plugin.isVaultIndexed = true;
       plugin.updateStatusBar();
       new Notice("PKMRAG: Vault indexing complete.");
       plugin.refreshActiveView();
     } else if (event === "discover_complete") {
       plugin.activeJob = null;
+      plugin.lastTaskError = null;
       plugin.updateStatusBar();
       new Notice(`PKMRAG: AI Discovery finished (${data.inferred_count ?? 0} relationships).`);
       plugin.refreshActiveView();
     } else if (event === "ingest_error" || event === "discover_error") {
       plugin.activeJob = null;
+      plugin.lastTaskError = {
+        type: event === "ingest_error" ? "ingest" : "discover",
+        message: String(data.message || "Unknown error occurred"),
+        timestamp: new Date(),
+      };
       plugin.updateStatusBar();
       new Notice(`PKMRAG task failed: ${data.message ?? "Error"}`);
       plugin.refreshActiveView();

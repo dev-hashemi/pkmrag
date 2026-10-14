@@ -1,66 +1,19 @@
 /* PKMRAG Insights Plugin Styles */
-
-.pkmrag-insights-container {
-  padding: 12px;
-  overflow-y: auto;
-  height: 100%;
-  font-size: var(--font-ui-small);
-}
-
-.pkmrag-header {
-  margin-bottom: 16px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--background-modifier-border);
-}
-
+.pkmrag-insights-container { padding: 12px; overflow-y: auto; height: 100%; font-size: var(--font-ui-small); }
+.pkmrag-header { margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--background-modifier-border); }
 .pkmrag-header-top { display: flex; justify-content: space-between; align-items: center; }
-.pkmrag-header-title {
-  font-weight: var(--font-bold);
-  font-size: var(--font-ui-medium);
-  color: var(--text-normal);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
+.pkmrag-header-title { font-weight: var(--font-bold); font-size: var(--font-ui-medium); color: var(--text-normal); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pkmrag-header-actions { display: flex; gap: 6px; }
 .pkmrag-sync-status { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
 .pkmrag-section { margin-bottom: 20px; }
-.pkmrag-section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-weight: var(--font-semibold);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-muted);
-  margin-bottom: 8px;
-}
-
-.pkmrag-card {
-  background: var(--background-secondary);
-  border: 1px solid var(--background-modifier-border);
-  border-radius: var(--radius-m);
-  padding: 10px 12px;
-  margin-bottom: 8px;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
+.pkmrag-section-header { display: flex; align-items: center; justify-content: space-between; font-weight: var(--font-semibold); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 8px; }
+.pkmrag-card { background: var(--background-secondary); border: 1px solid var(--background-modifier-border); border-radius: var(--radius-m); padding: 10px 12px; margin-bottom: 8px; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
 .pkmrag-card:hover { border-color: var(--interactive-accent); }
 .pkmrag-card-contradiction { border-left: 4px solid var(--text-warning, #f59f00); }
 .pkmrag-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
 .pkmrag-card-target { font-weight: var(--font-semibold); color: var(--text-accent); cursor: pointer; text-decoration: none; }
 .pkmrag-card-target:hover { text-decoration: underline; }
-
-.pkmrag-badge {
-  display: inline-block;
-  font-size: 10px;
-  font-weight: var(--font-semibold);
-  padding: 2px 6px;
-  border-radius: var(--radius-s);
-  background: var(--background-modifier-form-field);
-  color: var(--text-muted);
-}
+.pkmrag-badge { display: inline-block; font-size: 10px; font-weight: var(--font-semibold); padding: 2px 6px; border-radius: var(--radius-s); background: var(--background-modifier-form-field); color: var(--text-muted); }
 .pkmrag-badge-warning { background: rgba(245, 159, 0, 0.15); color: var(--text-warning, #f59f00); }
 .pkmrag-badge-accent { background: rgba(var(--interactive-accent-rgb), 0.15); color: var(--text-accent); }
 .pkmrag-card-reason { font-size: 12px; color: var(--text-muted); line-height: 1.4; margin: 6px 0; }
@@ -120,6 +73,20 @@
   background: var(--interactive-accent);
   border-radius: var(--radius-s);
   transition: width 0.3s ease;
+}
+.pkmrag-progress-indeterminate { position: relative; overflow: hidden; }
+.pkmrag-progress-indeterminate .pkmrag-progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 45% !important;
+  animation: pkmrag-shimmer 1.6s infinite ease-in-out;
+  background: linear-gradient(90deg, var(--interactive-accent) 0%, var(--interactive-accent-hover, #7b68ee) 50%, var(--interactive-accent) 100%);
+}
+@keyframes pkmrag-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
 }
 .pkmrag-progress-detail { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); }
 
@@ -219,12 +186,7 @@
   color: var(--text-accent);
   margin-bottom: 6px;
 }
-.pkmrag-installer-desc {
-  font-size: 12px;
-  color: var(--text-muted);
-  line-height: 1.4;
-  margin: 6px 0 12px 0;
-}
+.pkmrag-installer-desc { font-size: 12px; color: var(--text-muted); line-height: 1.4; margin: 6px 0 12px 0; }
 .pkmrag-installer-confirm {
   background: var(--background-secondary-alt);
   border: 1px dashed var(--interactive-accent);
@@ -232,10 +194,7 @@
   padding: 8px;
   margin-bottom: 10px;
 }
-.pkmrag-installer-confirm p {
-  margin: 0 0 8px 0;
-  font-size: 11px;
-}
+.pkmrag-installer-confirm p { margin: 0 0 8px 0; font-size: 11px; }
 .pkmrag-installer-log {
   background: #181818;
   color: #d4d4d4;
@@ -251,13 +210,57 @@
   margin: 8px 0;
   line-height: 1.35;
 }
-.pkmrag-installer-toggle {
+.pkmrag-installer-toggle { font-size: 11px; color: var(--text-faint); cursor: pointer; margin: 12px 0 6px 0; user-select: none; }
+.pkmrag-installer-toggle:hover { color: var(--text-muted); }
+
+/* Model Specification & Consent Card */
+.pkmrag-model-card {
+  background: var(--background-secondary-alt);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  padding: 10px 12px;
+  margin: 10px 0;
+  text-align: left;
+}
+.pkmrag-model-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: var(--font-bold);
+  padding: 2px 6px;
+  border-radius: var(--radius-s);
+  background: rgba(var(--interactive-accent-rgb), 0.15);
+  color: var(--text-accent);
+  margin-bottom: 8px;
+}
+.pkmrag-model-specs { display: flex; flex-direction: column; gap: 4px; }
+.pkmrag-model-spec-row { display: flex; justify-content: space-between; font-size: 11px; }
+.pkmrag-model-spec-label { color: var(--text-muted); }
+.pkmrag-model-spec-val { font-weight: var(--font-semibold); color: var(--text-normal); }
+
+/* Full Job Progress & Error Presentation Cards */
+.pkmrag-progress-card {
+  width: 100%;
+  max-width: 440px;
+  background: var(--background-secondary);
+  border: 1px solid var(--interactive-accent);
+  border-radius: var(--radius-m);
+  padding: 16px;
+  margin: 12px auto;
+  text-align: left;
+}
+.pkmrag-progress-card-title { margin: 0; font-weight: var(--font-bold); font-size: var(--font-ui-medium); color: var(--text-normal); }
+.pkmrag-progress-card-desc { font-size: 12px; color: var(--text-muted); line-height: 1.4; margin: 8px 0 14px 0; }
+.pkmrag-error-card { border-color: var(--text-warning, #f59f00); }
+.pkmrag-error-box {
+  background: rgba(245, 159, 0, 0.1);
+  border: 1px solid var(--text-warning, #f59f00);
+  border-radius: var(--radius-s);
+  padding: 8px 10px;
+  margin: 10px 0;
   font-size: 11px;
-  color: var(--text-faint);
-  cursor: pointer;
-  margin: 12px 0 6px 0;
-  user-select: none;
+  font-family: var(--font-monospace);
+  color: var(--text-normal);
+  line-height: 1.4;
+  word-break: break-all;
 }
-.pkmrag-installer-toggle:hover {
-  color: var(--text-muted);
-}
+

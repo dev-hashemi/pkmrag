@@ -19,31 +19,83 @@ export function renderUnindexedView(
 
   wrapper.createEl("p", {
     cls: "pkmrag-offline-desc",
-    text: "PKMRAG is connected, but your vault has not been indexed yet. Initial setup will build your LadybugDB graph and download the local BAAI/bge-small-en-v1.5 embedding model (~130 MB, runs 100% on-device via ONNX with zero API fees) for semantic vector search.",
+    text: "PKMRAG is running. To enable semantic concept search and auto-linking, approve downloading the lightweight local embedding model:",
   });
 
-  const btnRow = wrapper.createDiv({ cls: "pkmrag-offline-actions" });
-  const indexBtn = btnRow.createEl("button", {
+  const modelCard = wrapper.createDiv({ cls: "pkmrag-model-card" });
+  modelCard.createDiv({ cls: "pkmrag-model-badge", text: "Local Embedding Model • FastEmbed ONNX" });
+
+  const specs = modelCard.createDiv({ cls: "pkmrag-model-specs" });
+
+  const r1 = specs.createDiv({ cls: "pkmrag-model-spec-row" });
+  r1.createSpan({ cls: "pkmrag-model-spec-label", text: "Model Architecture" });
+  r1.createSpan({ cls: "pkmrag-model-spec-val", text: "BAAI/bge-small-en-v1.5" });
+
+  const r2 = specs.createDiv({ cls: "pkmrag-model-spec-row" });
+  r2.createSpan({ cls: "pkmrag-model-spec-label", text: "One-Time Download" });
+  r2.createSpan({ cls: "pkmrag-model-spec-val", text: "~67 MB (~133 MB uncompressed)" });
+
+  const r3 = specs.createDiv({ cls: "pkmrag-model-spec-row" });
+  r3.createSpan({ cls: "pkmrag-model-spec-label", text: "Privacy & Network" });
+  r3.createSpan({ cls: "pkmrag-model-spec-val", text: "100% On-Device • Zero Cloud API" });
+
+  const actions = wrapper.createDiv({ cls: "pkmrag-offline-actions" });
+  const indexFullBtn = actions.createEl("button", {
     cls: "pkmrag-btn-sm mod-cta",
-    text: "⚡ Index Vault Now",
+    text: "📥 Download Model & Index Vault (130 MB)",
   });
 
-  indexBtn.onclick = async () => {
-    indexBtn.setText("Starting indexing...");
-    indexBtn.setAttribute("disabled", "true");
+  const startJob = async (target: "all" | "graph") => {
+    indexFullBtn.setAttribute("disabled", "true");
+    indexGraphBtn.setAttribute("disabled", "true");
+    plugin.lastTaskError = null;
+    plugin.activeJob = {
+      type: "ingest",
+      phase:
+        target === "all"
+          ? "Downloading local embedding model (BAAI/bge-small-en-v1.5)..."
+          : "indexing graph",
+      cur: 0,
+      total: 100,
+      percent: 0,
+      message:
+        target === "all"
+          ? "Downloading model weights (~67 MB) into local cache..."
+          : "Indexing LadybugDB property graph...",
+    };
+    plugin.updateStatusBar();
+    onIndex();
     try {
-      new Notice("PKMRAG: Indexing started (downloading embedding model in background)...");
-      await plugin.client.triggerIngest({ rebuild: true });
-      onIndex();
+      await plugin.client.autoDiscoverVaultToken(plugin.app);
+      plugin.initEventStream();
+      await plugin.client.triggerIngest({ target, rebuild: true });
     } catch (err: unknown) {
+      plugin.activeJob = null;
+      plugin.updateStatusBar();
       const msg = err instanceof Error ? err.message : String(err);
+      plugin.lastTaskError = {
+        type: "ingest",
+        message: msg,
+        timestamp: new Date(),
+      };
       new Notice(`Indexing failed: ${msg}`);
-      indexBtn.setText("⚡ Index Vault Now");
-      indexBtn.removeAttribute("disabled");
+      onIndex();
     }
   };
 
-  const settingsBtn = btnRow.createEl("button", {
+  indexFullBtn.onclick = () => startJob("all");
+
+  const indexGraphBtn = actions.createEl("button", {
+    cls: "pkmrag-btn-sm",
+    text: "⚡ Index Graph Only (0 MB)",
+  });
+  indexGraphBtn.setAttribute(
+    "title",
+    "Index links, tags, and orphans instantly with zero network download."
+  );
+  indexGraphBtn.onclick = () => startJob("graph");
+
+  const settingsBtn = actions.createEl("button", {
     cls: "pkmrag-btn-sm",
     text: "Settings",
   });

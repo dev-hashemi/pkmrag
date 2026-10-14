@@ -82,6 +82,12 @@ export interface ActiveJobState {
   desc?: string;
 }
 
+export interface TaskErrorState {
+  type: "ingest" | "discover";
+  message: string;
+  timestamp: Date;
+}
+
 export interface HealthResponse {
   status: string;
   version: string;

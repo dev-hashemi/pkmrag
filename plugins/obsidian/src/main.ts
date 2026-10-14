@@ -17,6 +17,7 @@ import {
   InferredRelationship,
   PkmragPluginSettings,
   SemanticGapCandidate,
+  TaskErrorState,
 } from "./types";
 import { PkmragInsightsView, VIEW_TYPE_PKMRAG_INSIGHTS } from "./view";
 
@@ -26,7 +27,8 @@ export default class PkmragPlugin extends Plugin {
   daemonManager!: DaemonManager;
   installer!: HostInstaller;
   activeJob: ActiveJobState | null = null;
-  isVaultIndexed = true;
+  lastTaskError: TaskErrorState | null = null;
+  isVaultIndexed = false;
   isServerConnected = false;
   private statusBarEl!: HTMLElement;
   private eventSource: EventSource | null = null;
@@ -35,8 +37,10 @@ export default class PkmragPlugin extends Plugin {
     new Map();
 
   async onload(): Promise<void> {
+    this.activeJob = null;
+    this.lastTaskError = null;
     await this.loadSettings();
-    this.client = new PkmragClient(this.settings);
+    this.client = new PkmragClient(this.settings, this.app);
     this.daemonManager = new DaemonManager(this);
     this.installer = new HostInstaller(this);
 
@@ -82,7 +86,7 @@ export default class PkmragPlugin extends Plugin {
     // Auto-Sync on Save (debounced 1500ms)
     this.registerEvent(
       this.app.vault.on("modify", (file) => {
-        if (!this.settings.autoSyncOnSave || !(file instanceof TFile) || file.extension !== "md") {
+        if (!this.settings.autoSyncOnSave || !this.isVaultIndexed || !(file instanceof TFile) || file.extension !== "md") {
           return;
         }
         const timer = this.debounceMap.get(file.path);
@@ -221,7 +225,7 @@ export default class PkmragPlugin extends Plugin {
     try {
       const health = await this.client.checkHealth();
       this.isServerConnected = true;
-      this.isVaultIndexed = health.is_indexed !== false;
+      this.isVaultIndexed = health.is_indexed === true;
       this.activeJob = health.active_job || null;
     } catch {
       this.isServerConnected = false;
@@ -229,7 +233,7 @@ export default class PkmragPlugin extends Plugin {
     this.updateStatusBar();
   }
 
-  private initEventStream(): void {
+  initEventStream(): void {
     if (this.eventSource) {
       this.eventSource.close();
       this.eventSource = null;

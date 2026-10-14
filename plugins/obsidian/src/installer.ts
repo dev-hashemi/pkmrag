@@ -60,6 +60,7 @@ export class HostInstaller {
       this.activeProcess = null;
     }
     this.isInstalling = false;
+    this.plugin.updateStatusBar();
   }
 
   private getNodeModules() {
@@ -160,6 +161,9 @@ export class HostInstaller {
     }
 
     this.isInstalling = true;
+    this.plugin.activeJob = null;
+    this.plugin.lastTaskError = null;
+    this.plugin.updateStatusBar();
     const env = this.detectEnvironment();
 
     try {
@@ -186,18 +190,14 @@ export class HostInstaller {
         const psCmd = 'irm https://astral.sh/uv/install.ps1 | iex';
         callbacks.onLog(`$ powershell -Command "${psCmd}"`);
         const okBootstrap = await this.runProcess("powershell", ["-ExecutionPolicy", "ByPass", "-Command", psCmd], callbacks);
-        if (!okBootstrap) {
-          throw new Error("Failed to bootstrap uv via PowerShell.");
-        }
+        if (!okBootstrap) throw new Error("Failed to bootstrap uv via PowerShell.");
       } else {
         callbacks.onPhase("Bootstrapping uv package manager...", 10);
         callbacks.onLog("No Python or package manager found. Bootstrapping standalone uv on POSIX...");
         const shCmd = "curl -LsSf https://astral.sh/uv/install.sh | sh";
         callbacks.onLog(`$ ${shCmd}`);
         const okBootstrap = await this.runProcess("sh", ["-c", shCmd], callbacks);
-        if (!okBootstrap) {
-          throw new Error("Failed to bootstrap uv via shell script.");
-        }
+        if (!okBootstrap) throw new Error("Failed to bootstrap uv via shell script.");
       }
 
       // Re-detect uv path after bootstrapping
@@ -214,6 +214,7 @@ export class HostInstaller {
     } finally {
       this.isInstalling = false;
       this.activeProcess = null;
+      this.plugin.updateStatusBar();
     }
   }
 
@@ -267,15 +268,19 @@ export class HostInstaller {
         proc.on("exit", async (code: unknown) => {
           this.activeProcess = null;
           if (code === 0) {
-            callbacks.onLog("✓ Installation finished with exit code 0.");
+            callbacks.onLog("✓ Engine package installed successfully.");
             try {
               await callbacks.onSuccess();
             } catch (err: unknown) {
               const msg = err instanceof Error ? err.message : String(err);
               callbacks.onError(`Post-install hook failed: ${msg}`);
             }
+            this.isInstalling = false;
+            this.plugin.updateStatusBar();
             resolve(true);
           } else {
+            this.isInstalling = false;
+            this.plugin.updateStatusBar();
             callbacks.onError(`Process exited with code ${code}`);
             resolve(false);
           }

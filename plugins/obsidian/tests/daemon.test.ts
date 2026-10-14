@@ -6,6 +6,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { DaemonManager } from "../src/daemon.js";
 import { HostInstaller } from "../src/installer.js";
+import { renderJobProgressView, renderTaskErrorCard } from "../src/view_progress.js";
 import { DEFAULT_SETTINGS } from "../src/types.js";
 
 function createMockPlugin(customBinaryPath = "") {
@@ -107,4 +108,105 @@ test("HostInstaller: detectEnvironment detects uv without claiming hasPkmrag", (
   const env = installer.detectEnvironment();
   assert.equal(env.hasUv, true);
   assert.equal(env.hasPkmrag, false);
+});
+
+function createMockEl(): any {
+  const children: any[] = [];
+  const el: any = {
+    children,
+    textContent: "",
+    style: {},
+    className: "",
+    createDiv: (opts?: any) => {
+      const child = createMockEl();
+      if (opts?.cls) child.className = opts.cls;
+      if (opts?.text) child.textContent = opts.text;
+      children.push(child);
+      return child;
+    },
+    createSpan: (opts?: any) => {
+      const child = createMockEl();
+      if (opts?.cls) child.className = opts.cls;
+      if (opts?.text) child.textContent = opts.text;
+      children.push(child);
+      return child;
+    },
+    createEl: (tag: string, opts?: any) => {
+      const child = createMockEl();
+      child.tag = tag;
+      if (opts?.cls) child.className = opts.cls;
+      if (opts?.text) child.textContent = opts.text;
+      children.push(child);
+      return child;
+    },
+    setText: (t: string) => {
+      el.textContent = t;
+    },
+    setAttribute: () => {},
+    addClass: (cls: string) => {
+      el.className = (el.className + " " + cls).trim();
+    },
+    removeClass: (cls: string) => {
+      el.className = el.className.replace(cls, "").trim();
+    },
+  };
+  return el;
+}
+
+test("renderJobProgressView: renders model download view with percentage and label", () => {
+  const container = createMockEl();
+  const plugin = createMockPlugin();
+
+  renderJobProgressView(container, plugin, {
+    type: "ingest",
+    phase: "downloading model",
+    cur: 0,
+    total: 1,
+    percent: 35,
+    message: "Downloading model weights (~130 MB)...",
+  });
+
+  const allText = JSON.stringify(container);
+  assert.ok(allText.includes("Downloading Local Embedding Model"));
+  assert.ok(allText.includes("Step 1/2: Downloading"));
+  assert.ok(allText.includes("Downloading model weights (~130 MB)..."));
+});
+
+test("renderTaskErrorCard: renders network diagnostic and invokes onRetry", () => {
+  const container = createMockEl();
+  const plugin = createMockPlugin();
+  let retryCalled = false;
+
+  renderTaskErrorCard(
+    container,
+    plugin,
+    {
+      type: "ingest",
+      message: "urllib.error.URLError: <urlopen error [Errno 110] Connection timed out>",
+      timestamp: new Date(),
+    },
+    () => {
+      retryCalled = true;
+    }
+  );
+
+  const allText = JSON.stringify(container);
+  assert.ok(allText.includes("Vault Indexing Failed"));
+  assert.ok(allText.includes("Network problem detected"));
+  assert.ok(allText.includes("Connection timed out"));
+
+  // Find the retry button in the mock tree and invoke click
+  function findRetryBtn(node: any): any {
+    if (node.textContent === "🔄 Retry Indexing" && node.onclick) return node;
+    for (const child of node.children || []) {
+      const found = findRetryBtn(child);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  const btn = findRetryBtn(container);
+  assert.ok(btn !== null);
+  btn.onclick();
+  assert.equal(retryCalled, true);
 });

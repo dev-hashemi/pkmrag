@@ -22,6 +22,8 @@ export function connectEventStream(
       "discover_complete",
       "ingest_progress",
       "ingest_complete",
+      "ingest_error",
+      "discover_error",
     ];
 
     for (const topic of topics) {

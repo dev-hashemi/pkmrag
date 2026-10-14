@@ -74,7 +74,7 @@ def create_http_app(
         note_path = request.query_params.get("note_path", "").strip()
         if not note_path:
             return JSONResponse({"error": "Missing 'note_path' query parameter."}, status_code=400)
-        if server_state.graph_store is None:
+        if not server_state.is_indexed() or server_state.graph_store is None:
             return JSONResponse(
                 {
                     "error": "VAULT_UNINDEXED",
@@ -99,6 +99,15 @@ def create_http_app(
         return JSONResponse(ctx.model_dump())
 
     async def gaps_handler(request: Request) -> Response:
+        if not server_state.is_indexed() or server_state.graph_store is None:
+            return JSONResponse(
+                {
+                    "error": "VAULT_UNINDEXED",
+                    "message": "Vault has not been indexed yet.",
+                },
+                status_code=503,
+            )
+
         note_path = request.query_params.get("note_path", "").strip()
         threshold = float(request.query_params.get("threshold", "0.80"))
         limit = int(request.query_params.get("limit", "10"))
@@ -135,7 +144,7 @@ def create_http_app(
         query = body.get("query", "").strip()
         if not query:
             return JSONResponse({"error": "Query cannot be empty."}, status_code=400)
-        if server_state.search_service is None:
+        if not server_state.is_indexed() or server_state.search_service is None:
             return JSONResponse(
                 {
                     "error": "VAULT_UNINDEXED",
@@ -163,6 +172,11 @@ def create_http_app(
         note_path = body.get("note_path", "").strip()
         if not note_path:
             return JSONResponse({"error": "Missing 'note_path' in payload."}, status_code=400)
+        if not server_state.is_indexed() or server_state.graph_store is None:
+            return JSONResponse(
+                {"error": "VAULT_UNINDEXED", "message": "Vault has not been indexed yet."},
+                status_code=503,
+            )
 
         reindexer = SingleNoteReindexer(
             vault_path=vpath,
@@ -176,6 +190,11 @@ def create_http_app(
         return JSONResponse(res.model_dump())
 
     async def sync_handler(request: Request) -> Response:
+        if not server_state.is_indexed() or server_state.graph_store is None:
+            return JSONResponse(
+                {"error": "VAULT_UNINDEXED", "message": "Vault has not been indexed yet."},
+                status_code=503,
+            )
         reindexer = SingleNoteReindexer(
             vault_path=vpath,
             graph_store=server_state.graph_store,
@@ -188,8 +207,14 @@ def create_http_app(
         return JSONResponse({"results": [r.model_dump() for r in results], "count": len(results)})
 
     async def overview_handler(request: Request) -> Response:
-        if server_state.graph_store is None:
-            return JSONResponse({"error": "Graph store is unavailable."}, status_code=503)
+        if not server_state.is_indexed() or server_state.graph_store is None:
+            return JSONResponse(
+                {
+                    "error": "VAULT_UNINDEXED",
+                    "message": "Graph store is unavailable. Vault unindexed.",
+                },
+                status_code=503,
+            )
         limit = int(request.query_params.get("limit", "10"))
         overview = get_vault_overview(server_state.graph_store.conn, limit=limit)
         return JSONResponse(overview.model_dump())

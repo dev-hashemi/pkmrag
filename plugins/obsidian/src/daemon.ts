@@ -20,7 +20,7 @@ interface ChildProcessModule {
 export class DaemonManager {
   private plugin: PkmragPlugin;
   private process: SpawnedProcess | null = null;
-  private isStarting = false;
+  public isStarting = false;
   private lastError: string | null = null;
 
   constructor(plugin: PkmragPlugin) {
@@ -154,6 +154,11 @@ export class DaemonManager {
     try {
       const health = await this.plugin.client.checkHealth();
       if (health.status === "healthy") {
+        await this.plugin.client.autoDiscoverVaultToken(this.plugin.app);
+        this.plugin.initEventStream();
+        this.plugin.isVaultIndexed = health.is_indexed === true;
+        this.plugin.activeJob = health.active_job || null;
+        this.plugin.lastTaskError = null;
         this.plugin.updateStatusBar(true);
         return true;
       }
@@ -180,6 +185,7 @@ export class DaemonManager {
 
     this.isStarting = true;
     this.lastError = null;
+    this.plugin.updateStatusBar();
 
     const { command, args } = this.resolveBinary(vaultPath);
 
@@ -189,14 +195,7 @@ export class DaemonManager {
     const pathSep = isWin ? ";" : ":";
     const extraPaths = isWin
       ? [`${home}/.local/bin`, `${home}/.cargo/bin`]
-      : [
-          `${home}/.local/bin`,
-          `${home}/.cargo/bin`,
-          `${home}/envs/base/bin`,
-          "/opt/homebrew/bin",
-          "/usr/local/bin",
-          "/usr/bin",
-        ];
+      : [`${home}/.local/bin`, `${home}/.cargo/bin`, `${home}/envs/base/bin`, "/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"];
     const enhancedPath = extraPaths.concat((procEnv.PATH || "").split(pathSep)).filter(Boolean).join(pathSep);
 
     try {
@@ -231,14 +230,19 @@ export class DaemonManager {
         this.plugin.updateStatusBar(false);
       });
 
-      // Poll health check for up to 8 seconds until ready
-      for (let i = 0; i < 16; i++) {
+      // Poll health check for up to 15 seconds until ready
+      for (let i = 0; i < 30; i++) {
         await new Promise((resolve) => window.setTimeout(resolve, 500));
         try {
           const h = await this.plugin.client.checkHealth();
           if (h.status === "healthy") {
             this.isStarting = false;
             this.lastError = null;
+            await this.plugin.client.autoDiscoverVaultToken(this.plugin.app);
+            this.plugin.initEventStream();
+            this.plugin.isVaultIndexed = h.is_indexed === true;
+            this.plugin.activeJob = h.active_job || null;
+            this.plugin.lastTaskError = null;
             this.plugin.updateStatusBar(true);
             return true;
           }
@@ -248,6 +252,7 @@ export class DaemonManager {
       }
 
       this.isStarting = false;
+      this.plugin.updateStatusBar(false);
       if (this.lastError) {
         new Notice(`PKMRAG: Daemon error: ${this.lastError}`);
       }
@@ -256,6 +261,7 @@ export class DaemonManager {
       this.lastError = e instanceof Error ? e.message : String(e);
       this.isStarting = false;
       this.process = null;
+      this.plugin.updateStatusBar(false);
       return false;
     }
   }
@@ -270,6 +276,7 @@ export class DaemonManager {
       this.process = null;
     }
     this.isStarting = false;
+    this.plugin.activeJob = null;
     this.plugin.updateStatusBar(false);
   }
 

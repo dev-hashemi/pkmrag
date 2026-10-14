@@ -9,7 +9,7 @@ import { NoteContext, SemanticGapCandidate } from "./types";
 import { renderOfflineView } from "./view_offline";
 import { renderUnindexedView } from "./view_unindexed";
 import { renderSetupWizardView } from "./view_setup_wizard";
-import { renderProgressBanner } from "./view_progress";
+import { renderProgressBanner, renderJobProgressView, renderTaskErrorCard } from "./view_progress";
 import { renderGapsSection } from "./view_gaps";
 import { ProximitySearchDrawer } from "./view_search";
 import { renderInferencesSection } from "./view_inferences";
@@ -58,6 +58,10 @@ export class PkmragInsightsView extends ItemView {
 
   async loadInsightsForNote(notePath: string): Promise<void> {
     this.currentNotePath = notePath;
+    if (!this.plugin.isServerConnected || !this.plugin.isVaultIndexed) {
+      this.render();
+      return;
+    }
     this.isLoading = true;
     this.errorMessage = null;
     this.isUnindexed = false;
@@ -97,8 +101,8 @@ export class PkmragInsightsView extends ItemView {
     container.empty();
     container.addClass("pkmrag-insights-container");
 
-    // Live Background Job Banner (rendered at top if active)
-    if (this.plugin.activeJob) {
+    // Live Background Job Banner (rendered at top if active on indexed vault)
+    if (this.plugin.activeJob && this.plugin.isVaultIndexed) {
       renderProgressBanner(container, this.plugin.activeJob);
     }
 
@@ -146,7 +150,8 @@ export class PkmragInsightsView extends ItemView {
     if (!this.plugin.isServerConnected || this.isOffline) {
       if (!this.plugin.daemonManager.isBinaryAvailable()) {
         renderSetupWizardView(container, this.plugin, () => {
-          if (this.currentNotePath) {
+          this.isOffline = false;
+          if (this.plugin.isVaultIndexed && this.currentNotePath) {
             this.loadInsightsForNote(this.currentNotePath);
           } else {
             this.render();
@@ -155,7 +160,8 @@ export class PkmragInsightsView extends ItemView {
         return;
       }
       renderOfflineView(container, this.plugin, () => {
-        if (this.currentNotePath) {
+        this.isOffline = false;
+        if (this.plugin.isVaultIndexed && this.currentNotePath) {
           this.loadInsightsForNote(this.currentNotePath);
         } else {
           this.render();
@@ -164,11 +170,43 @@ export class PkmragInsightsView extends ItemView {
       return;
     }
 
+    if (this.plugin.lastTaskError) {
+      renderTaskErrorCard(container, this.plugin, this.plugin.lastTaskError, async () => {
+        try {
+          this.plugin.lastTaskError = null;
+          this.plugin.activeJob = {
+            type: "ingest",
+            phase: "initializing",
+            cur: 0,
+            total: 100,
+            percent: 0,
+            message: "Retrying vault indexing...",
+          };
+          this.plugin.updateStatusBar();
+          this.render();
+          await this.plugin.client.autoDiscoverVaultToken(this.plugin.app);
+          this.plugin.initEventStream();
+          await this.plugin.client.triggerIngest({ rebuild: true });
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          this.plugin.lastTaskError = {
+            type: "ingest",
+            message: msg,
+            timestamp: new Date(),
+          };
+          this.render();
+        }
+      });
+      return;
+    }
+
     if (!this.plugin.isVaultIndexed || this.isUnindexed) {
+      if (this.plugin.activeJob) {
+        renderJobProgressView(container, this.plugin, this.plugin.activeJob);
+        return;
+      }
       renderUnindexedView(container, this.plugin, () => {
-        this.isUnindexed = false;
-        this.plugin.isVaultIndexed = true;
-        if (this.currentNotePath) this.loadInsightsForNote(this.currentNotePath);
+        this.render();
       });
       return;
     }

@@ -45,7 +45,9 @@ function connectEventStream(serverUrl, authToken, onEvent) {
       "discover_progress",
       "discover_complete",
       "ingest_progress",
-      "ingest_complete"
+      "ingest_complete",
+      "ingest_error",
+      "discover_error"
     ];
     for (const topic of topics) {
       source.addEventListener(topic, (e) => {
@@ -64,22 +66,20 @@ function connectEventStream(serverUrl, authToken, onEvent) {
 
 // src/client.ts
 var PkmragClient = class {
-  constructor(settings) {
+  constructor(settings, app) {
     this.settings = settings;
+    this.app = app;
   }
-  /**
-   * Attempt to read .pkmrag/server_token from active vault filesystem.
-   */
+  /** Attempt to read .pkmrag/server_token from active vault filesystem. */
   async autoDiscoverVaultToken(app) {
+    const targetApp = app || this.app;
     try {
-      for (const tokenPath of [".pkmrag/server_token", ".pkmrag/server_token"]) {
-        const exists = await app.vault.adapter.exists(tokenPath);
-        if (exists) {
-          const content = await app.vault.adapter.read(tokenPath);
-          const trimmed = content.trim();
-          if (trimmed.length > 0) {
-            this.settings.authToken = trimmed;
-            return trimmed;
+      if (targetApp?.vault?.adapter) {
+        if (await targetApp.vault.adapter.exists(".pkmrag/server_token")) {
+          const content = (await targetApp.vault.adapter.read(".pkmrag/server_token")).trim();
+          if (content.length > 0) {
+            this.settings.authToken = content;
+            return content;
           }
         }
       }
@@ -87,6 +87,11 @@ var PkmragClient = class {
       console.warn("[PKMRAG] Could not auto-read server_token:", err);
     }
     return null;
+  }
+  async ensureAuthToken() {
+    if (!this.settings.authToken || this.settings.authToken.trim().length === 0) {
+      await this.autoDiscoverVaultToken();
+    }
   }
   getHeaders() {
     const headers = {
@@ -99,66 +104,41 @@ var PkmragClient = class {
     }
     return headers;
   }
-  /**
-   * Health probe verifying PKMRAG daemon connectivity.
-   */
+  /** Health probe verifying PKMRAG daemon connectivity. */
   async checkHealth() {
     const url = `${this.settings.serverUrl.replace(/\/+$/, "")}/health`;
     const res = await fetch(url, { method: "GET" });
-    if (!res.ok) {
-      throw new Error(`Health check failed with HTTP ${res.status}`);
-    }
+    if (!res.ok) throw new Error(`Health check failed with HTTP ${res.status}`);
     return await res.json();
   }
-  /**
-   * Retrieve graph context (outgoing links, backlinks, tags, AI inferences) for a note.
-   */
+  /** Retrieve graph context for a note. */
   async getNoteContext(notePath) {
+    await this.ensureAuthToken();
     const base = this.settings.serverUrl.replace(/\/+$/, "");
     const url = `${base}/api/v1/context?note_path=${encodeURIComponent(notePath)}`;
-    const res = await fetch(url, {
-      method: "GET",
-      headers: this.getHeaders()
-    });
-    if (res.status === 404) {
-      return null;
-    }
-    if (res.status === 503) {
-      throw new Error("VAULT_UNINDEXED");
-    }
-    if (!res.ok) {
-      throw new Error(`Context fetch failed with HTTP ${res.status}`);
-    }
+    const res = await fetch(url, { method: "GET", headers: this.getHeaders() });
+    if (res.status === 404) return null;
+    if (res.status === 503) throw new Error("VAULT_UNINDEXED");
+    if (!res.ok) throw new Error(`Context fetch failed with HTTP ${res.status}`);
     return await res.json();
   }
-  /**
-   * Retrieve unlinked note candidates with high semantic similarity.
-   */
+  /** Retrieve unlinked note candidates with high semantic similarity. */
   async getGaps(notePath, threshold, limit) {
+    await this.ensureAuthToken();
     const base = this.settings.serverUrl.replace(/\/+$/, "");
     const thresh = threshold ?? this.settings.similarityThreshold;
     const lim = limit ?? this.settings.maxSuggestions;
     let url = `${base}/api/v1/gaps?threshold=${thresh}&limit=${lim}`;
-    if (notePath) {
-      url += `&note_path=${encodeURIComponent(notePath)}`;
-    }
-    const res = await fetch(url, {
-      method: "GET",
-      headers: this.getHeaders()
-    });
-    if (res.status === 503) {
-      return [];
-    }
-    if (!res.ok) {
-      throw new Error(`Gaps fetch failed with HTTP ${res.status}`);
-    }
+    if (notePath) url += `&note_path=${encodeURIComponent(notePath)}`;
+    const res = await fetch(url, { method: "GET", headers: this.getHeaders() });
+    if (res.status === 503) throw new Error("VAULT_UNINDEXED");
+    if (!res.ok) throw new Error(`Gaps fetch failed with HTTP ${res.status}`);
     const data = await res.json();
     return data.candidates || [];
   }
-  /**
-   * Incrementally reindex a single note after edits and evict stale cache.
-   */
+  /** Incrementally reindex a single note after edits and evict stale cache. */
   async reindexNote(notePath) {
+    await this.ensureAuthToken();
     const base = this.settings.serverUrl.replace(/\/+$/, "");
     const url = `${base}/api/v1/reindex`;
     const res = await fetch(url, {
@@ -166,61 +146,42 @@ var PkmragClient = class {
       headers: this.getHeaders(),
       body: JSON.stringify({ note_path: notePath })
     });
-    if (!res.ok) {
-      throw new Error(`Reindex failed with HTTP ${res.status}`);
-    }
+    if (!res.ok) throw new Error(`Reindex failed with HTTP ${res.status}`);
     return await res.json();
   }
-  /**
-   * Delta synchronize all modified or newly created vault notes.
-   */
+  /** Delta synchronize all modified or newly created vault notes. */
   async syncVault() {
+    await this.ensureAuthToken();
     const base = this.settings.serverUrl.replace(/\/+$/, "");
     const url = `${base}/api/v1/sync`;
-    const res = await fetch(url, {
-      method: "POST",
-      headers: this.getHeaders()
-    });
-    if (!res.ok) {
-      throw new Error(`Vault sync failed with HTTP ${res.status}`);
-    }
+    const res = await fetch(url, { method: "POST", headers: this.getHeaders() });
+    if (!res.ok) throw new Error(`Vault sync failed with HTTP ${res.status}`);
     const data = await res.json();
     return data.results || [];
   }
-  /**
-   * Search knowledge base chunks biased by graph proximity to an anchor note.
-   */
+  /** Search knowledge base chunks biased by graph proximity to an anchor note. */
   async searchVault(query, near, limit) {
+    await this.ensureAuthToken();
     const base = this.settings.serverUrl.replace(/\/+$/, "");
     const url = `${base}/api/v1/search`;
-    const payload = {
-      query: query.trim(),
-      limit: limit || 5
-    };
-    if (near) {
-      payload.near = near;
-    }
+    const payload = { query: query.trim(), limit: limit || 5 };
+    if (near) payload.near = near;
     const res = await fetch(url, {
       method: "POST",
       headers: this.getHeaders(),
       body: JSON.stringify(payload)
     });
-    if (!res.ok) {
-      throw new Error(`Search failed with HTTP ${res.status}`);
-    }
+    if (!res.ok) throw new Error(`Search failed with HTTP ${res.status}`);
     const data = await res.json();
     return data.results || [];
   }
-  /**
-   * Subscribe to live SSE events from PKMRAG server.
-   */
+  /** Subscribe to live SSE events from PKMRAG server. */
   connectEvents(onEvent) {
     return connectEventStream(this.settings.serverUrl, this.settings.authToken, onEvent);
   }
-  /**
-   * Test LLM connection, latency, and schema formatting.
-   */
+  /** Test LLM connection, latency, and schema formatting. */
   async testLlm(payload) {
+    await this.ensureAuthToken();
     const base = this.settings.serverUrl.replace(/\/+$/, "");
     const body = payload || {
       provider: this.settings.llmProvider,
@@ -233,30 +194,32 @@ var PkmragClient = class {
       headers: this.getHeaders(),
       body: JSON.stringify(body)
     });
-    if (!res.ok) {
-      throw new Error(`LLM test failed with HTTP ${res.status}`);
-    }
+    if (!res.ok) throw new Error(`LLM test failed with HTTP ${res.status}`);
     return await res.json();
   }
-  /**
-   * Trigger vault ingestion / full rebuild in background.
-   */
+  /** Trigger vault ingestion / full rebuild in background. */
   async triggerIngest(options) {
+    await this.ensureAuthToken();
     const base = this.settings.serverUrl.replace(/\/+$/, "");
-    const res = await fetch(`${base}/api/v1/ingest`, {
+    let res = await fetch(`${base}/api/v1/ingest`, {
       method: "POST",
       headers: this.getHeaders(),
       body: JSON.stringify(options || {})
     });
-    if (!res.ok) {
-      throw new Error(`Ingest request failed with HTTP ${res.status}`);
+    if (res.status === 401) {
+      await this.autoDiscoverVaultToken();
+      res = await fetch(`${base}/api/v1/ingest`, {
+        method: "POST",
+        headers: this.getHeaders(),
+        body: JSON.stringify(options || {})
+      });
     }
+    if (!res.ok) throw new Error(`Ingest request failed with HTTP ${res.status}`);
     return await res.json();
   }
-  /**
-   * Trigger AI semantic gap discovery and relationship inference.
-   */
+  /** Trigger AI semantic gap discovery and relationship inference. */
   async triggerDiscover(options) {
+    await this.ensureAuthToken();
     const base = this.settings.serverUrl.replace(/\/+$/, "");
     const payload = options || {
       threshold: this.settings.similarityThreshold,
@@ -265,14 +228,20 @@ var PkmragClient = class {
       model: this.settings.llmModel,
       api_key: this.settings.llmApiKey
     };
-    const res = await fetch(`${base}/api/v1/discover`, {
+    let res = await fetch(`${base}/api/v1/discover`, {
       method: "POST",
       headers: this.getHeaders(),
       body: JSON.stringify(payload)
     });
-    if (!res.ok) {
-      throw new Error(`Discovery request failed with HTTP ${res.status}`);
+    if (res.status === 401) {
+      await this.autoDiscoverVaultToken();
+      res = await fetch(`${base}/api/v1/discover`, {
+        method: "POST",
+        headers: this.getHeaders(),
+        body: JSON.stringify(payload)
+      });
     }
+    if (!res.ok) throw new Error(`Discovery request failed with HTTP ${res.status}`);
     return await res.json();
   }
   /**
@@ -429,6 +398,11 @@ var DaemonManager = class {
     try {
       const health = await this.plugin.client.checkHealth();
       if (health.status === "healthy") {
+        await this.plugin.client.autoDiscoverVaultToken(this.plugin.app);
+        this.plugin.initEventStream();
+        this.plugin.isVaultIndexed = health.is_indexed === true;
+        this.plugin.activeJob = health.active_job || null;
+        this.plugin.lastTaskError = null;
         this.plugin.updateStatusBar(true);
         return true;
       }
@@ -450,19 +424,13 @@ var DaemonManager = class {
     }
     this.isStarting = true;
     this.lastError = null;
+    this.plugin.updateStatusBar();
     const { command, args } = this.resolveBinary(vaultPath);
     const { home, isWin } = this.getPlatformInfo();
     const winObj = typeof window !== "undefined" ? window : globalThis;
     const procEnv = winObj.process?.env || {};
     const pathSep = isWin ? ";" : ":";
-    const extraPaths = isWin ? [`${home}/.local/bin`, `${home}/.cargo/bin`] : [
-      `${home}/.local/bin`,
-      `${home}/.cargo/bin`,
-      `${home}/envs/base/bin`,
-      "/opt/homebrew/bin",
-      "/usr/local/bin",
-      "/usr/bin"
-    ];
+    const extraPaths = isWin ? [`${home}/.local/bin`, `${home}/.cargo/bin`] : [`${home}/.local/bin`, `${home}/.cargo/bin`, `${home}/envs/base/bin`, "/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"];
     const enhancedPath = extraPaths.concat((procEnv.PATH || "").split(pathSep)).filter(Boolean).join(pathSep);
     try {
       this.process = cp.spawn(command, args, {
@@ -492,13 +460,18 @@ var DaemonManager = class {
         this.isStarting = false;
         this.plugin.updateStatusBar(false);
       });
-      for (let i = 0; i < 16; i++) {
+      for (let i = 0; i < 30; i++) {
         await new Promise((resolve) => window.setTimeout(resolve, 500));
         try {
           const h = await this.plugin.client.checkHealth();
           if (h.status === "healthy") {
             this.isStarting = false;
             this.lastError = null;
+            await this.plugin.client.autoDiscoverVaultToken(this.plugin.app);
+            this.plugin.initEventStream();
+            this.plugin.isVaultIndexed = h.is_indexed === true;
+            this.plugin.activeJob = h.active_job || null;
+            this.plugin.lastTaskError = null;
             this.plugin.updateStatusBar(true);
             return true;
           }
@@ -506,6 +479,7 @@ var DaemonManager = class {
         }
       }
       this.isStarting = false;
+      this.plugin.updateStatusBar(false);
       if (this.lastError) {
         new import_obsidian.Notice(`PKMRAG: Daemon error: ${this.lastError}`);
       }
@@ -514,6 +488,7 @@ var DaemonManager = class {
       this.lastError = e instanceof Error ? e.message : String(e);
       this.isStarting = false;
       this.process = null;
+      this.plugin.updateStatusBar(false);
       return false;
     }
   }
@@ -526,6 +501,7 @@ var DaemonManager = class {
       this.process = null;
     }
     this.isStarting = false;
+    this.plugin.activeJob = null;
     this.plugin.updateStatusBar(false);
   }
   async restart() {
@@ -556,6 +532,7 @@ var HostInstaller = class {
       this.activeProcess = null;
     }
     this.isInstalling = false;
+    this.plugin.updateStatusBar();
   }
   getNodeModules() {
     const req = window.require;
@@ -643,6 +620,9 @@ var HostInstaller = class {
       return false;
     }
     this.isInstalling = true;
+    this.plugin.activeJob = null;
+    this.plugin.lastTaskError = null;
+    this.plugin.updateStatusBar();
     const env = this.detectEnvironment();
     try {
       if (env.hasUv && env.uvPath) {
@@ -663,18 +643,14 @@ var HostInstaller = class {
         const psCmd = "irm https://astral.sh/uv/install.ps1 | iex";
         callbacks.onLog(`$ powershell -Command "${psCmd}"`);
         const okBootstrap = await this.runProcess("powershell", ["-ExecutionPolicy", "ByPass", "-Command", psCmd], callbacks);
-        if (!okBootstrap) {
-          throw new Error("Failed to bootstrap uv via PowerShell.");
-        }
+        if (!okBootstrap) throw new Error("Failed to bootstrap uv via PowerShell.");
       } else {
         callbacks.onPhase("Bootstrapping uv package manager...", 10);
         callbacks.onLog("No Python or package manager found. Bootstrapping standalone uv on POSIX...");
         const shCmd = "curl -LsSf https://astral.sh/uv/install.sh | sh";
         callbacks.onLog(`$ ${shCmd}`);
         const okBootstrap = await this.runProcess("sh", ["-c", shCmd], callbacks);
-        if (!okBootstrap) {
-          throw new Error("Failed to bootstrap uv via shell script.");
-        }
+        if (!okBootstrap) throw new Error("Failed to bootstrap uv via shell script.");
       }
       callbacks.onPhase("Installing PKMRAG companion...", 50);
       const postEnv = this.detectEnvironment();
@@ -689,6 +665,7 @@ var HostInstaller = class {
     } finally {
       this.isInstalling = false;
       this.activeProcess = null;
+      this.plugin.updateStatusBar();
     }
   }
   runProcess(cmd, args, callbacks) {
@@ -733,15 +710,19 @@ var HostInstaller = class {
         proc.on("exit", async (code) => {
           this.activeProcess = null;
           if (code === 0) {
-            callbacks.onLog("\u2713 Installation finished with exit code 0.");
+            callbacks.onLog("\u2713 Engine package installed successfully.");
             try {
               await callbacks.onSuccess();
             } catch (err) {
               const msg = err instanceof Error ? err.message : String(err);
               callbacks.onError(`Post-install hook failed: ${msg}`);
             }
+            this.isInstalling = false;
+            this.plugin.updateStatusBar();
             resolve(true);
           } else {
+            this.isInstalling = false;
+            this.plugin.updateStatusBar();
             callbacks.onError(`Process exited with code ${code}`);
             resolve(false);
           }
@@ -1231,6 +1212,8 @@ function renderSetupWizardView(container, plugin, onConnected) {
       logBox.removeClass("pkmrag-hidden");
       cancelBtn.removeClass("pkmrag-hidden");
       logBox.empty();
+      plugin.activeJob = null;
+      plugin.lastTaskError = null;
       cancelBtn.onclick = () => {
         plugin.installer.cancel();
         logBox.createDiv({ text: "\nInstallation cancelled by user." });
@@ -1247,13 +1230,36 @@ function renderSetupWizardView(container, plugin, onConnected) {
           logBox.scrollTop = logBox.scrollHeight;
         },
         onSuccess: async () => {
-          new import_obsidian6.Notice("PKMRAG Engine installed successfully!");
+          logBox.createDiv({ text: "\n>>> Launching PKMRAG background daemon..." });
+          logBox.scrollTop = logBox.scrollHeight;
           cancelBtn.addClass("pkmrag-hidden");
+          plugin.activeJob = null;
+          plugin.lastTaskError = null;
           const ok = await plugin.daemonManager.start();
           if (ok) {
+            logBox.createDiv({ text: ">>> \u2713 Daemon connected successfully!" });
+            logBox.scrollTop = logBox.scrollHeight;
+            new import_obsidian6.Notice("PKMRAG Engine installed and connected!");
             onConnected();
           } else {
-            new import_obsidian6.Notice("PKMRAG installed. Click 'Verify & Start Engine' to connect.");
+            logBox.createDiv({ text: "\n>>> PKMRAG Engine installed. Click below to verify and connect:" });
+            const startBtn = logBox.createEl("button", {
+              cls: "pkmrag-btn-sm mod-cta",
+              text: "\u{1F680} Verify & Start Engine"
+            });
+            startBtn.onclick = async () => {
+              startBtn.setText("Connecting...");
+              startBtn.setAttribute("disabled", "true");
+              const retryOk = await plugin.daemonManager.start();
+              if (retryOk) {
+                new import_obsidian6.Notice("PKMRAG Engine connected!");
+                onConnected();
+              } else {
+                startBtn.setText("\u{1F680} Verify & Start Engine");
+                startBtn.removeAttribute("disabled");
+                new import_obsidian6.Notice("Engine is not ready yet. Check logs or Settings.");
+              }
+            };
           }
         },
         onError: (err) => {
@@ -1389,28 +1395,67 @@ function renderUnindexedView(container, plugin, onIndex) {
   wrapper.createEl("h3", { text: "Vault Setup & Initial Indexing", cls: "pkmrag-offline-title" });
   wrapper.createEl("p", {
     cls: "pkmrag-offline-desc",
-    text: "PKMRAG is connected, but your vault has not been indexed yet. Initial setup will build your LadybugDB graph and download the local BAAI/bge-small-en-v1.5 embedding model (~130 MB, runs 100% on-device via ONNX with zero API fees) for semantic vector search."
+    text: "PKMRAG is running. To enable semantic concept search and auto-linking, approve downloading the lightweight local embedding model:"
   });
-  const btnRow = wrapper.createDiv({ cls: "pkmrag-offline-actions" });
-  const indexBtn = btnRow.createEl("button", {
+  const modelCard = wrapper.createDiv({ cls: "pkmrag-model-card" });
+  modelCard.createDiv({ cls: "pkmrag-model-badge", text: "Local Embedding Model \u2022 FastEmbed ONNX" });
+  const specs = modelCard.createDiv({ cls: "pkmrag-model-specs" });
+  const r1 = specs.createDiv({ cls: "pkmrag-model-spec-row" });
+  r1.createSpan({ cls: "pkmrag-model-spec-label", text: "Model Architecture" });
+  r1.createSpan({ cls: "pkmrag-model-spec-val", text: "BAAI/bge-small-en-v1.5" });
+  const r2 = specs.createDiv({ cls: "pkmrag-model-spec-row" });
+  r2.createSpan({ cls: "pkmrag-model-spec-label", text: "One-Time Download" });
+  r2.createSpan({ cls: "pkmrag-model-spec-val", text: "~67 MB (~133 MB uncompressed)" });
+  const r3 = specs.createDiv({ cls: "pkmrag-model-spec-row" });
+  r3.createSpan({ cls: "pkmrag-model-spec-label", text: "Privacy & Network" });
+  r3.createSpan({ cls: "pkmrag-model-spec-val", text: "100% On-Device \u2022 Zero Cloud API" });
+  const actions = wrapper.createDiv({ cls: "pkmrag-offline-actions" });
+  const indexFullBtn = actions.createEl("button", {
     cls: "pkmrag-btn-sm mod-cta",
-    text: "\u26A1 Index Vault Now"
+    text: "\u{1F4E5} Download Model & Index Vault (130 MB)"
   });
-  indexBtn.onclick = async () => {
-    indexBtn.setText("Starting indexing...");
-    indexBtn.setAttribute("disabled", "true");
+  const startJob = async (target) => {
+    indexFullBtn.setAttribute("disabled", "true");
+    indexGraphBtn.setAttribute("disabled", "true");
+    plugin.lastTaskError = null;
+    plugin.activeJob = {
+      type: "ingest",
+      phase: target === "all" ? "Downloading local embedding model (BAAI/bge-small-en-v1.5)..." : "indexing graph",
+      cur: 0,
+      total: 100,
+      percent: 0,
+      message: target === "all" ? "Downloading model weights (~67 MB) into local cache..." : "Indexing LadybugDB property graph..."
+    };
+    plugin.updateStatusBar();
+    onIndex();
     try {
-      new import_obsidian8.Notice("PKMRAG: Indexing started (downloading embedding model in background)...");
-      await plugin.client.triggerIngest({ rebuild: true });
-      onIndex();
+      await plugin.client.autoDiscoverVaultToken(plugin.app);
+      plugin.initEventStream();
+      await plugin.client.triggerIngest({ target, rebuild: true });
     } catch (err) {
+      plugin.activeJob = null;
+      plugin.updateStatusBar();
       const msg = err instanceof Error ? err.message : String(err);
+      plugin.lastTaskError = {
+        type: "ingest",
+        message: msg,
+        timestamp: /* @__PURE__ */ new Date()
+      };
       new import_obsidian8.Notice(`Indexing failed: ${msg}`);
-      indexBtn.setText("\u26A1 Index Vault Now");
-      indexBtn.removeAttribute("disabled");
+      onIndex();
     }
   };
-  const settingsBtn = btnRow.createEl("button", {
+  indexFullBtn.onclick = () => startJob("all");
+  const indexGraphBtn = actions.createEl("button", {
+    cls: "pkmrag-btn-sm",
+    text: "\u26A1 Index Graph Only (0 MB)"
+  });
+  indexGraphBtn.setAttribute(
+    "title",
+    "Index links, tags, and orphans instantly with zero network download."
+  );
+  indexGraphBtn.onclick = () => startJob("graph");
+  const settingsBtn = actions.createEl("button", {
     cls: "pkmrag-btn-sm",
     text: "Settings"
   });
@@ -1432,11 +1477,17 @@ function renderProgressBanner(container, job) {
   titleWrapper.createSpan({ cls: "pkmrag-progress-icon", text: icon });
   titleWrapper.createSpan({ cls: "pkmrag-progress-title", text: titleText });
   const pct = Math.min(100, Math.max(0, job.percent));
-  headerRow.createSpan({ cls: "pkmrag-progress-pct", text: `${pct}%` });
+  headerRow.createSpan({
+    cls: "pkmrag-progress-pct",
+    text: isModel ? "Downloading (~130 MB)" : `${pct}%`
+  });
   const track = banner.createDiv({ cls: "pkmrag-progress-track" });
   const fill = track.createDiv({ cls: "pkmrag-progress-fill" });
-  const widthVal = `${pct}%`;
-  fill.style.width = widthVal;
+  if (isModel) {
+    track.addClass("pkmrag-progress-indeterminate");
+  } else {
+    fill.style.width = `${pct}%`;
+  }
   const detailRow = banner.createDiv({ cls: "pkmrag-progress-detail" });
   let label = job.message || job.desc || "";
   if (!label && job.phase) {
@@ -1444,6 +1495,94 @@ function renderProgressBanner(container, job) {
   }
   detailRow.createSpan({ cls: "pkmrag-progress-text", text: label || "Processing..." });
   return banner;
+}
+function renderJobProgressView(container, plugin, job) {
+  const wrapper = container.createDiv({ cls: "pkmrag-offline-container" });
+  const card = wrapper.createDiv({ cls: "pkmrag-progress-card" });
+  const phaseLower = (job.phase || "").toLowerCase();
+  const isModel = phaseLower.includes("model") || phaseLower.includes("download");
+  const isDisc = job.type === "discover";
+  const iconText = isDisc ? "\u{1F9E0}" : isModel ? "\u{1F4E5}" : "\u{1F504}";
+  const titleText = isDisc ? "AI Relationship Discovery" : isModel ? "Downloading Local Embedding Model" : "Vault Indexing & Property Graph";
+  const descText = isDisc ? "Discovering semantic gaps and inferring cross-note conceptual connections." : isModel ? "Downloading the BAAI/bge-small-en-v1.5 embedding model weights (~130 MB). This is a one-time download \u2014 vector search runs 100% locally on your machine with zero cloud dependencies or API fees." : "Parsing markdown notes, building the LadybugDB graph, and generating dense vector embeddings in LanceDB.";
+  const header = card.createDiv({ cls: "pkmrag-progress-header" });
+  const titleWrapper = header.createDiv({ cls: "pkmrag-progress-title-wrapper" });
+  titleWrapper.createSpan({ cls: "pkmrag-progress-icon", text: iconText });
+  titleWrapper.createEl("h3", { cls: "pkmrag-progress-card-title", text: titleText });
+  const pct = Math.min(100, Math.max(0, job.percent));
+  header.createSpan({
+    cls: "pkmrag-progress-pct",
+    text: isModel ? "Step 1/2: Downloading" : isDisc ? `${pct}%` : `Step 2/2: ${pct}%`
+  });
+  card.createEl("p", { cls: "pkmrag-progress-card-desc", text: descText });
+  const track = card.createDiv({ cls: "pkmrag-progress-track" });
+  const fill = track.createDiv({ cls: "pkmrag-progress-fill" });
+  if (isModel) {
+    track.addClass("pkmrag-progress-indeterminate");
+  } else {
+    fill.style.width = `${pct}%`;
+  }
+  const detailRow = card.createDiv({ cls: "pkmrag-progress-detail" });
+  let label = job.message || job.desc || "";
+  if (!label && job.phase) {
+    label = `${job.phase} (${job.cur}/${job.total})`;
+  }
+  detailRow.createSpan({
+    cls: "pkmrag-progress-text",
+    text: label || (isModel ? "Streaming ONNX weights to local cache..." : "Processing in background...")
+  });
+  const hint = card.createDiv({ cls: "pkmrag-wizard-hint" });
+  hint.setText(
+    isModel ? "\u26A1 One-time download: weights are saved to your local cache so future launches are instant." : "\u26A1 Local background process active. Insights will appear automatically upon completion."
+  );
+}
+function renderTaskErrorCard(container, plugin, error, onRetry) {
+  const wrapper = container.createDiv({ cls: "pkmrag-offline-container" });
+  const card = wrapper.createDiv({ cls: "pkmrag-progress-card pkmrag-error-card" });
+  const header = card.createDiv({ cls: "pkmrag-progress-header" });
+  const titleWrapper = header.createDiv({ cls: "pkmrag-progress-title-wrapper" });
+  titleWrapper.createSpan({ cls: "pkmrag-progress-icon", text: "\u26A0\uFE0F" });
+  titleWrapper.createEl("h3", {
+    cls: "pkmrag-progress-card-title",
+    text: error.type === "discover" ? "Discovery Error" : "Vault Indexing Failed"
+  });
+  const errBox = card.createDiv({ cls: "pkmrag-error-box" });
+  errBox.setText(error.message);
+  const lower = error.message.toLowerCase();
+  const isNet = ["connect", "timeout", "network", "huggingface", "download", "dns", "getaddrinfo", "ssl", "offline", "unreachable", "urlopen"].some((k) => lower.includes(k));
+  if (isNet) {
+    const netHint = card.createDiv({ cls: "pkmrag-installer-desc" });
+    netHint.setText(
+      "Network problem detected: PKMRAG could not reach the model repository to download the local embedding model (BAAI/bge-small-en-v1.5). Please verify your internet connection or proxy settings and retry."
+    );
+  }
+  const actions = card.createDiv({ cls: "pkmrag-offline-actions" });
+  const retryBtn = actions.createEl("button", {
+    cls: "pkmrag-btn-sm mod-cta",
+    text: "\u{1F504} Retry Indexing"
+  });
+  retryBtn.onclick = () => {
+    retryBtn.setText("Retrying...");
+    retryBtn.setAttribute("disabled", "true");
+    plugin.lastTaskError = null;
+    onRetry();
+  };
+  const dismissBtn = actions.createEl("button", {
+    cls: "pkmrag-btn-sm",
+    text: "Dismiss"
+  });
+  dismissBtn.onclick = () => {
+    plugin.lastTaskError = null;
+    plugin.refreshActiveView();
+  };
+  const settingsBtn = actions.createEl("button", {
+    cls: "pkmrag-btn-sm",
+    text: "Settings"
+  });
+  settingsBtn.onclick = () => {
+    plugin.app.setting?.open?.();
+    plugin.app.setting?.openTabById?.(plugin.manifest.id);
+  };
 }
 
 // src/view_inferences.ts
@@ -1698,6 +1837,10 @@ var PkmragInsightsView = class extends import_obsidian9.ItemView {
   }
   async loadInsightsForNote(notePath) {
     this.currentNotePath = notePath;
+    if (!this.plugin.isServerConnected || !this.plugin.isVaultIndexed) {
+      this.render();
+      return;
+    }
     this.isLoading = true;
     this.errorMessage = null;
     this.isUnindexed = false;
@@ -1734,7 +1877,7 @@ var PkmragInsightsView = class extends import_obsidian9.ItemView {
     const container = this.containerEl.children[1];
     container.empty();
     container.addClass("pkmrag-insights-container");
-    if (this.plugin.activeJob) {
+    if (this.plugin.activeJob && this.plugin.isVaultIndexed) {
       renderProgressBanner(container, this.plugin.activeJob);
     }
     const headerEl = container.createDiv({ cls: "pkmrag-header" });
@@ -1769,7 +1912,8 @@ var PkmragInsightsView = class extends import_obsidian9.ItemView {
     if (!this.plugin.isServerConnected || this.isOffline) {
       if (!this.plugin.daemonManager.isBinaryAvailable()) {
         renderSetupWizardView(container, this.plugin, () => {
-          if (this.currentNotePath) {
+          this.isOffline = false;
+          if (this.plugin.isVaultIndexed && this.currentNotePath) {
             this.loadInsightsForNote(this.currentNotePath);
           } else {
             this.render();
@@ -1778,7 +1922,8 @@ var PkmragInsightsView = class extends import_obsidian9.ItemView {
         return;
       }
       renderOfflineView(container, this.plugin, () => {
-        if (this.currentNotePath) {
+        this.isOffline = false;
+        if (this.plugin.isVaultIndexed && this.currentNotePath) {
           this.loadInsightsForNote(this.currentNotePath);
         } else {
           this.render();
@@ -1786,11 +1931,42 @@ var PkmragInsightsView = class extends import_obsidian9.ItemView {
       });
       return;
     }
+    if (this.plugin.lastTaskError) {
+      renderTaskErrorCard(container, this.plugin, this.plugin.lastTaskError, async () => {
+        try {
+          this.plugin.lastTaskError = null;
+          this.plugin.activeJob = {
+            type: "ingest",
+            phase: "initializing",
+            cur: 0,
+            total: 100,
+            percent: 0,
+            message: "Retrying vault indexing..."
+          };
+          this.plugin.updateStatusBar();
+          this.render();
+          await this.plugin.client.autoDiscoverVaultToken(this.plugin.app);
+          this.plugin.initEventStream();
+          await this.plugin.client.triggerIngest({ rebuild: true });
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          this.plugin.lastTaskError = {
+            type: "ingest",
+            message: msg,
+            timestamp: /* @__PURE__ */ new Date()
+          };
+          this.render();
+        }
+      });
+      return;
+    }
     if (!this.plugin.isVaultIndexed || this.isUnindexed) {
+      if (this.plugin.activeJob) {
+        renderJobProgressView(container, this.plugin, this.plugin.activeJob);
+        return;
+      }
       renderUnindexedView(container, this.plugin, () => {
-        this.isUnindexed = false;
-        this.plugin.isVaultIndexed = true;
-        if (this.currentNotePath) this.loadInsightsForNote(this.currentNotePath);
+        this.render();
       });
       return;
     }
@@ -1869,6 +2045,11 @@ function renderStatusBar(statusBarEl, plugin) {
     statusBarEl.setAttribute("title", "PKMRAG engine installation in progress...");
     return;
   }
+  if (plugin.daemonManager.isStarting) {
+    statusBarEl.createSpan({ text: "\u23F3 PKMRAG: Starting Engine...", cls: "pkmrag-status-busy" });
+    statusBarEl.setAttribute("title", "PKMRAG background daemon is launching...");
+    return;
+  }
   if (!plugin.isServerConnected) {
     if (!plugin.daemonManager.isBinaryAvailable()) {
       statusBarEl.createSpan({ text: "\u26AA PKMRAG: Setup Engine", cls: "pkmrag-status-setup" });
@@ -1886,8 +2067,9 @@ function renderStatusBar(statusBarEl, plugin) {
     const icon = isDisc ? "\u{1F9E0}" : isModel ? "\u{1F4E5}" : "\u{1F504}";
     const name = isDisc ? "Discovering" : isModel ? "Downloading Model" : "Indexing";
     const pct = Math.min(100, Math.max(0, plugin.activeJob.percent));
+    const statusText = isModel ? `${icon} PKMRAG: Downloading Model (~130MB)` : `${icon} PKMRAG: ${name} (${pct}%)`;
     statusBarEl.createSpan({
-      text: `${icon} PKMRAG: ${name} (${pct}%)`,
+      text: statusText,
       cls: "pkmrag-status-busy"
     });
     const desc = plugin.activeJob.message || plugin.activeJob.desc || plugin.activeJob.phase;
@@ -1929,17 +2111,24 @@ function setupEventStream(plugin) {
       notifySidebar(plugin);
     } else if (event === "ingest_complete") {
       plugin.activeJob = null;
+      plugin.lastTaskError = null;
       plugin.isVaultIndexed = true;
       plugin.updateStatusBar();
       new import_obsidian10.Notice("PKMRAG: Vault indexing complete.");
       plugin.refreshActiveView();
     } else if (event === "discover_complete") {
       plugin.activeJob = null;
+      plugin.lastTaskError = null;
       plugin.updateStatusBar();
       new import_obsidian10.Notice(`PKMRAG: AI Discovery finished (${data.inferred_count ?? 0} relationships).`);
       plugin.refreshActiveView();
     } else if (event === "ingest_error" || event === "discover_error") {
       plugin.activeJob = null;
+      plugin.lastTaskError = {
+        type: event === "ingest_error" ? "ingest" : "discover",
+        message: String(data.message || "Unknown error occurred"),
+        timestamp: /* @__PURE__ */ new Date()
+      };
       plugin.updateStatusBar();
       new import_obsidian10.Notice(`PKMRAG task failed: ${data.message ?? "Error"}`);
       plugin.refreshActiveView();
@@ -1989,15 +2178,18 @@ var PkmragPlugin = class extends import_obsidian11.Plugin {
   daemonManager;
   installer;
   activeJob = null;
-  isVaultIndexed = true;
+  lastTaskError = null;
+  isVaultIndexed = false;
   isServerConnected = false;
   statusBarEl;
   eventSource = null;
   debounceMap = /* @__PURE__ */ new Map();
   activeInsights = /* @__PURE__ */ new Map();
   async onload() {
+    this.activeJob = null;
+    this.lastTaskError = null;
     await this.loadSettings();
-    this.client = new PkmragClient(this.settings);
+    this.client = new PkmragClient(this.settings, this.app);
     this.daemonManager = new DaemonManager(this);
     this.installer = new HostInstaller(this);
     if (!this.settings.authToken) {
@@ -2024,7 +2216,7 @@ var PkmragPlugin = class extends import_obsidian11.Plugin {
     this.registerEditorExtension(createPkmragEditorExtension(this));
     this.registerEvent(
       this.app.vault.on("modify", (file) => {
-        if (!this.settings.autoSyncOnSave || !(file instanceof import_obsidian11.TFile) || file.extension !== "md") {
+        if (!this.settings.autoSyncOnSave || !this.isVaultIndexed || !(file instanceof import_obsidian11.TFile) || file.extension !== "md") {
           return;
         }
         const timer = this.debounceMap.get(file.path);
@@ -2138,7 +2330,7 @@ var PkmragPlugin = class extends import_obsidian11.Plugin {
     try {
       const health = await this.client.checkHealth();
       this.isServerConnected = true;
-      this.isVaultIndexed = health.is_indexed !== false;
+      this.isVaultIndexed = health.is_indexed === true;
       this.activeJob = health.active_job || null;
     } catch {
       this.isServerConnected = false;

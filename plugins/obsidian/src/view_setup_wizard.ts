@@ -85,6 +85,8 @@ export function renderSetupWizardView(
       logBox.removeClass("pkmrag-hidden");
       cancelBtn.removeClass("pkmrag-hidden");
       logBox.empty();
+      plugin.activeJob = null;
+      plugin.lastTaskError = null;
 
       cancelBtn.onclick = () => {
         plugin.installer.cancel();
@@ -103,13 +105,36 @@ export function renderSetupWizardView(
           logBox.scrollTop = logBox.scrollHeight;
         },
         onSuccess: async () => {
-          new Notice("PKMRAG Engine installed successfully!");
+          logBox.createDiv({ text: "\n>>> Launching PKMRAG background daemon..." });
+          logBox.scrollTop = logBox.scrollHeight;
           cancelBtn.addClass("pkmrag-hidden");
+          plugin.activeJob = null;
+          plugin.lastTaskError = null;
           const ok = await plugin.daemonManager.start();
           if (ok) {
+            logBox.createDiv({ text: ">>> ✓ Daemon connected successfully!" });
+            logBox.scrollTop = logBox.scrollHeight;
+            new Notice("PKMRAG Engine installed and connected!");
             onConnected();
           } else {
-            new Notice("PKMRAG installed. Click 'Verify & Start Engine' to connect.");
+            logBox.createDiv({ text: "\n>>> PKMRAG Engine installed. Click below to verify and connect:" });
+            const startBtn = logBox.createEl("button", {
+              cls: "pkmrag-btn-sm mod-cta",
+              text: "🚀 Verify & Start Engine",
+            });
+            startBtn.onclick = async () => {
+              startBtn.setText("Connecting...");
+              startBtn.setAttribute("disabled", "true");
+              const retryOk = await plugin.daemonManager.start();
+              if (retryOk) {
+                new Notice("PKMRAG Engine connected!");
+                onConnected();
+              } else {
+                startBtn.setText("🚀 Verify & Start Engine");
+                startBtn.removeAttribute("disabled");
+                new Notice("Engine is not ready yet. Check logs or Settings.");
+              }
+            };
           }
         },
         onError: (err) => {
