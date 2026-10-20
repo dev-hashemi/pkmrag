@@ -53,9 +53,10 @@ def execute_query_vault(
     lines: list[str] = [f"Found {len(results)} relevant chunks in vault:\n"]
     for i, r in enumerate(results, start=1):
         heading_str = f" > {r.heading}" if r.heading else ""
-        boost_str = (
-            f" [graph boost: {r.graph_boost_factor:.2f}x]" if r.graph_boost_factor > 1.0 else ""
-        )
+        boost_str = ""
+        if r.graph_boost_factor > 1.0:
+            hop_str = f", {r.hop_distance} hop(s)" if r.hop_distance is not None else ""
+            boost_str = f" [graph boost: {r.graph_boost_factor:.2f}x{hop_str}]"
         lines.append(
             f"### Result {i}: {r.note_title}{heading_str}\n"
             f"- **Path**: `{r.note_path}`\n"

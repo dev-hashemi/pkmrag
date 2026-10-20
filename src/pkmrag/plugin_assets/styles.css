@@ -151,6 +151,73 @@
 .pkmrag-search-results { max-height: 250px; overflow-y: auto; }
 .pkmrag-search-card { margin-bottom: 6px; padding: 6px 8px; }
 
+/* Graph Bridge Path (semantic gap card) */
+.pkmrag-bridge { display: flex; align-items: baseline; gap: 6px; margin: 6px 0; flex-wrap: wrap; }
+.pkmrag-bridge-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+.pkmrag-bridge-chain { display: flex; align-items: baseline; gap: 4px; flex-wrap: wrap; font-size: 11px; }
+.pkmrag-bridge-step { color: var(--text-accent); cursor: pointer; text-decoration: none; }
+.pkmrag-bridge-step:hover { text-decoration: underline; }
+.pkmrag-bridge-sep { color: var(--text-faint); }
+
+/* Evidence excerpts (semantic gap card) */
+.pkmrag-evidence { margin: 8px 0; border-top: 1px solid var(--background-modifier-border); padding-top: 6px; }
+.pkmrag-evidence-summary {
+  font-size: 11px;
+  color: var(--text-faint);
+  cursor: pointer;
+  user-select: none;
+}
+.pkmrag-evidence-summary:hover { color: var(--text-muted); }
+.pkmrag-evidence-body { margin-top: 6px; display: flex; flex-direction: column; gap: 6px; }
+.pkmrag-evidence-row { font-size: 11px; }
+.pkmrag-evidence-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-faint);
+  margin-right: 4px;
+}
+.pkmrag-evidence-note { color: var(--text-muted); font-weight: var(--font-semibold); }
+.pkmrag-evidence-text {
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin-top: 2px;
+  padding-left: 8px;
+  border-left: 2px solid var(--background-modifier-border);
+}
+
+/* Graph Context link groups */
+.pkmrag-context-group { margin-bottom: 10px; }
+.pkmrag-context-group-head { display: flex; justify-content: space-between; align-items: baseline; }
+.pkmrag-context-group-label {
+  font-size: 11px;
+  font-weight: var(--font-semibold);
+  color: var(--text-muted);
+}
+.pkmrag-context-group-count { font-size: 10px; color: var(--text-faint); }
+.pkmrag-link-list { margin-top: 4px; display: flex; flex-direction: column; gap: 2px; }
+.pkmrag-link-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 12px; }
+.pkmrag-link { color: var(--text-accent); cursor: pointer; text-decoration: none; white-space: nowrap; }
+.pkmrag-link:hover { text-decoration: underline; }
+.pkmrag-link-path {
+  color: var(--text-faint);
+  font-size: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl;
+  text-align: right;
+}
+.pkmrag-context-toggle { font-size: 11px; color: var(--text-faint); cursor: pointer; text-decoration: none; }
+.pkmrag-context-toggle:hover { color: var(--text-muted); }
+.pkmrag-context-group:not(.pkmrag-expanded) .pkmrag-extra { display: none; }
+
 /* Dismissed Suggestions Drawer */
 .pkmrag-dismissed-drawer { margin-top: 10px; padding-top: 6px; border-top: 1px dashed var(--background-modifier-border); }
 .pkmrag-dismissed-toggle { font-size: 11px; color: var(--text-faint); cursor: pointer; text-decoration: none; }

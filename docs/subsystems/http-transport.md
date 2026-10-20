@@ -118,14 +118,42 @@ Returns the note's structural graph context including tags, forward links, backl
       "rel_type": "CONTRADICTS",
       "confidence": 0.83,
       "reason": "Claims strong consistency with AP mode",
-      "direction": "source_to_target"
+      "model": "gpt-4o-mini",
+      "created_at": "2026-01-01T00:00:00+00:00"
     }
-  ]
+  ],
+  "is_unresolved": false
 }
 ```
 
 ### `GET /api/v1/gaps?threshold=0.80&limit=10&note_path=<path>`
-Returns unlinked candidate pairs exhibiting high vector similarity. If `note_path` is specified, filters candidates involving that note.
+Returns unlinked candidate pairs exhibiting high vector similarity. If `note_path` is specified, filters candidates involving that note. `limit` caps the number of returned candidates.
+```json
+{
+  "candidates": [
+    {
+      "source_path": "Daily/2026-09-27.md",
+      "target_path": "Research/Vector Retrieval.md",
+      "source_title": "2026-09-27",
+      "target_title": "Vector Retrieval",
+      "similarity": 0.6401,
+      "hops": 3,
+      "bridge_path": [
+        "Daily/2026-09-27.md",
+        "Projects/PKMRAG Core.md",
+        "Research/Vector Retrieval.md"
+      ],
+      "source_chunk_id": "Daily/2026-09-27.md#chunk_0",
+      "target_chunk_id": "Research/Vector Retrieval.md#chunk_0",
+      "source_chunk_text": "...",
+      "target_chunk_text": "..."
+    }
+  ],
+  "total": 1,
+  "duration_ms": 106.5
+}
+```
+`hops` is `-1` and `bridge_path` is empty when no link path exists within 10 hops.
 
 ### `POST /api/v1/search`
 Executes hybrid vector + BM25 search with graph proximity boosting.

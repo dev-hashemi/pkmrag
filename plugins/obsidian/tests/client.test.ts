@@ -83,10 +83,16 @@ test("PkmragClient searchVault dispatches POST request with query and near note"
         query: "distributed consensus",
         results: [
           {
-            title: "Paxos Algorithm",
+            chunk_id: "distributed/paxos.md#chunk_0",
+            note_path: "distributed/paxos.md",
+            note_title: "Paxos Algorithm",
+            heading: "# Paxos Algorithm > ## Quorum Intersection",
+            text: "Paxos is a family of protocols for reaching consensus...",
             score: 0.94,
-            chunk_text: "Paxos is a family of protocols for reaching consensus...",
-            metadata: { path: "distributed/paxos.md" },
+            dense_score: 0.12,
+            sparse_score: 2.4,
+            graph_boost_factor: 1.25,
+            hop_distance: 1,
           },
         ],
       }),
@@ -108,8 +114,10 @@ test("PkmragClient searchVault dispatches POST request with query and near note"
     assert.equal(headers["Authorization"], "Bearer search_token_123");
 
     assert.equal(results.length, 1);
-    assert.equal(results[0].title, "Paxos Algorithm");
+    assert.equal(results[0].note_title, "Paxos Algorithm");
+    assert.equal(results[0].note_path, "distributed/paxos.md");
     assert.equal(results[0].score, 0.94);
+    assert.equal(results[0].graph_boost_factor, 1.25);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -138,29 +146,29 @@ test("PkmragClient searchVault throws error on non-200 response", async () => {
 });
 
 test("Dismissed suggestions filter removes dismissed items matching source and target", () => {
-  const dismissed = [
-    {
-      source_path: "notes/raft.md",
-      target_title: "Byzantine Generals",
-      dismissed_at: "2026-10-05T12:00:00Z",
+  const dismissed: Record<
+    string,
+    { sourcePath: string; targetPath: string; targetTitle: string; dismissedAt: number }
+  > = {
+    "notes/raft.md::notes/byzantine.md": {
+      sourcePath: "notes/raft.md",
+      targetPath: "notes/byzantine.md",
+      targetTitle: "Byzantine Generals",
+      dismissedAt: 1,
     },
-  ];
+  };
 
   const suggestions = [
-    { target_title: "Paxos", target_path: "notes/paxos.md" },
-    { target_title: "Byzantine Generals", target_path: "notes/byzantine.md" },
+    { source_path: "notes/raft.md", target_path: "notes/paxos.md" },
+    { source_path: "notes/raft.md", target_path: "notes/byzantine.md" },
   ];
 
-  const sourcePath = "notes/raft.md";
   const filtered = suggestions.filter(
-    (s) =>
-      !dismissed.some(
-        (d) => d.source_path === sourcePath && d.target_title === s.target_title
-      )
+    (s) => !dismissed[`${s.source_path}::${s.target_path}`]
   );
 
   assert.equal(filtered.length, 1);
-  assert.equal(filtered[0].target_title, "Paxos");
+  assert.equal(filtered[0].target_path, "notes/paxos.md");
 });
 
 test("PkmragClient testLlm dispatches POST request with provider and model", async () => {

@@ -175,11 +175,13 @@ claude mcp add pkmrag -- uv run pkmrag serve /path/to/vault
 A native desktop companion plugin (`plugins/obsidian/`) connecting Obsidian to PKMRAG:
 - **Interactive Setup Wizard:** If installed before the Python core engine, the sidebar automatically guides you through a 2-step setup with 1-click command copying and live verification.
 - **PKMRAG Insights Sidebar:** Real-time semantic gap recommendations, contradiction warnings with LLM citations, and structural graph context.
+- **Evidence-Backed Missing Links:** Each gap card shows the similarity score, the real graph distance (`N hops away` or `No path within 10 hops`), the clickable **bridge path** connecting the two notes, and the **matching passages** from both notes that justify the suggestion.
+- **Navigable Graph Context:** Backlinks, outgoing links, and the 2-hop cluster are listed as clickable notes instead of bare counts.
 - **Zero-Terminal Workflow & Auto-Daemon:** Transparently starts the background engine daemon on launch and shuts down cleanly on exit.
 - **In-App AI Discovery & Indexing:** Trigger deep AI relationship discovery (`⚡ Discover`) and full vault rebuilds directly from Obsidian without opening a shell.
 - **Settings-Driven LLM & Embedding Models:** Swap between Ollama, OpenAI, Groq, or local endpoints and customize models with 1-click latency verification directly inside Obsidian Settings.
 - **CodeMirror 6 Inline Indicators:** Ambient visual widgets on headings (`🔗 N`, `⚠️`) without document clutter; clicking reveals the sidebar panel.
-- **Proximity Concept Explorer:** Context-anchored hybrid retrieval drawer (`--near <note>`) directly within the editor with 1-click reference insertion.
+- **Proximity Concept Explorer:** Context-anchored hybrid retrieval drawer (`--near <note>`) directly within the editor with 1-click reference insertion, showing the graph-proximity boost applied to each hit.
 - **Knowledge Governance:** Persistent negative feedback cache preventing dismissed links from recurring; transparent restoration drawer and global reset.
 - **Zero-Config Token Security:** Automatically discovers `.pkmrag/server_token` from active vault.
 - **Live Reactive Updates:** Subscribes to Server-Sent Events (`/api/v1/events`) for background indexing updates.

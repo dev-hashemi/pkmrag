@@ -194,12 +194,21 @@ def execute_discover_gaps(
         )
 
     clamped = max(1, min(limit, 50))
-    display = candidates[:clamped]
+    display = engine.enrich_candidates(candidates[:clamped])
     lines: list[str] = [f"# Discovered Semantic Gaps ({len(candidates)} candidate pairs found):\n"]
     for c in display:
+        src_label = c.source_title or c.source_path
+        dst_label = c.target_title or c.target_path
+        distance = f"{c.hops} hops apart" if c.hops >= 0 else "no path within 10 hops"
         lines.append(
-            f"### `{c.source_path}` ↔ `{c.target_path}`\n"
+            f"### `{src_label}` ↔ `{dst_label}`\n"
+            f"- **Paths**: `{c.source_path}` ↔ `{c.target_path}`\n"
             f"- **Cosine Similarity**: {c.similarity:.4f}\n"
+            f"- **Graph Distance**: {distance}\n"
+        )
+        if c.bridge_path:
+            lines.append(f"- **Bridge**: {' → '.join(c.bridge_path)}\n")
+        lines.append(
             f"- **Source Excerpt**: {c.source_chunk_text[:120].strip()}...\n"
             f"- **Target Excerpt**: {c.target_chunk_text[:120].strip()}...\n"
         )

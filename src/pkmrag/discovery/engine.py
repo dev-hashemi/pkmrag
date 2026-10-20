@@ -8,6 +8,7 @@ from pathlib import Path, PurePosixPath
 from typing import Callable, Optional
 
 from pkmrag.config import load_vault_env, settings
+from pkmrag.graph.paths import find_shortest_bridge
 from pkmrag.graph.store import GraphStore
 from pkmrag.graph.traversal import (
     add_inferred_relationship,
@@ -31,6 +32,7 @@ class GapDiscoveryEngine:
     ) -> None:
         self.vault_path = Path(vault_path).resolve()
         load_vault_env(self.vault_path)
+        self._owns_graph_store = graph_store is None
         self.graph_store = (
             graph_store
             if graph_store is not None
@@ -44,8 +46,9 @@ class GapDiscoveryEngine:
         self.inference_provider = inference_provider
 
     def close(self) -> None:
-        """Close graph store connection."""
-        self.graph_store.close()
+        """Close graph store connection when this engine owns it."""
+        if self._owns_graph_store:
+            self.graph_store.close()
 
     def find_gap_candidates(
         self,
@@ -61,7 +64,7 @@ class GapDiscoveryEngine:
         # Pull all chunks to iterate their vectors
         arrow_table = (
             self.vector_store.table.search()
-            .select(["id", "note_path", "text", "vector"])
+            .select(["id", "note_path", "note_title", "text", "vector"])
             .to_arrow()
         )
         total_chunks = len(arrow_table)
@@ -70,12 +73,13 @@ class GapDiscoveryEngine:
 
         ids = arrow_table["id"].to_pylist()
         note_paths = arrow_table["note_path"].to_pylist()
+        note_titles = arrow_table["note_title"].to_pylist()
         texts = arrow_table["text"].to_pylist()
         vectors = arrow_table["vector"].to_pylist()
 
         # Step 1: Find high-similarity chunk pairs and group by canonical note pair
-        # candidate_map: (note_a, note_b) -> (max_sim, chunk_a_id, chunk_b_id, text_a, text_b)
-        best_pair_matches: dict[tuple[str, str], tuple[float, str, str, str, str]] = {}
+        # candidate_map: (note_a, note_b) -> (sim, id_a, id_b, text_a, text_b, title_a, title_b)
+        best_pair_matches: dict[tuple[str, str], tuple[float, str, str, str, str, str, str]] = {}
 
         with trace_span("gap.vector_ann", attributes={"similarity_threshold": threshold}):
             for i in range(total_chunks):
@@ -83,6 +87,7 @@ class GapDiscoveryEngine:
                 note_i = note_paths[i]
                 id_i = ids[i]
                 text_i = texts[i]
+                title_i = str(note_titles[i] or "")
 
                 # Search LanceDB for top 20 nearest neighbors using cosine metric
                 matches = (
@@ -101,14 +106,31 @@ class GapDiscoveryEngine:
 
                     id_j = str(m.get("id", ""))
                     text_j = str(m.get("text", ""))
+                    title_j = str(m.get("note_title", "") or "")
 
                     # Canonical pair key (min, max) to eliminate bidirectional duplicates
                     pair_key = (min(note_i, note_j), max(note_i, note_j))
                     if pair_key not in best_pair_matches or sim > best_pair_matches[pair_key][0]:
                         if note_i == pair_key[0]:
-                            best_pair_matches[pair_key] = (sim, id_i, id_j, text_i, text_j)
+                            best_pair_matches[pair_key] = (
+                                sim,
+                                id_i,
+                                id_j,
+                                text_i,
+                                text_j,
+                                title_i,
+                                title_j,
+                            )
                         else:
-                            best_pair_matches[pair_key] = (sim, id_j, id_i, text_j, text_i)
+                            best_pair_matches[pair_key] = (
+                                sim,
+                                id_j,
+                                id_i,
+                                text_j,
+                                text_i,
+                                title_j,
+                                title_i,
+                            )
 
         # Step 2: Filter out note pairs already connected in LadybugDB within max_hops
         # or already evaluated in INFERRED_REL
@@ -119,7 +141,15 @@ class GapDiscoveryEngine:
             "gap.graph_filter",
             attributes={"max_hops": hops, "raw_candidates": len(best_pair_matches)},
         ) as filter_span:
-            for (src, dst), (sim, c_src, c_dst, t_src, t_dst) in best_pair_matches.items():
+            for (src, dst), (
+                sim,
+                c_src,
+                c_dst,
+                t_src,
+                t_dst,
+                ti_src,
+                ti_dst,
+            ) in best_pair_matches.items():
                 if src not in hop_cache:
                     hop_cache[src] = self.graph_store.get_neighbor_hops(src, max_hops=hops)
 
@@ -134,6 +164,8 @@ class GapDiscoveryEngine:
                     SemanticGapCandidate(
                         source_path=src,
                         target_path=dst,
+                        source_title=ti_src,
+                        target_title=ti_dst,
                         similarity=round(sim, 4),
                         source_chunk_id=c_src,
                         target_chunk_id=c_dst,
@@ -150,6 +182,30 @@ class GapDiscoveryEngine:
         # Sort descending by similarity
         filtered_candidates.sort(key=lambda c: c.similarity, reverse=True)
         return filtered_candidates
+
+    def enrich_candidates(
+        self,
+        candidates: list[SemanticGapCandidate],
+        max_hops: int = 10,
+    ) -> list[SemanticGapCandidate]:
+        """Populate hop distance and shortest bridge path for each candidate pair."""
+        enriched: list[SemanticGapCandidate] = []
+        for cand in candidates:
+            bridge = find_shortest_bridge(
+                self.graph_store.conn,
+                cand.source_path,
+                cand.target_path,
+                max_hops=max_hops,
+            )
+            enriched.append(
+                cand.model_copy(
+                    update={
+                        "hops": bridge.hops,
+                        "bridge_path": bridge.path,
+                    }
+                )
+            )
+        return enriched
 
     def evaluate_and_persist(
         self,
@@ -216,6 +272,7 @@ class GapDiscoveryEngine:
         api_key: Optional[str] = None,
         rpm: Optional[int] = None,
         tpm: Optional[int] = None,
+        enrich: bool = False,
         on_progress: Optional[Callable[[int, int, str], None]] = None,
     ) -> tuple[list[SemanticGapCandidate], list[InferredRelationship], DiscoveryStats]:
         """Orchestrate end-to-end candidate discovery and optional LLM classification."""
@@ -225,6 +282,8 @@ class GapDiscoveryEngine:
                 min_similarity=similarity_threshold,
                 max_hops=max_hops,
             )
+            if enrich and candidates:
+                candidates = self.enrich_candidates(candidates)
 
             inferred: list[InferredRelationship] = []
             eff_provider = provider or self.inference_provider

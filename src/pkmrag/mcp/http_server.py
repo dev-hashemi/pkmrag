@@ -110,9 +110,9 @@ def create_http_app(
 
         note_path = request.query_params.get("note_path", "").strip()
         threshold = float(request.query_params.get("threshold", "0.80"))
-        limit = int(request.query_params.get("limit", "10"))
+        limit = max(1, int(request.query_params.get("limit", "10")))
 
-        engine = GapDiscoveryEngine(vpath)
+        engine = GapDiscoveryEngine(vpath, graph_store=server_state.graph_store)
         try:
             candidates, _, stats = engine.discover(
                 similarity_threshold=threshold,
@@ -125,6 +125,9 @@ def create_http_app(
                     for c in candidates
                     if c.source_path == note_path or c.target_path == note_path
                 ]
+            # Enrich only the visible subset: hop distance requires a graph query per pair.
+            if candidates:
+                candidates = engine.enrich_candidates(candidates[:limit])
             return JSONResponse(
                 {
                     "candidates": [c.model_dump() for c in candidates],

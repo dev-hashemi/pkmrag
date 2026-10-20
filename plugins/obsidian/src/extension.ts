@@ -27,7 +27,8 @@ class PkmragHeadingWidget extends WidgetType {
     span.className = `pkmrag-inline-indicator ${
       this.hasContradiction ? "pkmrag-inline-warning" : "pkmrag-inline-normal"
     }`;
-    span.textContent = this.hasContradiction ? " ⚠️" : " 🔗";
+    const countLabel = this.count > 0 ? ` ${this.count}` : "";
+    span.textContent = this.hasContradiction ? ` ⚠️${countLabel}` : ` 🔗${countLabel}`;
     span.title = `PKMRAG: ${this.count} unlinked connection${
       this.count > 1 ? "s" : ""
     }${this.hasContradiction ? " (includes contradiction)" : ""}. Click to open sidebar.`;

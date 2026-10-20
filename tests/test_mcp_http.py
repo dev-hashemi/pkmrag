@@ -9,6 +9,7 @@ from starlette.testclient import TestClient
 
 from pkmrag.ingest import IngestPipeline
 from pkmrag.mcp.http_server import create_http_app, run_server
+from pkmrag.models import SearchResult, SemanticGapCandidate
 
 
 @pytest.fixture
@@ -18,6 +19,20 @@ def populated_vault(tmp_path: Path) -> Path:
     vault.mkdir(parents=True, exist_ok=True)
     (vault / "Alpha.md").write_text("# Alpha Node\n\nDiscussion on [[Beta]] architecture.\n#arch")
     (vault / "Beta.md").write_text("# Beta Node\n\nDetailed specifications.\n#arch")
+
+    pipeline = IngestPipeline(vault, target="all")
+    pipeline.run()
+    return vault
+
+
+@pytest.fixture
+def gap_vault(tmp_path: Path) -> Path:
+    """Create and index a vault with one linked pair and one unlinked note."""
+    vault = tmp_path / "gap_vault"
+    vault.mkdir(parents=True, exist_ok=True)
+    (vault / "Alpha.md").write_text("# Alpha Node\n\nDiscussion on [[Beta]] architecture.\n#arch")
+    (vault / "Beta.md").write_text("# Beta Node\n\nDetailed specifications.\n#arch")
+    (vault / "Gamma.md").write_text("# Gamma Node\n\nDiscussion on Beta architecture.\n#arch")
 
     pipeline = IngestPipeline(vault, target="all")
     pipeline.run()
@@ -126,6 +141,61 @@ def test_http_gaps_endpoint(populated_vault: Path) -> None:
     data = resp.json()
     assert "candidates" in data
     assert "total" in data
+
+
+def test_http_gaps_endpoint_returns_canonical_contract(gap_vault: Path) -> None:
+    """Gap candidates must expose the canonical SemanticGapCandidate fields."""
+    app = create_http_app(gap_vault, token="tok")
+    client = TestClient(app)
+
+    resp = client.get("/api/v1/gaps?threshold=0.10", headers={"Authorization": "Bearer tok"})
+    assert resp.status_code == 200
+    candidates = resp.json()["candidates"]
+    assert len(candidates) >= 1
+
+    expected = set(SemanticGapCandidate.model_fields.keys())
+    for cand in candidates:
+        assert set(cand.keys()) == expected
+        assert isinstance(cand["hops"], int)
+        assert isinstance(cand["bridge_path"], list)
+        assert cand["source_title"]
+        assert cand["target_title"]
+
+
+def test_http_gaps_endpoint_respects_limit(gap_vault: Path) -> None:
+    """The limit query parameter must cap the returned candidate list."""
+    app = create_http_app(gap_vault, token="tok")
+    client = TestClient(app)
+
+    resp = client.get(
+        "/api/v1/gaps?threshold=0.10&limit=1", headers={"Authorization": "Bearer tok"}
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["total"] <= 1
+    assert len(data["candidates"]) <= 1
+
+
+def test_http_search_endpoint_returns_canonical_contract(populated_vault: Path) -> None:
+    """Search results must expose the canonical SearchResult fields."""
+    app = create_http_app(populated_vault, token="tok")
+    client = TestClient(app)
+
+    resp = client.post(
+        "/api/v1/search",
+        json={"query": "Beta architecture", "mode": "hybrid", "limit": 5},
+        headers={"Authorization": "Bearer tok"},
+    )
+    assert resp.status_code == 200
+    results = resp.json()["results"]
+    assert len(results) >= 1
+
+    expected = set(SearchResult.model_fields.keys())
+    for res in results:
+        assert set(res.keys()) == expected
+        assert res["note_path"]
+        assert res["note_title"]
+        assert "text" in res
 
 
 def test_http_cors_headers(populated_vault: Path) -> None:

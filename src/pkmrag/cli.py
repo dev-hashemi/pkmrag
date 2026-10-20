@@ -275,6 +275,7 @@ def discover(
             model=model,
             rpm=rpm,
             tpm=tpm,
+            enrich=dry_run,
             on_progress=on_prog,
         )
 

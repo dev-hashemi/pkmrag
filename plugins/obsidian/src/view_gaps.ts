@@ -5,6 +5,7 @@
 import type PkmragPlugin from "./main";
 import { SemanticGapCandidate } from "./types";
 import { renderDismissedDrawer } from "./view_inferences";
+import { displayTitle, excerpt, formatBridgePath, formatGapDistance, gapCounterpart, noteStem } from "./format";
 
 export function renderGapsSection(
   container: HTMLElement,
@@ -43,15 +44,15 @@ function renderGapCard(
   currentNotePath: string | null,
   onUpdate: () => void
 ): void {
-  const isTarget = gap.source_path === currentNotePath;
-  const otherTitle = isTarget ? gap.target_title : gap.source_title;
-  const otherPath = isTarget ? gap.target_path : gap.source_path;
+  const counterpart = gapCounterpart(gap, currentNotePath);
+  const otherTitle = counterpart.title;
+  const otherPath = counterpart.path;
 
   const card = sec.createDiv({ cls: "pkmrag-card" });
   const cardHead = card.createDiv({ cls: "pkmrag-card-header" });
   const targetLink = cardHead.createEl("a", {
     cls: "pkmrag-card-target",
-    text: otherTitle || otherPath.replace(/\.md$/, ""),
+    text: otherTitle,
   });
   targetLink.onclick = () => plugin.app.workspace.openLinkText(otherPath, "");
 
@@ -60,15 +61,34 @@ function renderGapCard(
 
   card.createDiv({
     cls: "pkmrag-card-reason",
-    text: `Graph distance: ${gap.hops} hops away with high semantic proximity.`,
+    text: `Graph distance: ${formatGapDistance(gap.hops)}.`,
   });
+
+  if (gap.bridge_path.length > 0) {
+    const bridge = card.createDiv({ cls: "pkmrag-bridge" });
+    bridge.setAttribute("title", formatBridgePath(gap.bridge_path));
+    bridge.createSpan({ cls: "pkmrag-bridge-label", text: "Bridge" });
+    const chain = bridge.createSpan({ cls: "pkmrag-bridge-chain" });
+    gap.bridge_path.forEach((step, idx) => {
+      if (idx > 0) {
+        chain.createSpan({ cls: "pkmrag-bridge-sep", text: "→" });
+      }
+      const stepLink = chain.createEl("a", {
+        cls: "pkmrag-bridge-step",
+        text: noteStem(step),
+      });
+      stepLink.onclick = () => plugin.app.workspace.openLinkText(step, "");
+    });
+  }
+
+  renderEvidence(card, gap);
 
   const actions = card.createDiv({ cls: "pkmrag-card-actions" });
   const insertBtn = actions.createEl("button", {
     cls: "pkmrag-btn-sm mod-cta",
     text: "+ Link",
   });
-  insertBtn.onclick = () => plugin.insertLink(otherTitle || otherPath.replace(/\.md$/, ""));
+  insertBtn.onclick = () => plugin.insertLink(noteStem(otherPath));
 
   const dismissBtn = actions.createEl("button", { cls: "pkmrag-btn-sm", text: "Dismiss" });
   dismissBtn.onclick = async () => {
@@ -79,10 +99,33 @@ function renderGapCard(
     plugin.settings.dismissedSuggestions[key] = {
       sourcePath: gap.source_path,
       targetPath: gap.target_path,
-      targetTitle: otherTitle,
+      targetTitle: displayTitle(otherPath, otherTitle),
       dismissedAt: Date.now(),
     };
     await plugin.saveSettings();
     onUpdate();
   };
+}
+
+/** Render the matching passages that justify the similarity score. */
+function renderEvidence(card: HTMLElement, gap: SemanticGapCandidate): void {
+  const details = card.createEl("details", { cls: "pkmrag-evidence" });
+  const summary = details.createEl("summary", {
+    cls: "pkmrag-evidence-summary",
+    text: "Why are these similar?",
+  });
+  summary.setAttribute("title", "Matching passages from both notes");
+
+  const body = details.createDiv({ cls: "pkmrag-evidence-body" });
+  const sides: Array<[string, string, string]> = [
+    ["From", gap.source_path, gap.source_chunk_text],
+    ["To", gap.target_path, gap.target_chunk_text],
+  ];
+
+  for (const [label, path, text] of sides) {
+    const row = body.createDiv({ cls: "pkmrag-evidence-row" });
+    row.createSpan({ cls: "pkmrag-evidence-label", text: label });
+    row.createSpan({ cls: "pkmrag-evidence-note", text: displayTitle(path) });
+    row.createDiv({ cls: "pkmrag-evidence-text", text: excerpt(text, 240) });
+  }
 }

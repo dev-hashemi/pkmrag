@@ -4,6 +4,7 @@
 
 import type PkmragPlugin from "./main";
 import { NoteContext } from "./types";
+import { displayTitle } from "./format";
 
 export function renderInferencesSection(
   container: HTMLElement,
@@ -24,14 +25,14 @@ export function renderInferencesSection(
 
   for (const rel of infs) {
     const isContra = rel.rel_type === "CONTRADICTS";
+    const otherPath = rel.source_path === context?.path ? rel.target_path : rel.source_path;
     const card = sec.createDiv({
       cls: `pkmrag-card ${isContra ? "pkmrag-card-contradiction" : ""}`,
     });
     const cardHead = card.createDiv({ cls: "pkmrag-card-header" });
 
-    const targetTitle = rel.target_path.replace(/\.md$/, "");
-    const link = cardHead.createEl("a", { cls: "pkmrag-card-target", text: targetTitle });
-    link.onclick = () => onOpenLink(rel.target_path);
+    const link = cardHead.createEl("a", { cls: "pkmrag-card-target", text: displayTitle(otherPath) });
+    link.onclick = () => onOpenLink(otherPath);
 
     const badgeCls = isContra ? "pkmrag-badge pkmrag-badge-warning" : "pkmrag-badge pkmrag-badge-accent";
     cardHead.createSpan({ cls: badgeCls, text: rel.rel_type });
@@ -72,7 +73,7 @@ export function renderDismissedDrawer(
 
   for (const [key, item] of noteDismissed) {
     const row = listEl.createDiv({ cls: "pkmrag-dismissed-row" });
-    row.createSpan({ cls: "pkmrag-dismissed-title", text: item.targetTitle || item.targetPath });
+    row.createSpan({ cls: "pkmrag-dismissed-title", text: displayTitle(item.targetPath, item.targetTitle) });
     const restoreBtn = row.createEl("button", { cls: "pkmrag-btn-sm", text: "Restore" });
     restoreBtn.onclick = async () => {
       delete plugin.settings.dismissedSuggestions[key];

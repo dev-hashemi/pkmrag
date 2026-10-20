@@ -197,7 +197,11 @@ class SemanticGapCandidate(BaseModel):
 
     source_path: str
     target_path: str
+    source_title: str = ""
+    target_title: str = ""
     similarity: float
+    hops: int = -1
+    bridge_path: list[str] = Field(default_factory=list)
     source_chunk_id: str
     target_chunk_id: str
     source_chunk_text: str

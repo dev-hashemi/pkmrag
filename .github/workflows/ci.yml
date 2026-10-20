@@ -42,3 +42,29 @@ jobs:
           python-version: "3.12"
       - run: uv sync --extra dev
       - run: uv run mypy src tests
+
+  plugin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install dependencies
+        run: npm ci
+        working-directory: plugins/obsidian
+      - name: Typecheck
+        run: npm run typecheck
+        working-directory: plugins/obsidian
+      - name: Unit tests
+        run: npm test
+        working-directory: plugins/obsidian
+      - name: Build bundle
+        run: npm run build
+        working-directory: plugins/obsidian
+      - name: Verify bundled assets are in sync with the package copy
+        run: |
+          for f in main.js styles.css manifest.json; do
+            diff "plugins/obsidian/$f" "src/pkmrag/plugin_assets/$f" \
+              || { echo "::error::$f is out of sync between plugins/obsidian and src/pkmrag/plugin_assets"; exit 1; }
+          done

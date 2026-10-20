@@ -1,9 +1,10 @@
 /**
- * Proximity concept search bar and result renderer for PKMRAG sidebar.
+ * Proximity concept search bar and result renderer for PKMRAG Insights sidebar.
  */
 
 import type PkmragPlugin from "./main";
 import { SearchResult } from "./types";
+import { displayTitle, excerpt, formatGraphBoost, searchAnchor, searchLinkTitle } from "./format";
 
 export class ProximitySearchDrawer {
   private containerEl!: HTMLElement;
@@ -88,7 +89,12 @@ export class ProximitySearchDrawer {
         this.renderResultCard(res);
       }
     } catch (err: unknown) {
-      loadingEl.setText(err instanceof Error ? err.message : String(err));
+      // The loading node is already detached at this point, so report into the result list.
+      this.resultsEl.empty();
+      this.resultsEl.createDiv({
+        cls: "pkmrag-empty-state",
+        text: `Search failed: ${err instanceof Error ? err.message : String(err)}`,
+      });
     }
   }
 
@@ -98,16 +104,20 @@ export class ProximitySearchDrawer {
 
     const titleEl = head.createEl("a", {
       cls: "pkmrag-card-target",
-      text: res.title || res.path.replace(/\.md$/, ""),
+      text: displayTitle(res.note_path, res.note_title),
     });
-    titleEl.onclick = () => this.plugin.app.workspace.openLinkText(res.path, "");
+    titleEl.onclick = () => this.plugin.app.workspace.openLinkText(res.note_path, "");
 
     if (res.heading) {
       head.createSpan({ cls: "pkmrag-badge", text: `# ${res.heading}` });
     }
 
-    const excerpt = res.content.length > 120 ? res.content.slice(0, 120) + "..." : res.content;
-    card.createDiv({ cls: "pkmrag-card-reason", text: excerpt });
+    const boost = formatGraphBoost(res);
+    if (boost) {
+      head.createSpan({ cls: "pkmrag-badge pkmrag-badge-accent", text: boost });
+    }
+
+    card.createDiv({ cls: "pkmrag-card-reason", text: excerpt(res.text, 120) });
 
     const actions = card.createDiv({ cls: "pkmrag-card-actions" });
     const insertBtn = actions.createEl("button", {
@@ -115,10 +125,7 @@ export class ProximitySearchDrawer {
       text: "+ Insert Ref",
     });
     insertBtn.onclick = () => {
-      const linkText = res.heading
-        ? `${res.title || res.path.replace(/\.md$/, "")}#${res.heading}`
-        : res.title || res.path.replace(/\.md$/, "");
-      this.plugin.insertLink(linkText);
+      this.plugin.insertLink(searchLinkTitle(res), searchAnchor(res.heading));
     };
   }
 }

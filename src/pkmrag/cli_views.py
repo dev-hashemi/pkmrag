@@ -213,13 +213,21 @@ def render_discovery_results(
         table.add_column("Source Note", style="cyan")
         table.add_column("Target Note", style="cyan")
         table.add_column("Similarity", justify="center", style="magenta")
+        table.add_column("Hops", justify="center", style="green")
         table.add_column("Preview", style="dim")
 
         for c in candidates[:30]:
             preview = (
                 f"{c.source_chunk_text[:50].strip()}... ↔ {c.target_chunk_text[:50].strip()}..."
             )
-            table.add_row(c.source_path, c.target_path, f"{c.similarity:.4f}", preview)
+            hops_label = str(c.hops) if c.hops >= 0 else "—"
+            table.add_row(
+                c.source_path,
+                c.target_path,
+                f"{c.similarity:.4f}",
+                hops_label,
+                preview,
+            )
 
         console.print(table)
         est_tokens = len(candidates) * 800

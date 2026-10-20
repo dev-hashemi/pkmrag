@@ -10,6 +10,7 @@ import { registerPluginCommands } from "./commands";
 import { createPkmragEditorExtension } from "./extension";
 import { PkmragSettingTab } from "./settings";
 import { renderStatusBar, setupEventStream } from "./status_bar";
+import { buildWikilink } from "./format";
 
 import {
   ActiveJobState,
@@ -180,13 +181,17 @@ export default class PkmragPlugin extends Plugin {
     }
   }
 
-  insertLink(targetTitle: string): void {
-    const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-    if (!view || !view.editor) {
-      new Notice(`No active markdown editor to insert [[${targetTitle}]].`);
+  insertLink(target: string, anchor?: string): void {
+    const wikilink = buildWikilink(target, anchor);
+    if (!wikilink) {
+      new Notice("PKMRAG: Cannot insert an empty link.");
       return;
     }
-    const wikilink = `[[${targetTitle}]]`;
+    const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+    if (!view || !view.editor) {
+      new Notice(`No active markdown editor to insert ${wikilink}.`);
+      return;
+    }
     view.editor.replaceSelection(wikilink);
     new Notice(`Inserted link to ${wikilink}`);
   }

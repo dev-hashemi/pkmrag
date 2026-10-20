@@ -13,9 +13,13 @@ import { renderProgressBanner, renderJobProgressView, renderTaskErrorCard } from
 import { renderGapsSection } from "./view_gaps";
 import { ProximitySearchDrawer } from "./view_search";
 import { renderInferencesSection } from "./view_inferences";
+import { displayTitle } from "./format";
 
 
 export const VIEW_TYPE_PKMRAG_INSIGHTS = "pkmrag-insights-view";
+
+/** Number of related notes listed before the "show more" toggle appears. */
+const CONTEXT_VISIBLE_LINKS = 5;
 
 
 export class PkmragInsightsView extends ItemView {
@@ -66,6 +70,8 @@ export class PkmragInsightsView extends ItemView {
     this.errorMessage = null;
     this.isUnindexed = false;
     this.isOffline = false;
+    this.context = null;
+    this.gaps = [];
     this.render();
 
     try {
@@ -110,7 +116,7 @@ export class PkmragInsightsView extends ItemView {
     const headerEl = container.createDiv({ cls: "pkmrag-header" });
     const topRow = headerEl.createDiv({ cls: "pkmrag-header-top" });
     const title = this.currentNotePath
-      ? this.currentNotePath.replace(/\.md$/, "")
+      ? this.context?.title || displayTitle(this.currentNotePath)
       : "No Note Active";
     topRow.createDiv({ cls: "pkmrag-header-title", text: title });
 
@@ -224,6 +230,10 @@ export class PkmragInsightsView extends ItemView {
     new ProximitySearchDrawer(container, this.plugin, () => this.currentNotePath);
 
     if (!this.context) {
+      if (this.isLoading) {
+        container.createDiv({ cls: "pkmrag-empty-state", text: "Loading insights..." });
+        return;
+      }
       const noteCard = container.createDiv({ cls: "pkmrag-card" });
       noteCard.createDiv({ cls: "pkmrag-card-target", text: "Note Not Indexed Yet" });
       noteCard.createDiv({
@@ -269,6 +279,13 @@ export class PkmragInsightsView extends ItemView {
     const sec = container.createDiv({ cls: "pkmrag-section" });
     sec.createDiv({ cls: "pkmrag-section-header", text: "Graph Context" });
 
+    if (this.context?.is_unresolved) {
+      sec.createDiv({
+        cls: "pkmrag-card-reason",
+        text: "Ghost note: linked to, but no file on disk yet.",
+      });
+    }
+
     const tags = this.context?.tags || [];
     if (tags.length > 0) {
       const tagChips = sec.createDiv({ cls: "pkmrag-chip-container", attr: { style: "margin-bottom: 8px;" } });
@@ -277,12 +294,47 @@ export class PkmragInsightsView extends ItemView {
       }
     }
 
-    const backlinks = this.context?.backlinks || [];
-    sec.createDiv({
-      cls: "pkmrag-card-reason",
-      text: `Backlinks: ${backlinks.length}  |  Outgoing: ${
-        this.context?.outgoing_links?.length || 0
-      }  |  2-Hop Cluster: ${this.context?.neighbors_2hop?.length || 0}`,
+    this.renderLinkGroup(sec, "Backlinks", this.context?.backlinks || []);
+    this.renderLinkGroup(sec, "Outgoing Links", this.context?.outgoing_links || []);
+    this.renderLinkGroup(sec, "2-Hop Cluster", this.context?.neighbors_2hop || []);
+  }
+
+  /** Render a group of related notes as clickable links, collapsing long lists. */
+  private renderLinkGroup(sec: HTMLElement, label: string, paths: string[]): void {
+    const group = sec.createDiv({ cls: "pkmrag-context-group" });
+    const head = group.createDiv({ cls: "pkmrag-context-group-head" });
+    head.createSpan({ cls: "pkmrag-context-group-label", text: label });
+    head.createSpan({ cls: "pkmrag-context-group-count", text: String(paths.length) });
+
+    if (paths.length === 0) {
+      group.createDiv({ cls: "pkmrag-empty-state", text: "None" });
+      return;
+    }
+
+    const list = group.createDiv({ cls: "pkmrag-link-list" });
+    paths.forEach((path, idx) => {
+      const row = list.createDiv({
+        cls: idx >= CONTEXT_VISIBLE_LINKS ? "pkmrag-link-row pkmrag-extra" : "pkmrag-link-row",
+      });
+      const link = row.createEl("a", { cls: "pkmrag-link", text: displayTitle(path) });
+      link.onclick = () => this.app.workspace.openLinkText(path, "");
+      row.createSpan({ cls: "pkmrag-link-path", text: path });
     });
+
+    if (paths.length > CONTEXT_VISIBLE_LINKS) {
+      const toggle = group.createEl("a", {
+        cls: "pkmrag-context-toggle",
+        text: `▸ Show ${paths.length - CONTEXT_VISIBLE_LINKS} more`,
+      });
+      toggle.onclick = () => {
+        const expanded = group.hasClass("pkmrag-expanded");
+        group.toggleClass("pkmrag-expanded", !expanded);
+        toggle.setText(
+          expanded
+            ? `▸ Show ${paths.length - CONTEXT_VISIBLE_LINKS} more`
+            : "▾ Show less"
+        );
+      };
+    }
   }
 }

@@ -106,7 +106,8 @@ export interface InferredRelationship {
   rel_type: "EXTENDS" | "CONTRADICTS" | "SUPPORTS" | "PREREQUISITE_FOR" | "REFINES" | "NONE";
   confidence: number;
   reason: string;
-  direction: string;
+  model?: string;
+  created_at?: string;
 }
 
 export interface NoteContext {
@@ -120,13 +121,19 @@ export interface NoteContext {
   inferred_relationships?: InferredRelationship[];
 }
 
+/** Mirrors pkmrag.models.SemanticGapCandidate — keep in sync (tests/test_api_contract.py). */
 export interface SemanticGapCandidate {
   source_path: string;
   target_path: string;
-  similarity: number;
-  hops: number;
   source_title: string;
   target_title: string;
+  similarity: number;
+  hops: number;
+  bridge_path: string[];
+  source_chunk_id: string;
+  target_chunk_id: string;
+  source_chunk_text: string;
+  target_chunk_text: string;
 }
 
 export interface GapsResponse {
@@ -147,13 +154,18 @@ export interface SyncResult {
   error_message?: string;
 }
 
+/** Mirrors pkmrag.models.SearchResult — keep in sync (tests/test_api_contract.py). */
 export interface SearchResult {
-  path: string;
-  title: string;
   chunk_id: string;
+  note_path: string;
+  note_title: string;
   heading: string;
-  content: string;
+  text: string;
   score: number;
+  dense_score: number | null;
+  sparse_score: number | null;
+  graph_boost_factor: number;
+  hop_distance: number | null;
 }
 
 export interface SearchResponse {
