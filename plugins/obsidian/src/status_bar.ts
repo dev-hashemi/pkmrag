@@ -5,6 +5,7 @@
 import { Notice } from "obsidian";
 import type PkmragPlugin from "./main";
 import { VIEW_TYPE_PKMRAG_INSIGHTS, PkmragInsightsView } from "./view";
+import { hasByteProgress, isModelDownload, jobDetail } from "./view_progress";
 
 export function renderStatusBar(
   statusBarEl: HTMLElement,
@@ -42,20 +43,21 @@ export function renderStatusBar(
   }
 
   if (plugin.activeJob) {
-    const phaseLower = (plugin.activeJob.phase || "").toLowerCase();
-    const isModel = phaseLower.includes("model") || phaseLower.includes("download");
+    const isModel = isModelDownload(plugin.activeJob);
     const isDisc = plugin.activeJob.type === "discover";
     const icon = isDisc ? "🧠" : isModel ? "📥" : "🔄";
     const name = isDisc ? "Discovering" : isModel ? "Downloading Model" : "Indexing";
     const pct = Math.min(100, Math.max(0, plugin.activeJob.percent));
     const statusText = isModel
-      ? `${icon} PKMRAG: Downloading Model (~130MB)`
+      ? `${icon} PKMRAG: Downloading Model (${
+          hasByteProgress(plugin.activeJob) ? `${pct}%` : "~67 MB"
+        })`
       : `${icon} PKMRAG: ${name} (${pct}%)`;
     statusBarEl.createSpan({
       text: statusText,
       cls: "pkmrag-status-busy",
     });
-    const desc = plugin.activeJob.message || plugin.activeJob.desc || plugin.activeJob.phase;
+    const desc = jobDetail(plugin.activeJob, plugin.activeJob.phase);
     statusBarEl.setAttribute("title", `PKMRAG ${name}: ${desc} (${pct}%)`);
     return;
   }
@@ -76,6 +78,8 @@ export function setupEventStream(plugin: PkmragPlugin): EventSource | null {
     if (event === "ingest_progress") {
       plugin.activeJob = {
         type: "ingest",
+        stage: data.stage ? String(data.stage) : undefined,
+        unit: data.unit ? String(data.unit) : undefined,
         phase: String(data.phase || "indexing"),
         cur: Number(data.cur || 0),
         total: Number(data.total || 100),
@@ -91,7 +95,7 @@ export function setupEventStream(plugin: PkmragPlugin): EventSource | null {
         cur: Number(data.cur || 0),
         total: Number(data.total || 100),
         percent: Number(data.percent || 0),
-        desc: String(data.desc || ""),
+        message: String(data.message || data.desc || ""),
       };
       plugin.updateStatusBar();
       notifySidebar(plugin);
@@ -133,7 +137,7 @@ export function setupEventStream(plugin: PkmragPlugin): EventSource | null {
   });
 }
 
-function notifySidebar(plugin: PkmragPlugin): void {
+export function notifySidebar(plugin: PkmragPlugin): void {
   const leaves = plugin.app.workspace.getLeavesOfType(VIEW_TYPE_PKMRAG_INSIGHTS);
   if (leaves.length > 0) {
     (leaves[0].view as PkmragInsightsView).render();

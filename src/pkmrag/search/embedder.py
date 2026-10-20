@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from typing import Any, Optional, Protocol, runtime_checkable
 
 from pkmrag.config import settings
+from pkmrag.search.model_download import model_is_cached, prefetch_model
+
+logger = logging.getLogger(__name__)
 
 
 @runtime_checkable
@@ -61,12 +65,23 @@ class FastEmbedProvider:
             self._model = TextEmbedding(model_name=self._model_name)
         return self._model
 
-    def warm_up(self, progress_callback: Optional[Callable[[str, int, int], None]] = None) -> None:
-        """Ensure the embedding model is downloaded and loaded into memory."""
+    def warm_up(self, progress_callback: Optional[Callable[[int, int], None]] = None) -> None:
+        """Ensure the embedding model is downloaded and loaded into memory.
+
+        ``progress_callback`` receives ``(downloaded_bytes, total_bytes)`` while
+        the weights are transferred to the local cache.
+        """
         if self._model is None:
-            if progress_callback:
-                progress_callback(f"Downloading/loading embedding model ({self._model_name})", 0, 1)
+            if progress_callback is not None:
+                try:
+                    prefetch_model(self._model_name, progress_callback)
+                except Exception as exc:
+                    logger.debug("Model pre-fetch failed, falling back to FastEmbed: %s", exc)
             self._get_model()
+
+    def model_is_cached(self) -> bool:
+        """Report whether the model weights are already present in the local cache."""
+        return model_is_cached(self._model_name)
 
     def embed_texts(self, texts: list[str]) -> list[list[float]]:
         """Compute embeddings for a collection of chunk texts."""

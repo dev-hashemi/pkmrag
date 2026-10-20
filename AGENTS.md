@@ -13,6 +13,8 @@ Exposed as an MCP server — no chat UI.
 src/pkmrag/
   cli.py          # Typer CLI entry point
   cli_views.py    # Rich terminal display renderers
+  cli_progress.py # Shared Rich progress bar helper
+  cli_ingest.py   # `pkmrag ingest` implementation
   cli_discover.py # `pkmrag discover` implementation (locked-database handling)
   config.py       # Settings, defaults, env vars
   models.py       # Pydantic data models (shared across modules)
@@ -65,6 +67,7 @@ benchmarks/       # Ground-truth evaluation benchmarks (golden_10, vault)
 - **Incremental sync.** Ingestion compares file hashes; only changed files are reprocessed.
 - **Inferred edges are separate from ground truth.** AI-discovered relationships go in their own table/label, tagged with confidence + model + timestamp. Never pollute human-curated graph data.
 - **MCP over custom UI.** The primary interface is an MCP server (stdio + SSE), not a chat frontend.
+- **Structured job stages.** Ingestion progress crosses the server/plugin boundary as a typed `IngestStage` (`scan`, `graph`, `model_download`, `vector`) plus a `unit` (`items`/`bytes`). Consumers switch on the stage; never parse the human-readable `phase` text to decide what the UI shows.
 
 ## When Adding New Features
 

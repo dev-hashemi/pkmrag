@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.12"
 resolution-markers = [
     "python_full_version >= '3.15'",
@@ -1521,6 +1521,7 @@ source = { editable = "." }
 dependencies = [
     { name = "fastembed" },
     { name = "httpx" },
+    { name = "huggingface-hub" },
     { name = "ladybug" },
     { name = "lancedb" },
     { name = "mcp" },
@@ -1550,6 +1551,7 @@ dev = [
 requires-dist = [
     { name = "fastembed", specifier = ">=0.3.0" },
     { name = "httpx", specifier = ">=0.27.0" },
+    { name = "huggingface-hub", specifier = ">=0.30.0" },
     { name = "ladybug", specifier = ">=0.20.0" },
     { name = "lancedb", specifier = ">=0.38.0" },
     { name = "mcp", specifier = ">=1.2.0" },

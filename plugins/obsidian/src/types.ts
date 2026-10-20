@@ -74,12 +74,16 @@ export interface IngestOptions {
 
 export interface ActiveJobState {
   type: "ingest" | "discover";
+  /** Structured pipeline stage; mirrors pkmrag.models.IngestStage. */
+  stage?: "scan" | "graph" | "model_download" | "vector" | string;
+  /** Unit of `cur`/`total`; "bytes" for model downloads, "items" otherwise. */
+  unit?: "items" | "bytes" | string;
   phase: string;
   cur: number;
   total: number;
   percent: number;
   message?: string;
-  desc?: string;
+  started_at?: number;
 }
 
 export interface TaskErrorState {

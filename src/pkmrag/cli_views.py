@@ -21,6 +21,15 @@ from pkmrag.models import (
 )
 
 
+def display_trace_if_active(console: Console) -> None:
+    """Render the collected execution trace when telemetry is enabled."""
+    from pkmrag.telemetry import get_memory_collector, render_trace_tree
+
+    collector = get_memory_collector()
+    if collector:
+        render_trace_tree(collector.get_spans(), console)
+
+
 def render_doctor_report(report: DoctorReport, console: Console) -> None:
     """Render system diagnostics and embedded engine checks."""
     header_text = (

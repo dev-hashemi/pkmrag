@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from enum import Enum
 from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
@@ -14,6 +15,29 @@ RelationshipType = Literal[
     "REFINES",
     "NONE",
 ]
+
+
+class IngestStage(str, Enum):
+    """Structured stage of the ingestion pipeline.
+
+    Consumers (the Obsidian plugin) switch on this instead of parsing the
+    human-readable ``phase`` text.
+    """
+
+    SCAN = "scan"
+    GRAPH = "graph"
+    MODEL_DOWNLOAD = "model_download"
+    VECTOR = "vector"
+
+
+class IngestProgress(BaseModel):
+    """Progress update emitted by the ingestion pipeline."""
+
+    stage: IngestStage
+    phase: str
+    cur: int = 0
+    total: int = 1
+    unit: Literal["items", "bytes"] = "items"
 
 
 class Wikilink(BaseModel):

@@ -10,7 +10,8 @@ from typing import Optional
 from pkmrag.config import settings
 from pkmrag.dialects import KnowledgeDialect, get_default_registry
 from pkmrag.graph.store import GraphStore
-from pkmrag.models import IngestStats
+from pkmrag.ingest.progress import IngestProgressReporter
+from pkmrag.models import IngestProgress, IngestStats
 from pkmrag.parser.indexer import VaultIndexer
 from pkmrag.search.chunker import HierarchicalMarkdownChunker
 from pkmrag.search.embedder import EmbeddingProvider, FastEmbedProvider
@@ -55,7 +56,7 @@ class IngestPipeline:
     def run(
         self,
         target: Optional[str] = None,
-        progress_callback: Optional[Callable[[str, int, int], None]] = None,
+        progress_callback: Optional[Callable[[IngestProgress], None]] = None,
     ) -> IngestStats:
         """Execute the ingestion pipeline for graph, vector, or all targets."""
         start_time = time.perf_counter()
@@ -65,8 +66,8 @@ class IngestPipeline:
             raise ValueError(msg)
 
         with trace_span("pkmrag.ingest", attributes={"target": chosen_target}) as span:
-            if progress_callback:
-                progress_callback("Scanning vault files", 0, 1)
+            reporter = IngestProgressReporter(progress_callback, self.embedder.model_name)
+            reporter.scan()
 
             with trace_span("ingest.scan_files"):
                 discovered = self.indexer.scan_vault_structure()
@@ -83,7 +84,7 @@ class IngestPipeline:
             if chosen_target in ("all", "graph"):
                 with trace_span("ingest.graph_sync"):
                     g_add, g_upd, g_unc, g_del, graph_stats = self._run_graph_ingest(
-                        discovered, progress_callback
+                        discovered, reporter
                     )
                     notes_added, notes_updated, notes_unchanged, notes_deleted = (
                         g_add,
@@ -96,7 +97,7 @@ class IngestPipeline:
             if chosen_target in ("all", "vector"):
                 with trace_span("ingest.vector_sync"):
                     v_created, v_deleted, total_chunks = self._run_vector_ingest(
-                        discovered, progress_callback
+                        discovered, reporter
                     )
                     chunks_created, chunks_deleted = v_created, v_deleted
                     if chosen_target == "vector":
@@ -127,7 +128,7 @@ class IngestPipeline:
     def _run_graph_ingest(
         self,
         discovered: dict[str, Path],
-        progress_callback: Optional[Callable[[str, int, int], None]],
+        reporter: IngestProgressReporter,
     ) -> tuple[int, int, int, int, dict[str, int]]:
         with GraphStore(self.db_path, rebuild=self.rebuild) as store:
             existing = store.get_all_notes()
@@ -155,8 +156,7 @@ class IngestPipeline:
             to_process = added_paths + modified_paths
             total = len(to_process)
             for idx, rel_path in enumerate(to_process, start=1):
-                if progress_callback:
-                    progress_callback("Ingesting graph notes", idx, total)
+                reporter.graph(idx, total)
                 if rel_path in modified_paths:
                     store.delete_outgoing_edges(rel_path)
 
@@ -185,10 +185,20 @@ class IngestPipeline:
                 store.get_stats(),
             )
 
+    def _model_is_cached(self) -> bool:
+        """Report whether the embedding model weights are already available locally."""
+        checker = getattr(self.embedder, "model_is_cached", None)
+        if checker is None:
+            return False
+        try:
+            return bool(checker())
+        except Exception:
+            return False
+
     def _run_vector_ingest(
         self,
         discovered: dict[str, Path],
-        progress_callback: Optional[Callable[[str, int, int], None]],
+        reporter: IngestProgressReporter,
     ) -> tuple[int, int, int]:
         with VectorStore(self.vector_dir, rebuild=self.rebuild) as vstore:
             tracked = vstore.get_tracked_notes()
@@ -206,19 +216,13 @@ class IngestPipeline:
             chunks_created = 0
             total_items = len(to_embed)
 
-            if to_embed:
-                if progress_callback:
-                    progress_callback(
-                        f"Downloading/loading embedding model ({self.embedder.model_name})",
-                        0,
-                        total_items,
-                    )
-                if hasattr(self.embedder, "warm_up"):
-                    self.embedder.warm_up(progress_callback)
+            if to_embed and hasattr(self.embedder, "warm_up"):
+                if not self._model_is_cached():
+                    reporter.model_download(0, 0)
+                self.embedder.warm_up(reporter.byte_reporter())
 
             for idx, rel_path in enumerate(to_embed, start=1):
-                if progress_callback:
-                    progress_callback("Vectorizing chunks", idx, total_items)
+                reporter.vector(idx, total_items)
                 abs_path = discovered[rel_path]
                 content = abs_path.read_text(encoding="utf-8", errors="replace")
                 title = PurePosixPath(rel_path).stem

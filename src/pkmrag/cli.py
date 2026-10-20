@@ -9,18 +9,18 @@ from typing import Optional
 
 import typer
 from rich.console import Console
-from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 
 from pkmrag import __version__
+from pkmrag.cli_ingest import register_ingest_command
+from pkmrag.cli_progress import make_progress
 from pkmrag.cli_views import (
+    display_trace_if_active,
     render_discovery_results,
     render_doctor_report,
-    render_ingest_report,
     render_mcp_config,
     render_search_results,
 )
 from pkmrag.doctor import run_diagnostics
-from pkmrag.ingest import IngestPipeline
 from pkmrag.plugin import register_plugin_command
 from pkmrag.search import SearchService
 
@@ -29,9 +29,9 @@ app = typer.Typer(
     help="🛰️ PKMRAG: In-process Hybrid GraphRAG Retrieval Engine & MCP Server.",
     no_args_is_help=True,
 )
-register_plugin_command(app)
-
 console = Console()
+register_plugin_command(app)
+register_ingest_command(app, console)
 
 
 def version_callback(value: bool) -> None:
@@ -39,25 +39,6 @@ def version_callback(value: bool) -> None:
     if value:
         console.print(f"[bold cyan]PKMRAG[/bold cyan] version [green]{__version__}[/green]")
         raise typer.Exit()
-
-
-def _make_progress() -> Progress:
-    return Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        BarColumn(),
-        TextColumn("{task.completed}/{task.total}"),
-        TimeElapsedColumn(),
-        console=console,
-    )
-
-
-def _display_trace_if_active() -> None:
-    from pkmrag.telemetry import get_memory_collector, render_trace_tree
-
-    collector = get_memory_collector()
-    if collector:
-        render_trace_tree(collector.get_spans(), console)
 
 
 @app.callback()
@@ -85,62 +66,6 @@ def doctor(
 
 
 @app.command()
-def ingest(
-    vault_path: Path = typer.Argument(..., help="Path to vault.", exists=True, resolve_path=True),
-    target: str = typer.Option("all", "--target", "-t", help="Target: all, graph, or vector."),
-    db_dir: Optional[Path] = typer.Option(None, "--db-dir", "-d", help="Custom LadybugDB dir."),
-    vector_dir: Optional[Path] = typer.Option(None, "--vector-dir", help="Custom LanceDB dir."),
-    rebuild: bool = typer.Option(False, "--rebuild", help="Rebuild indices from scratch."),
-    clear_cache: bool = typer.Option(False, "--clear-cache", help="Purge cached search queries."),
-    dialect: str = typer.Option("auto", "--dialect", "-m", help="Source dialect (auto, obsidian)."),
-    trace: bool = typer.Option(False, "--trace", help="Display visual execution trace tree."),
-    json_output: bool = typer.Option(False, "--json", help="Output metrics in raw JSON format."),
-) -> None:
-    """Ingest notes, links, tags, and semantic vectors from a knowledge base."""
-    if trace:
-        from pkmrag.telemetry import setup_telemetry
-
-        setup_telemetry(enable_memory_collector=True)
-
-    if rebuild or clear_cache:
-        from pkmrag.cache import CacheManager
-
-        CacheManager(vault_path).invalidate_all()
-
-    pipeline = IngestPipeline(
-        vault_path=vault_path,
-        db_path=db_dir,
-        vector_dir=vector_dir,
-        rebuild=rebuild,
-        dialect=dialect,
-        target=target,
-    )
-
-    if json_output:
-        console.print_json(pipeline.run().model_dump_json())
-        sys.exit(0)
-
-    if rebuild:
-        console.print("[yellow]Rebuild mode enabled: existing indices and cache wiped.[/yellow]")
-
-    with _make_progress() as progress:
-        task_id = progress.add_task("[cyan]Ingesting vault...", total=100)
-
-        def on_prog(phase: str, cur: int, tot: int) -> None:
-            progress.update(
-                task_id, description=f"[cyan]{phase}...", total=max(tot, 1), completed=cur
-            )
-
-        stats = pipeline.run(progress_callback=on_prog)
-        progress.update(task_id, description="[bold green]Ingestion complete!")
-
-    render_ingest_report(stats, console)
-
-    if trace:
-        _display_trace_if_active()
-
-
-@app.command()
 def search(
     query: str = typer.Argument(..., help="Search query string."),
     vault_path: Path = typer.Option(Path.cwd(), "--vault", "-v", help="Vault directory."),
@@ -165,7 +90,7 @@ def search(
 
     render_search_results(results, query=query, near=near, mode=mode, console=console)
     if trace:
-        _display_trace_if_active()
+        display_trace_if_active(console)
 
 
 @app.command()
@@ -253,7 +178,7 @@ def discover(
     on_prog = None
     progress = None
     if not (dry_run or json_output):
-        progress = _make_progress()
+        progress = make_progress(console)
         progress.start()
         t_id = progress.add_task("[cyan]Scanning for semantic gaps...", total=limit)
 
@@ -292,7 +217,7 @@ def discover(
         candidates, inferred, stats, dry_run=dry_run, json_output=json_output, console=console
     )
     if trace:
-        _display_trace_if_active()
+        display_trace_if_active(console)
 
 
 if __name__ == "__main__":

@@ -14,6 +14,7 @@ from pkmrag.config import settings
 from pkmrag.graph.paths import get_vault_overview
 from pkmrag.graph.store import GraphStore
 from pkmrag.mcp.events import EventBroadcaster
+from pkmrag.mcp.models import JobState
 from pkmrag.search.service import SearchService
 from pkmrag.search.vector_store import VectorStore
 
@@ -31,7 +32,7 @@ class ServerState:
         self.vector_store: Optional[VectorStore] = None
         self.cache_manager = CacheManager(vault_path)
         self.search_service: Optional[SearchService] = None
-        self.active_job: Optional[dict[str, Any]] = None
+        self.active_job: Optional[JobState] = None
         self.reload_stores()
 
     def is_indexed(self) -> bool:
@@ -84,18 +85,22 @@ class ServerState:
         total: int = 100,
         percent: int = 0,
         message: str = "",
+        stage: Optional[str] = None,
+        unit: str = "items",
     ) -> None:
         """Register or start an active background job."""
         with self._lock:
-            self.active_job = {
-                "type": job_type,
-                "phase": phase,
-                "cur": cur,
-                "total": total,
-                "percent": percent,
-                "message": message,
-                "started_at": time.time(),
-            }
+            self.active_job = JobState(
+                type=job_type,
+                stage=stage,
+                unit=unit,
+                phase=phase,
+                cur=cur,
+                total=total,
+                percent=percent,
+                message=message,
+                started_at=time.time(),
+            )
 
     def update_job(
         self,
@@ -104,21 +109,29 @@ class ServerState:
         total: Optional[int] = None,
         percent: Optional[int] = None,
         message: Optional[str] = None,
+        stage: Optional[str] = None,
+        unit: Optional[str] = None,
     ) -> None:
         """Update live progress metrics of the active background job."""
         with self._lock:
             if not self.active_job:
                 return
+            updates: dict[str, Any] = {}
+            if stage is not None:
+                updates["stage"] = stage
+            if unit is not None:
+                updates["unit"] = unit
             if phase is not None:
-                self.active_job["phase"] = phase
+                updates["phase"] = phase
             if cur is not None:
-                self.active_job["cur"] = cur
+                updates["cur"] = cur
             if total is not None:
-                self.active_job["total"] = total
+                updates["total"] = total
             if percent is not None:
-                self.active_job["percent"] = percent
+                updates["percent"] = percent
             if message is not None:
-                self.active_job["message"] = message
+                updates["message"] = message
+            self.active_job = self.active_job.model_copy(update=updates)
 
     def clear_job(self) -> None:
         """Clear active background job state on completion or failure."""
@@ -141,7 +154,7 @@ class ServerState:
                 pass
 
         with self._lock:
-            active_job_copy = dict(self.active_job) if self.active_job else None
+            active_job_copy = self.active_job.model_dump() if self.active_job else None
 
         return {
             "status": "healthy",

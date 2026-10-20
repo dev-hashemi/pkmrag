@@ -9,7 +9,7 @@ import { HostInstaller } from "./installer";
 import { registerPluginCommands } from "./commands";
 import { createPkmragEditorExtension } from "./extension";
 import { PkmragSettingTab } from "./settings";
-import { renderStatusBar, setupEventStream } from "./status_bar";
+import { notifySidebar, renderStatusBar, setupEventStream } from "./status_bar";
 import { buildWikilink } from "./format";
 
 import {
@@ -238,6 +238,29 @@ export default class PkmragPlugin extends Plugin {
       this.isServerConnected = false;
     }
     this.updateStatusBar();
+  }
+
+  /**
+   * Pull the authoritative job state from the health endpoint.
+   *
+   * The first progress events of a job can race the SSE connection and be
+   * dropped, so the plugin reads the current stage once the job was accepted.
+   * A job that already finished never clears the locally tracked state.
+   */
+  async syncJobState(): Promise<void> {
+    try {
+      const health = await this.client.checkHealth();
+      this.isServerConnected = true;
+      this.isVaultIndexed = health.is_indexed === true;
+      if (health.active_job) {
+        this.activeJob = health.active_job;
+      }
+      this.vaultStats = health.stats || null;
+    } catch {
+      this.isServerConnected = false;
+    }
+    this.updateStatusBar();
+    notifySidebar(this);
   }
 
   initEventStream(): void {

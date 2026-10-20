@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 from pydantic import BaseModel
 
+from pkmrag.mcp.models import JobState
 from pkmrag.models import (
     InferredRelationship,
     NoteContext,
@@ -23,6 +24,7 @@ SHARED_INTERFACES: dict[str, type[BaseModel]] = {
     "SemanticGapCandidate": SemanticGapCandidate,
     "NoteContext": NoteContext,
     "InferredRelationship": InferredRelationship,
+    "ActiveJobState": JobState,
 }
 
 INTERFACE_RE = re.compile(

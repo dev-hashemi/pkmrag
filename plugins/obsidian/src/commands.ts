@@ -45,6 +45,7 @@ export function registerPluginCommands(plugin: PkmragPlugin): void {
       new Notice("PKMRAG: Full index rebuild started in background...");
       try {
         await plugin.client.triggerIngest({ rebuild: true });
+        await plugin.syncJobState();
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
         new Notice(`PKMRAG Rebuild failed: ${msg}`);

@@ -37,12 +37,12 @@ def test_server_state_job_tracking(tmp_path: Path) -> None:
         message="Scanning files",
     )
     assert state.active_job is not None
-    assert state.active_job["type"] == "ingest"
-    assert state.active_job["percent"] == 10
+    assert state.active_job.type == "ingest"
+    assert state.active_job.percent == 10
 
     state.update_job(phase="embedding", cur=50, total=100, percent=50, message="Embedding notes")
-    assert state.active_job["phase"] == "embedding"
-    assert state.active_job["percent"] == 50
+    assert state.active_job.phase == "embedding"
+    assert state.active_job.percent == 50
 
     health = state.get_health_status()
     assert health["active_job"] is not None

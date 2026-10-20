@@ -14,10 +14,30 @@ from pkmrag.discovery import GapDiscoveryEngine
 from pkmrag.inference.factory import resolve_provider
 from pkmrag.ingest import IngestPipeline
 from pkmrag.mcp.events import EventBroadcaster
+from pkmrag.models import IngestProgress, IngestStage
 from pkmrag.vault_config import VaultRuntimeConfig, load_vault_config, save_vault_config
 
 if TYPE_CHECKING:
     from pkmrag.mcp.server_state import ServerState
+
+
+def _format_bytes(value: int) -> str:
+    """Render a byte count in human-readable units."""
+    if value <= 0:
+        return "0 MB"
+    megabytes = value / (1024 * 1024)
+    if megabytes >= 1:
+        return f"{megabytes:.1f} MB"
+    return f"{value / 1024:.0f} KB"
+
+
+def _progress_message(update: IngestProgress) -> str:
+    """Render a human-readable message for an ingest progress update."""
+    if update.unit == "bytes":
+        done = _format_bytes(update.cur)
+        total = _format_bytes(update.total)
+        return f"{update.phase} ({done} / {total})"
+    return f"{update.phase} ({update.cur}/{update.total})"
 
 
 def register_ops_routes(
@@ -41,6 +61,7 @@ def register_ops_routes(
 
         server_state.set_job(
             job_type="ingest",
+            stage=IngestStage.SCAN.value,
             phase="initializing",
             cur=0,
             total=100,
@@ -56,19 +77,27 @@ def register_ops_routes(
                 target=target,
             )
 
-            def _on_prog(phase: str, cur: int, tot: int) -> None:
-                percent = int(round((cur / max(tot, 1)) * 100))
-                msg = f"{phase.capitalize()} ({cur}/{tot})"
+            def _on_prog(update: IngestProgress) -> None:
+                percent = int(round((update.cur / max(update.total, 1)) * 100))
+                msg = _progress_message(update)
                 server_state.update_job(
-                    phase=phase, cur=cur, total=tot, percent=percent, message=msg
+                    stage=update.stage.value,
+                    unit=update.unit,
+                    phase=update.phase,
+                    cur=update.cur,
+                    total=update.total,
+                    percent=percent,
+                    message=msg,
                 )
                 asyncio.run_coroutine_threadsafe(
                     broadcaster.broadcast(
                         "ingest_progress",
                         {
-                            "phase": phase,
-                            "cur": cur,
-                            "total": tot,
+                            "stage": update.stage.value,
+                            "unit": update.unit,
+                            "phase": update.phase,
+                            "cur": update.cur,
+                            "total": update.total,
                             "percent": percent,
                             "message": msg,
                         },
@@ -151,6 +180,7 @@ def register_ops_routes(
                                 "cur": cur,
                                 "total": tot,
                                 "percent": percent,
+                                "message": desc,
                                 "desc": desc,
                             },
                         ),

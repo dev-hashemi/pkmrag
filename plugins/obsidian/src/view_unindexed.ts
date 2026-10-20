@@ -42,7 +42,7 @@ export function renderUnindexedView(
   const actions = wrapper.createDiv({ cls: "pkmrag-offline-actions" });
   const indexFullBtn = actions.createEl("button", {
     cls: "pkmrag-btn-sm mod-cta",
-    text: "📥 Download Model & Index Vault (130 MB)",
+    text: "📥 Download Model & Index Vault (67 MB)",
   });
 
   const startJob = async (target: "all" | "graph") => {
@@ -51,12 +51,14 @@ export function renderUnindexedView(
     plugin.lastTaskError = null;
     plugin.activeJob = {
       type: "ingest",
+      stage: target === "all" ? "model_download" : "graph",
+      unit: target === "all" ? "bytes" : "items",
       phase:
         target === "all"
           ? "Downloading local embedding model (BAAI/bge-small-en-v1.5)..."
           : "indexing graph",
       cur: 0,
-      total: 100,
+      total: target === "all" ? 0 : 100,
       percent: 0,
       message:
         target === "all"
@@ -69,6 +71,9 @@ export function renderUnindexedView(
       await plugin.client.autoDiscoverVaultToken(plugin.app);
       plugin.initEventStream();
       await plugin.client.triggerIngest({ target, rebuild: true });
+      // The first progress events can race the event stream, so read the
+      // authoritative stage from the health endpoint.
+      await plugin.syncJobState();
     } catch (err: unknown) {
       plugin.activeJob = null;
       plugin.updateStatusBar();

@@ -234,6 +234,7 @@ export class PkmragSettingTab extends PluginSettingTab {
           btn.setDisabled(true);
           try {
             await this.plugin.client.triggerIngest({ rebuild: true });
+            await this.plugin.syncJobState();
             new Notice("PKMRAG: Full index rebuild started in background.");
           } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : String(err);

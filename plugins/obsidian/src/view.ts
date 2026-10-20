@@ -215,6 +215,8 @@ export class PkmragInsightsView extends ItemView {
           this.plugin.lastTaskError = null;
           this.plugin.activeJob = {
             type: "ingest",
+            stage: "scan",
+            unit: "items",
             phase: "initializing",
             cur: 0,
             total: 100,
@@ -226,6 +228,7 @@ export class PkmragInsightsView extends ItemView {
           await this.plugin.client.autoDiscoverVaultToken(this.plugin.app);
           this.plugin.initEventStream();
           await this.plugin.client.triggerIngest({ rebuild: true });
+          await this.plugin.syncJobState();
         } catch (err: unknown) {
           const msg = err instanceof Error ? err.message : String(err);
           this.plugin.lastTaskError = {

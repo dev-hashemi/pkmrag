@@ -5,6 +5,44 @@
 import type PkmragPlugin from "./main";
 import { ActiveJobState, TaskErrorState } from "./types";
 
+/** Stage reported by the server while the embedding model weights are transferred. */
+const MODEL_DOWNLOAD_STAGE = "model_download";
+
+/**
+ * Decide whether the job is currently downloading the embedding model.
+ *
+ * Prefers the structured stage reported by the server and only falls back to
+ * the phase text for servers that predate the stage field.
+ */
+export function isModelDownload(job: ActiveJobState): boolean {
+  if (job.stage) return job.stage === MODEL_DOWNLOAD_STAGE;
+  const phaseLower = (job.phase || "").toLowerCase();
+  return phaseLower.includes("model") || phaseLower.includes("download");
+}
+
+/** Report whether the job reports byte-based progress. */
+export function hasByteProgress(job: ActiveJobState): boolean {
+  return job.unit === "bytes" && job.total > 0;
+}
+
+/** Format a byte count for display. */
+export function formatBytes(value: number): string {
+  if (!Number.isFinite(value) || value <= 0) return "0 MB";
+  const megabytes = value / (1024 * 1024);
+  if (megabytes >= 1) return `${megabytes.toFixed(1)} MB`;
+  return `${Math.round(value / 1024)} KB`;
+}
+
+/** Render the detail line of a job, preferring byte progress when available. */
+export function jobDetail(job: ActiveJobState, fallback: string): string {
+  if (hasByteProgress(job)) {
+    return `${formatBytes(job.cur)} / ${formatBytes(job.total)}`;
+  }
+  if (job.message) return job.message;
+  if (job.phase) return `${job.phase} (${job.cur}/${job.total})`;
+  return fallback;
+}
+
 export function renderProgressBanner(
   container: HTMLElement,
   job: ActiveJobState
@@ -12,8 +50,8 @@ export function renderProgressBanner(
   const banner = container.createDiv({ cls: "pkmrag-progress-banner" });
 
   const headerRow = banner.createDiv({ cls: "pkmrag-progress-header" });
-  const phaseLower = (job.phase || "").toLowerCase();
-  const isModel = phaseLower.includes("model") || phaseLower.includes("download");
+  const isModel = isModelDownload(job);
+  const bytes = hasByteProgress(job);
   const icon = job.type === "discover" ? "🧠" : isModel ? "📥" : "🔄";
   const titleText = job.type === "discover"
     ? "AI Gap Discovery"
@@ -28,23 +66,22 @@ export function renderProgressBanner(
   const pct = Math.min(100, Math.max(0, job.percent));
   headerRow.createSpan({
     cls: "pkmrag-progress-pct",
-    text: isModel ? "Downloading (~130 MB)" : `${pct}%`,
+    text: isModel ? (bytes ? `${pct}%` : "Downloading (~67 MB)") : `${pct}%`,
   });
 
   const track = banner.createDiv({ cls: "pkmrag-progress-track" });
   const fill = track.createDiv({ cls: "pkmrag-progress-fill" });
-  if (isModel) {
+  if (isModel && !bytes) {
     track.addClass("pkmrag-progress-indeterminate");
   } else {
     fill.style.width = `${pct}%`;
   }
 
   const detailRow = banner.createDiv({ cls: "pkmrag-progress-detail" });
-  let label = job.message || job.desc || "";
-  if (!label && job.phase) {
-    label = `${job.phase} (${job.cur}/${job.total})`;
-  }
-  detailRow.createSpan({ cls: "pkmrag-progress-text", text: label || "Processing..." });
+  detailRow.createSpan({
+    cls: "pkmrag-progress-text",
+    text: jobDetail(job, "Processing..."),
+  });
 
   return banner;
 }
@@ -57,8 +94,8 @@ export function renderJobProgressView(
   const wrapper = container.createDiv({ cls: "pkmrag-offline-container" });
   const card = wrapper.createDiv({ cls: "pkmrag-progress-card" });
 
-  const phaseLower = (job.phase || "").toLowerCase();
-  const isModel = phaseLower.includes("model") || phaseLower.includes("download");
+  const isModel = isModelDownload(job);
+  const bytes = hasByteProgress(job);
   const isDisc = job.type === "discover";
 
   const iconText = isDisc ? "🧠" : isModel ? "📥" : "🔄";
@@ -71,7 +108,7 @@ export function renderJobProgressView(
   const descText = isDisc
     ? "Discovering semantic gaps and inferring cross-note conceptual connections."
     : isModel
-    ? "Downloading the BAAI/bge-small-en-v1.5 embedding model weights (~130 MB). This is a one-time download — vector search runs 100% locally on your machine with zero cloud dependencies or API fees."
+    ? "Downloading the BAAI/bge-small-en-v1.5 embedding model weights (~67 MB). This is a one-time download — vector search runs 100% locally on your machine with zero cloud dependencies or API fees."
     : "Parsing markdown notes, building the LadybugDB graph, and generating dense vector embeddings in LanceDB.";
 
   const header = card.createDiv({ cls: "pkmrag-progress-header" });
@@ -82,27 +119,29 @@ export function renderJobProgressView(
   const pct = Math.min(100, Math.max(0, job.percent));
   header.createSpan({
     cls: "pkmrag-progress-pct",
-    text: isModel ? "Step 1/2: Downloading" : isDisc ? `${pct}%` : `Step 2/2: ${pct}%`,
+    text: isModel
+      ? bytes
+        ? `Step 1/2: ${pct}%`
+        : "Step 1/2: Downloading"
+      : isDisc
+      ? `${pct}%`
+      : `Step 2/2: ${pct}%`,
   });
 
   card.createEl("p", { cls: "pkmrag-progress-card-desc", text: descText });
 
   const track = card.createDiv({ cls: "pkmrag-progress-track" });
   const fill = track.createDiv({ cls: "pkmrag-progress-fill" });
-  if (isModel) {
+  if (isModel && !bytes) {
     track.addClass("pkmrag-progress-indeterminate");
   } else {
     fill.style.width = `${pct}%`;
   }
 
   const detailRow = card.createDiv({ cls: "pkmrag-progress-detail" });
-  let label = job.message || job.desc || "";
-  if (!label && job.phase) {
-    label = `${job.phase} (${job.cur}/${job.total})`;
-  }
   detailRow.createSpan({
     cls: "pkmrag-progress-text",
-    text: label || (isModel ? "Streaming ONNX weights to local cache..." : "Processing in background..."),
+    text: jobDetail(job, isModel ? "Streaming ONNX weights to local cache..." : "Processing in background..."),
   });
 
   const hint = card.createDiv({ cls: "pkmrag-wizard-hint" });
