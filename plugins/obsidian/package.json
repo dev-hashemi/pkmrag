@@ -1,6 +1,6 @@
 {
   "name": "pkmrag",
-  "version": "0.9.4",
+  "version": "0.9.5",
   "description": "Local-first Hybrid GraphRAG insights and contradiction warnings for Obsidian powered by PKMRAG.",
   "main": "main.js",
   "type": "module",
