@@ -13,13 +13,11 @@ import { renderProgressBanner, renderJobProgressView, renderTaskErrorCard } from
 import { renderGapsSection } from "./view_gaps";
 import { ProximitySearchDrawer } from "./view_search";
 import { renderInferencesSection } from "./view_inferences";
+import { renderContextSection, renderVaultStats } from "./view_context";
 import { displayTitle } from "./format";
 
 
 export const VIEW_TYPE_PKMRAG_INSIGHTS = "pkmrag-insights-view";
-
-/** Number of related notes listed before the "show more" toggle appears. */
-const CONTEXT_VISIBLE_LINKS = 5;
 
 
 export class PkmragInsightsView extends ItemView {
@@ -124,7 +122,7 @@ export class PkmragInsightsView extends ItemView {
 
     const discoverBtn = actions.createEl("button", {
       cls: "pkmrag-btn-sm",
-      text: "⚡",
+      text: "⚡ Discover",
     });
     discoverBtn.title = "Run AI Gap Discovery & Relationship Inference";
     discoverBtn.onclick = async () => {
@@ -266,75 +264,16 @@ export class PkmragInsightsView extends ItemView {
     });
 
     // 2. Contradictions & AI Inferences Section
-    renderInferencesSection(container, this.context, (path) => {
+    renderInferencesSection(container, this.plugin, this.context, (path) => {
       this.app.workspace.openLinkText(path, "");
     });
 
     // 3. Graph Context Section
-    this.renderContextSection(container);
-  }
-
-  private renderContextSection(container: HTMLElement): void {
-
-    const sec = container.createDiv({ cls: "pkmrag-section" });
-    sec.createDiv({ cls: "pkmrag-section-header", text: "Graph Context" });
-
-    if (this.context?.is_unresolved) {
-      sec.createDiv({
-        cls: "pkmrag-card-reason",
-        text: "Ghost note: linked to, but no file on disk yet.",
-      });
-    }
-
-    const tags = this.context?.tags || [];
-    if (tags.length > 0) {
-      const tagChips = sec.createDiv({ cls: "pkmrag-chip-container", attr: { style: "margin-bottom: 8px;" } });
-      for (const t of tags) {
-        tagChips.createSpan({ cls: "pkmrag-chip", text: `#${t}` });
-      }
-    }
-
-    this.renderLinkGroup(sec, "Backlinks", this.context?.backlinks || []);
-    this.renderLinkGroup(sec, "Outgoing Links", this.context?.outgoing_links || []);
-    this.renderLinkGroup(sec, "2-Hop Cluster", this.context?.neighbors_2hop || []);
-  }
-
-  /** Render a group of related notes as clickable links, collapsing long lists. */
-  private renderLinkGroup(sec: HTMLElement, label: string, paths: string[]): void {
-    const group = sec.createDiv({ cls: "pkmrag-context-group" });
-    const head = group.createDiv({ cls: "pkmrag-context-group-head" });
-    head.createSpan({ cls: "pkmrag-context-group-label", text: label });
-    head.createSpan({ cls: "pkmrag-context-group-count", text: String(paths.length) });
-
-    if (paths.length === 0) {
-      group.createDiv({ cls: "pkmrag-empty-state", text: "None" });
-      return;
-    }
-
-    const list = group.createDiv({ cls: "pkmrag-link-list" });
-    paths.forEach((path, idx) => {
-      const row = list.createDiv({
-        cls: idx >= CONTEXT_VISIBLE_LINKS ? "pkmrag-link-row pkmrag-extra" : "pkmrag-link-row",
-      });
-      const link = row.createEl("a", { cls: "pkmrag-link", text: displayTitle(path) });
-      link.onclick = () => this.app.workspace.openLinkText(path, "");
-      row.createSpan({ cls: "pkmrag-link-path", text: path });
+    renderContextSection(container, this.context, (path) => {
+      this.app.workspace.openLinkText(path, "");
     });
 
-    if (paths.length > CONTEXT_VISIBLE_LINKS) {
-      const toggle = group.createEl("a", {
-        cls: "pkmrag-context-toggle",
-        text: `▸ Show ${paths.length - CONTEXT_VISIBLE_LINKS} more`,
-      });
-      toggle.onclick = () => {
-        const expanded = group.hasClass("pkmrag-expanded");
-        group.toggleClass("pkmrag-expanded", !expanded);
-        toggle.setText(
-          expanded
-            ? `▸ Show ${paths.length - CONTEXT_VISIBLE_LINKS} more`
-            : "▾ Show less"
-        );
-      };
-    }
+    // 4. Vault-wide graph statistics
+    renderVaultStats(container, this.plugin.vaultStats);
   }
 }

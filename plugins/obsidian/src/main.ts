@@ -31,6 +31,7 @@ export default class PkmragPlugin extends Plugin {
   lastTaskError: TaskErrorState | null = null;
   isVaultIndexed = false;
   isServerConnected = false;
+  vaultStats: { notes: number; links: number; tags: number } | null = null;
   private statusBarEl!: HTMLElement;
   private eventSource: EventSource | null = null;
   private debounceMap: Map<string, ReturnJS_Timeout> = new Map();
@@ -232,6 +233,7 @@ export default class PkmragPlugin extends Plugin {
       this.isServerConnected = true;
       this.isVaultIndexed = health.is_indexed === true;
       this.activeJob = health.active_job || null;
+      this.vaultStats = health.stats || null;
     } catch {
       this.isServerConnected = false;
     }

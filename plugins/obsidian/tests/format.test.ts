@@ -12,9 +12,12 @@ import {
   formatGapDistance,
   formatGraphBoost,
   gapCounterpart,
+  isDismissedPair,
   noteStem,
+  pairKey,
   searchAnchor,
   searchLinkTitle,
+  splitChunkHeading,
 } from "../src/format.js";
 import type { SearchResult, SemanticGapCandidate } from "../src/types.js";
 
@@ -121,4 +124,33 @@ test("formatGraphBoost only reports an actual boost", () => {
   assert.equal(formatGraphBoost(makeResult()), "⚡ ×1.25 · 1 hop");
   assert.equal(formatGraphBoost(makeResult({ graph_boost_factor: 1.0 })), "");
   assert.equal(formatGraphBoost(makeResult({ hop_distance: null })), "⚡ ×1.25");
+});
+
+test("pairKey is order independent", () => {
+  assert.equal(pairKey("b.md", "a.md"), pairKey("a.md", "b.md"));
+  assert.equal(pairKey("a.md", "b.md"), "a.md::b.md");
+});
+
+test("isDismissedPair matches regardless of edge direction", () => {
+  const dismissed = { "a.md::b.md": { sourcePath: "a.md", targetPath: "b.md" } };
+
+  // The LLM may store the inferred edge in either direction.
+  assert.equal(isDismissedPair(dismissed, "a.md", "b.md"), true);
+  assert.equal(isDismissedPair(dismissed, "b.md", "a.md"), true);
+  assert.equal(isDismissedPair(dismissed, "a.md", "c.md"), false);
+  assert.equal(isDismissedPair({}, "a.md", "b.md"), false);
+});
+
+test("splitChunkHeading separates the breadcrumb from the body", () => {
+  const chunk = "# Daily Notes — 2026-09-27 > ## Log\n\nToday we validated the pipeline.";
+  const { heading, body } = splitChunkHeading(chunk);
+  assert.equal(heading, "# Daily Notes — 2026-09-27 > ## Log");
+  assert.equal(body, "Today we validated the pipeline.");
+  assert.equal(searchAnchor(heading), "Log");
+});
+
+test("splitChunkHeading tolerates chunks without a heading", () => {
+  const { heading, body } = splitChunkHeading("  plain body text");
+  assert.equal(heading, "");
+  assert.equal(body, "plain body text");
 });

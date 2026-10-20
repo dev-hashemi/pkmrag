@@ -109,7 +109,7 @@ export class ProximitySearchDrawer {
     titleEl.onclick = () => this.plugin.app.workspace.openLinkText(res.note_path, "");
 
     if (res.heading) {
-      head.createSpan({ cls: "pkmrag-badge", text: `# ${res.heading}` });
+      head.createSpan({ cls: "pkmrag-badge", text: `# ${searchAnchor(res.heading)}` });
     }
 
     const boost = formatGraphBoost(res);

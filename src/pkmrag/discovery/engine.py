@@ -8,12 +8,10 @@ from pathlib import Path, PurePosixPath
 from typing import Callable, Optional
 
 from pkmrag.config import load_vault_env, settings
+from pkmrag.discovery.scanner import GapScanner
 from pkmrag.graph.paths import find_shortest_bridge
 from pkmrag.graph.store import GraphStore
-from pkmrag.graph.traversal import (
-    add_inferred_relationship,
-    has_inferred_relationship,
-)
+from pkmrag.graph.traversal import add_inferred_relationship
 from pkmrag.inference.base import InferenceProvider
 from pkmrag.models import DiscoveryStats, InferredRelationship, SemanticGapCandidate
 from pkmrag.search.vector_store import VectorStore
@@ -29,6 +27,7 @@ class GapDiscoveryEngine:
         graph_store: Optional[GraphStore] = None,
         vector_store: Optional[VectorStore] = None,
         inference_provider: Optional[InferenceProvider] = None,
+        read_only: bool = False,
     ) -> None:
         self.vault_path = Path(vault_path).resolve()
         load_vault_env(self.vault_path)
@@ -36,7 +35,7 @@ class GapDiscoveryEngine:
         self.graph_store = (
             graph_store
             if graph_store is not None
-            else GraphStore(settings.get_db_dir(self.vault_path), read_only=False)
+            else GraphStore(settings.get_db_dir(self.vault_path), read_only=read_only)
         )
         self.vector_store = (
             vector_store
@@ -44,6 +43,7 @@ class GapDiscoveryEngine:
             else VectorStore(settings.get_vector_dir(self.vault_path))
         )
         self.inference_provider = inference_provider
+        self.scanner = GapScanner(self.graph_store, self.vector_store)
 
     def close(self) -> None:
         """Close graph store connection when this engine owns it."""
@@ -54,134 +54,18 @@ class GapDiscoveryEngine:
         self,
         min_similarity: Optional[float] = None,
         max_hops: Optional[int] = None,
+        focus_path: Optional[str] = None,
     ) -> list[SemanticGapCandidate]:
-        """Scan vector embeddings, group by canonical note pair, and filter out linked notes."""
-        threshold = settings.similarity_threshold if min_similarity is None else min_similarity
-        hops = settings.graph_distance_threshold if max_hops is None else max_hops
-        if self.vector_store.table.count_rows() == 0:
-            return []
+        """Scan embeddings for similar note pairs, excluding already connected ones.
 
-        # Pull all chunks to iterate their vectors
-        arrow_table = (
-            self.vector_store.table.search()
-            .select(["id", "note_path", "note_title", "text", "vector"])
-            .to_arrow()
+        Passing ``focus_path`` restricts the sweep to a single note, which keeps the
+        cost proportional to that note rather than to the size of the vault.
+        """
+        return self.scanner.scan(
+            min_similarity=min_similarity,
+            max_hops=max_hops,
+            focus_path=focus_path,
         )
-        total_chunks = len(arrow_table)
-        if total_chunks < 2:
-            return []
-
-        ids = arrow_table["id"].to_pylist()
-        note_paths = arrow_table["note_path"].to_pylist()
-        note_titles = arrow_table["note_title"].to_pylist()
-        texts = arrow_table["text"].to_pylist()
-        vectors = arrow_table["vector"].to_pylist()
-
-        # Step 1: Find high-similarity chunk pairs and group by canonical note pair
-        # candidate_map: (note_a, note_b) -> (sim, id_a, id_b, text_a, text_b, title_a, title_b)
-        best_pair_matches: dict[tuple[str, str], tuple[float, str, str, str, str, str, str]] = {}
-
-        with trace_span("gap.vector_ann", attributes={"similarity_threshold": threshold}):
-            for i in range(total_chunks):
-                v_i = vectors[i]
-                note_i = note_paths[i]
-                id_i = ids[i]
-                text_i = texts[i]
-                title_i = str(note_titles[i] or "")
-
-                # Search LanceDB for top 20 nearest neighbors using cosine metric
-                matches = (
-                    self.vector_store.table.search(v_i).distance_type("cosine").limit(20).to_list()
-                )
-
-                for m in matches:
-                    note_j = str(m.get("note_path", ""))
-                    if not note_j or note_j == note_i:
-                        continue  # Skip self-note chunks
-
-                    dist = float(m.get("_distance", 1.0))
-                    sim = 1.0 - dist
-                    if sim < threshold:
-                        continue
-
-                    id_j = str(m.get("id", ""))
-                    text_j = str(m.get("text", ""))
-                    title_j = str(m.get("note_title", "") or "")
-
-                    # Canonical pair key (min, max) to eliminate bidirectional duplicates
-                    pair_key = (min(note_i, note_j), max(note_i, note_j))
-                    if pair_key not in best_pair_matches or sim > best_pair_matches[pair_key][0]:
-                        if note_i == pair_key[0]:
-                            best_pair_matches[pair_key] = (
-                                sim,
-                                id_i,
-                                id_j,
-                                text_i,
-                                text_j,
-                                title_i,
-                                title_j,
-                            )
-                        else:
-                            best_pair_matches[pair_key] = (
-                                sim,
-                                id_j,
-                                id_i,
-                                text_j,
-                                text_i,
-                                title_j,
-                                title_i,
-                            )
-
-        # Step 2: Filter out note pairs already connected in LadybugDB within max_hops
-        # or already evaluated in INFERRED_REL
-        filtered_candidates: list[SemanticGapCandidate] = []
-        hop_cache: dict[str, dict[str, int]] = {}
-
-        with trace_span(
-            "gap.graph_filter",
-            attributes={"max_hops": hops, "raw_candidates": len(best_pair_matches)},
-        ) as filter_span:
-            for (src, dst), (
-                sim,
-                c_src,
-                c_dst,
-                t_src,
-                t_dst,
-                ti_src,
-                ti_dst,
-            ) in best_pair_matches.items():
-                if src not in hop_cache:
-                    hop_cache[src] = self.graph_store.get_neighbor_hops(src, max_hops=hops)
-
-                if dst in hop_cache[src]:
-                    continue  # Already connected within max_hops via LINKS_TO
-
-                # Check if an inferred relationship already exists in the graph
-                if has_inferred_relationship(self.graph_store.conn, src, dst):
-                    continue  # Already evaluated
-
-                filtered_candidates.append(
-                    SemanticGapCandidate(
-                        source_path=src,
-                        target_path=dst,
-                        source_title=ti_src,
-                        target_title=ti_dst,
-                        similarity=round(sim, 4),
-                        source_chunk_id=c_src,
-                        target_chunk_id=c_dst,
-                        source_chunk_text=t_src,
-                        target_chunk_text=t_dst,
-                    )
-                )
-
-            filter_span.set_attribute("candidates.count", len(filtered_candidates))
-            filter_span.set_attribute(
-                "pruned_by_graph", len(best_pair_matches) - len(filtered_candidates)
-            )
-
-        # Sort descending by similarity
-        filtered_candidates.sort(key=lambda c: c.similarity, reverse=True)
-        return filtered_candidates
 
     def enrich_candidates(
         self,

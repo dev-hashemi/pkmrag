@@ -1,4 +1,4 @@
-"""Tests for semantic gap discovery engine."""
+"""Tests for semantic gap discovery and LLM classification."""
 
 from __future__ import annotations
 
@@ -9,47 +9,10 @@ from pkmrag.graph import GraphStore
 from pkmrag.graph.traversal import get_inferred_relationships
 from pkmrag.inference.base import InferredRelationshipResult
 from pkmrag.inference.provider import MockInferenceProvider
-from pkmrag.ingest import IngestPipeline
 
 
-def _setup_test_vault(vault: Path) -> None:
-    """Create a synthetic vault with linked and unlinked semantically similar notes."""
-    vault.mkdir(parents=True, exist_ok=True)
-
-    # Note A and Note B are unlinked but both about distributed lock managers
-    (vault / "DistributedLocks.md").write_text(
-        "# Distributed Lock Managers\n\n"
-        "Distributed locks provide mutual exclusion across networked nodes.\n"
-        "They rely on leases, fencing tokens, and distributed consensus mechanisms.\n"
-        "See also [[ConsensusProtocols]].\n"
-    )
-    (vault / "RedlockAlgorithm.md").write_text(
-        "# Redis Redlock Algorithm\n\n"
-        "Redlock is a distributed locking algorithm for Redis clusters.\n"
-        "It uses multiple independent Redis masters to achieve fault-tolerant locks.\n"
-    )
-    # Note C is explicitly linked to Note A (distance = 1)
-    (vault / "ConsensusProtocols.md").write_text(
-        "# Consensus Protocols\n\n"
-        "Consensus protocols like Raft and Paxos allow nodes to agree on values.\n"
-        "Distributed lock managers often build upon consensus primitives.\n"
-    )
-    # Note D is completely unrelated
-    (vault / "SourdoughBread.md").write_text(
-        "# Sourdough Bread\n\n"
-        "Flour, water, wild yeast starter, and salt fermented over 24 hours.\n"
-        "Bake in a Dutch oven at 230C with steam.\n"
-    )
-
-    pipeline = IngestPipeline(vault, target="all")
-    pipeline.run()
-
-
-def test_gap_discovery_finds_unlinked_notes(tmp_path: Path) -> None:
+def test_gap_discovery_finds_unlinked_notes(semantic_gap_vault: Path) -> None:
     """Verify that unlinked semantically similar notes are discovered and classified."""
-    vault = tmp_path / "vault"
-    _setup_test_vault(vault)
-
     mock_provider = MockInferenceProvider(
         default_rel=InferredRelationshipResult(
             rel_type="EXTENDS",
@@ -58,7 +21,7 @@ def test_gap_discovery_finds_unlinked_notes(tmp_path: Path) -> None:
         )
     )
 
-    engine = GapDiscoveryEngine(vault, inference_provider=mock_provider)
+    engine = GapDiscoveryEngine(semantic_gap_vault, inference_provider=mock_provider)
     try:
         candidates, inferred, stats = engine.discover(similarity_threshold=0.50, limit=10)
     finally:
@@ -86,20 +49,17 @@ def test_gap_discovery_finds_unlinked_notes(tmp_path: Path) -> None:
     assert "Redlock" in rel.reason
 
     # Verify persistence in LadybugDB
-    graph = GraphStore(vault / ".pkmrag" / "graph")
+    graph = GraphStore(semantic_gap_vault / ".pkmrag" / "graph")
     stored = get_inferred_relationships(graph.conn, "DistributedLocks.md")
     graph.close()
     assert len(stored) >= 1
     assert stored[0].rel_type == "EXTENDS"
 
 
-def test_gap_discovery_dry_run(tmp_path: Path) -> None:
+def test_gap_discovery_dry_run(semantic_gap_vault: Path) -> None:
     """Verify dry-run returns candidates without calling LLM or writing to database."""
-    vault = tmp_path / "vault"
-    _setup_test_vault(vault)
-
     mock_provider = MockInferenceProvider()
-    engine = GapDiscoveryEngine(vault, inference_provider=mock_provider)
+    engine = GapDiscoveryEngine(semantic_gap_vault, inference_provider=mock_provider)
     try:
         candidates, inferred, stats = engine.discover(
             similarity_threshold=0.50, limit=10, dry_run=True
@@ -112,17 +72,14 @@ def test_gap_discovery_dry_run(tmp_path: Path) -> None:
     assert len(mock_provider.calls) == 0
 
     # Verify nothing was persisted
-    graph = GraphStore(vault / ".pkmrag" / "graph")
+    graph = GraphStore(semantic_gap_vault / ".pkmrag" / "graph")
     stored = get_inferred_relationships(graph.conn, "DistributedLocks.md")
     graph.close()
     assert len(stored) == 0
 
 
-def test_gap_discovery_none_classification_discarded(tmp_path: Path) -> None:
+def test_gap_discovery_none_classification_discarded(semantic_gap_vault: Path) -> None:
     """Verify that relationship classified as NONE is not stored in the database."""
-    vault = tmp_path / "vault"
-    _setup_test_vault(vault)
-
     mock_provider = MockInferenceProvider(
         default_rel=InferredRelationshipResult(
             rel_type="NONE",
@@ -131,7 +88,7 @@ def test_gap_discovery_none_classification_discarded(tmp_path: Path) -> None:
         )
     )
 
-    engine = GapDiscoveryEngine(vault, inference_provider=mock_provider)
+    engine = GapDiscoveryEngine(semantic_gap_vault, inference_provider=mock_provider)
     try:
         candidates, inferred, stats = engine.discover(similarity_threshold=0.50, limit=10)
     finally:
@@ -140,78 +97,14 @@ def test_gap_discovery_none_classification_discarded(tmp_path: Path) -> None:
     assert len(candidates) >= 1
     assert len(inferred) == 0
 
-    graph = GraphStore(vault / ".pkmrag" / "graph")
+    graph = GraphStore(semantic_gap_vault / ".pkmrag" / "graph")
     stored = get_inferred_relationships(graph.conn, "DistributedLocks.md")
     graph.close()
     assert len(stored) == 0
 
 
-def test_gap_candidates_carry_note_titles(tmp_path: Path) -> None:
-    """Verify that candidates expose the file stem titles of both notes."""
-    vault = tmp_path / "vault"
-    _setup_test_vault(vault)
-
-    engine = GapDiscoveryEngine(vault)
-    try:
-        candidates = engine.find_gap_candidates(min_similarity=0.50)
-    finally:
-        engine.close()
-
-    assert len(candidates) >= 1
-    for cand in candidates:
-        assert cand.source_title == Path(cand.source_path).stem
-        assert cand.target_title == Path(cand.target_path).stem
-
-
-def test_enrich_candidates_adds_hops_and_bridge_path(tmp_path: Path) -> None:
-    """Verify enrichment reports the real graph distance and the connecting path."""
-    vault = tmp_path / "vault"
-    _setup_test_vault(vault)
-
-    engine = GapDiscoveryEngine(vault)
-    try:
-        candidates = engine.find_gap_candidates(min_similarity=0.50)
-        assert len(candidates) >= 1
-        enriched = engine.enrich_candidates(candidates)
-    finally:
-        engine.close()
-
-    for cand in enriched:
-        if cand.hops < 0:
-            # No path within the search radius: the bridge list must be empty.
-            assert cand.bridge_path == []
-            continue
-        assert cand.hops >= 1
-        assert len(cand.bridge_path) == cand.hops + 1
-        assert cand.bridge_path[0] == cand.source_path
-        assert cand.bridge_path[-1] == cand.target_path
-
-
-def test_discover_enrich_flag_populates_graph_distance(tmp_path: Path) -> None:
-    """Verify the discover(enrich=True) path annotates candidates with graph distance."""
-    vault = tmp_path / "vault"
-    _setup_test_vault(vault)
-
-    engine = GapDiscoveryEngine(vault)
-    try:
-        plain, _, _ = engine.discover(similarity_threshold=0.50, limit=10, dry_run=True)
-        enriched, _, _ = engine.discover(
-            similarity_threshold=0.50, limit=10, dry_run=True, enrich=True
-        )
-    finally:
-        engine.close()
-
-    assert len(plain) >= 1
-    assert len(enriched) == len(plain)
-    assert all(c.hops == -1 and c.bridge_path == [] for c in plain)
-    assert any(c.hops != -1 or c.bridge_path == [] for c in enriched)
-
-
-def test_gap_discovery_skips_already_inferred(tmp_path: Path) -> None:
+def test_gap_discovery_skips_already_inferred(semantic_gap_vault: Path) -> None:
     """Verify that existing inferred relationships are skipped on repeated runs."""
-    vault = tmp_path / "vault"
-    _setup_test_vault(vault)
-
     mock_provider = MockInferenceProvider(
         default_rel=InferredRelationshipResult(
             rel_type="EXTENDS",
@@ -220,7 +113,7 @@ def test_gap_discovery_skips_already_inferred(tmp_path: Path) -> None:
         )
     )
 
-    engine = GapDiscoveryEngine(vault, inference_provider=mock_provider)
+    engine = GapDiscoveryEngine(semantic_gap_vault, inference_provider=mock_provider)
     try:
         _, inferred1, _ = engine.discover(similarity_threshold=0.50, limit=10)
         assert len(inferred1) >= 1

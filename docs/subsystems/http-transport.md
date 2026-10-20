@@ -30,6 +30,7 @@ PKMRAG runs an asynchronous Starlette/Uvicorn server hosting two distinct API pl
    - Standard `/messages/` endpoint receiving JSON-RPC tool calls from Claude Desktop, Cursor, or MCP clients.
 2. **Ergonomic REST API:**
    - Structured JSON endpoints designed specifically for direct consumption by frontend panels (e.g., the Obsidian "PKMRAG Insights" sidebar) without requiring MCP client wrappers.
+   - Query endpoints run in a worker thread, so a scan never blocks the event loop (and therefore never stalls the SSE stream or the health probe).
 3. **Reactive Event Stream (`/api/v1/events`):**
    - Push-based Server-Sent Events broadcasting live reindexing and sync notifications to keep connected views fresh.
 
@@ -127,7 +128,10 @@ Returns the note's structural graph context including tags, forward links, backl
 ```
 
 ### `GET /api/v1/gaps?threshold=0.80&limit=10&note_path=<path>`
-Returns unlinked candidate pairs exhibiting high vector similarity. If `note_path` is specified, filters candidates involving that note. `limit` caps the number of returned candidates.
+Returns unlinked candidate pairs exhibiting high vector similarity. `limit` caps the number of returned candidates.
+
+When `note_path` is supplied the scan is **scoped to that note**, so the cost is proportional to the note rather than to the size of the vault — a request stays fast (~40 ms) regardless of vault size. Without `note_path` the full vault is scanned, which is what the CLI and the `discover_gaps` MCP tool use.
+
 ```json
 {
   "candidates": [
@@ -150,7 +154,7 @@ Returns unlinked candidate pairs exhibiting high vector similarity. If `note_pat
     }
   ],
   "total": 1,
-  "duration_ms": 106.5
+  "duration_ms": 36.2
 }
 ```
 `hops` is `-1` and `bridge_path` is empty when no link path exists within 10 hops.

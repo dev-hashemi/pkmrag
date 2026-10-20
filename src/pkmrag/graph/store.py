@@ -22,6 +22,10 @@ from pkmrag.graph.traversal import (
 )
 
 
+class GraphStoreLockedError(RuntimeError):
+    """Raised when the vault graph database is locked by another process."""
+
+
 class GraphStore:
     """Manages LadybugDB lifecycle, transactions, and openCypher graph operations."""
 
@@ -48,7 +52,14 @@ class GraphStore:
 
         self.db_dir.mkdir(parents=True, exist_ok=True)
         self.read_only = read_only
-        self.db = ladybug.Database(str(self.db_path), read_only=read_only)
+        try:
+            self.db = ladybug.Database(str(self.db_path), read_only=read_only)
+        except RuntimeError as exc:
+            if "Could not set lock" in str(exc):
+                raise GraphStoreLockedError(
+                    f"The vault graph database is locked by another process: {self.db_path}"
+                ) from exc
+            raise
         self.conn = ladybug.Connection(self.db)
         if not read_only:
             self._init_schema()
@@ -257,10 +268,7 @@ class GraphStore:
                 "DELETE r;",
                 {"gp": gp, "rp": real_path},
             )
-            self.conn.execute(
-                "MATCH (ghost:Note {path: $gp}) DELETE ghost;",
-                {"gp": gp},
-            )
+            self.conn.execute("MATCH (ghost:Note {path: $gp}) DELETE ghost;", {"gp": gp})
 
     def cleanup_orphaned_tags(self) -> None:
         """Remove tags that are no longer referenced by any notes."""

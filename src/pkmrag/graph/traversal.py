@@ -144,6 +144,20 @@ def has_inferred_relationship(conn: Any, source_path: str, target_path: str) -> 
     return False
 
 
+def get_inferred_neighbor_paths(conn: Any, note_path: str) -> set[str]:
+    """Return every note path linked to the given note by an inferred relationship."""
+    res = conn.execute(
+        "MATCH (a:Note {path: $p})-[r:INFERRED_REL]-(b:Note) RETURN DISTINCT b.path;",
+        {"p": note_path},
+    )
+    query_res = _get_single_result(res)
+    paths: set[str] = set()
+    while query_res.has_next():
+        row = _extract_row(query_res.get_next())
+        paths.add(str(row[0]))
+    return paths
+
+
 def add_inferred_relationship(conn: Any, rel: InferredRelationship) -> None:
     """Persist an AI-discovered relationship edge between two notes."""
     conn.execute(

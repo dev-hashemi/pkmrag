@@ -184,6 +184,14 @@
   margin-right: 4px;
 }
 .pkmrag-evidence-note { color: var(--text-muted); font-weight: var(--font-semibold); }
+.pkmrag-evidence-heading {
+  color: var(--text-faint);
+  font-size: 10px;
+  margin-left: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .pkmrag-evidence-text {
   color: var(--text-muted);
   line-height: 1.4;
@@ -217,6 +225,18 @@
 .pkmrag-context-toggle { font-size: 11px; color: var(--text-faint); cursor: pointer; text-decoration: none; }
 .pkmrag-context-toggle:hover { color: var(--text-muted); }
 .pkmrag-context-group:not(.pkmrag-expanded) .pkmrag-extra { display: none; }
+
+/* Vault statistics footer */
+.pkmrag-vault-stats {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--background-modifier-border);
+  font-size: 10px;
+  color: var(--text-faint);
+}
 
 /* Dismissed Suggestions Drawer */
 .pkmrag-dismissed-drawer { margin-top: 10px; padding-top: 6px; border-top: 1px dashed var(--background-modifier-border); }

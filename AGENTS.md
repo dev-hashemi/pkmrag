@@ -13,6 +13,7 @@ Exposed as an MCP server — no chat UI.
 src/pkmrag/
   cli.py          # Typer CLI entry point
   cli_views.py    # Rich terminal display renderers
+  cli_discover.py # `pkmrag discover` implementation (locked-database handling)
   config.py       # Settings, defaults, env vars
   models.py       # Pydantic data models (shared across modules)
   doctor.py       # `pkmrag doctor` health checks
@@ -23,10 +24,10 @@ src/pkmrag/
   ingest/         # Vault → graph and vector ingestion pipeline & single-note reindexer
   search/         # Chunking, FastEmbed, LanceDB vector store, RRF fusion, service
   inference/      # LLM inference client (OpenAI, Ollama) and token-bucket rate limiter
-  discovery/      # Semantic gap discovery and relationship inference engine
+  discovery/      # Semantic gap discovery (scanner) and relationship inference engine
   eval/           # Retrieval evaluation harness and IR metrics (MRR, Recall, MAP)
   telemetry/      # OpenTelemetry spans, collector, visual tree, tracer lifecycle
-  mcp/            # FastMCP server, tool handlers, and stdio transport
+  mcp/            # FastMCP server, tool handlers, and stdio/HTTP transport
   vault_config.py # Per-vault configuration reader/writer (<vault>/.pkmrag/config.json)
   plugin.py       # Obsidian plugin installer & bundler CLI
   plugin_assets/  # Bundled standalone Obsidian plugin assets (manifest, main.js, styles)

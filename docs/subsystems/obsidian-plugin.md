@@ -17,6 +17,7 @@ The PKMRAG plugin is a lightweight, local-first companion plugin for [Obsidian](
   - Informational badges for `EXTENDS`, `PREREQUISITE_FOR`, and `SUPPORTS`.
 - **Structural Graph Context:**
   - Tag chips plus clickable lists of backlinks, outgoing links, and the 2-hop cluster (long lists collapse behind a *show more* toggle).
+- **Vault Statistics Footer:** The sidebar footer shows the vault-wide `N notes · M links · K tags` graph counters, taken from the health payload the plugin already fetches (refreshed after an index rebuild).
 
 ### 1.2 Zero-Config Vault Token Authentication
 When opened inside a vault indexed by PKMRAG, the plugin automatically reads `<vault>/.pkmrag/server_token` using Obsidian's Vault adapter (`app.vault.adapter.read`). No manual copy-pasting of API keys is needed.
@@ -41,6 +42,7 @@ The plugin subscribes to PKMRAG's Server-Sent Events stream (`GET /api/v1/events
 
 ### 1.7 Knowledge Governance & Persistent Dismissal Memory
 - **Persistent Feedback:** Dismissed suggestions are recorded in plugin data (`dismissedSuggestions` in `data.json`) keyed by `source_path` and `target_path`, preventing dismissed links from recurring across sessions.
+- **Dismissal Wins Over Inference:** A dismissed pair is also hidden from the *Inferred Relationships* section, so a later AI discovery run cannot resurrect the same link the user rejected. The comparison is order-independent, because the LLM may store the inferred edge in either direction.
 - **Transparent Recovery:** A collapsible "Dismissed Suggestions" drawer in the sidebar displays previously dismissed items with single-click `[Restore]` buttons.
 - **Global Reset:** A "Reset All Dismissed Suggestions" action in Plugin Settings lets users flush negative feedback when restructuring their vault.
 
@@ -137,6 +139,7 @@ plugins/obsidian/
     status_bar.ts    # Status bar rendering & SSE event handling
     types.ts         # TypeScript interfaces matching PKMRAG REST API
     view.ts          # "PKMRAG Insights" ItemView sidebar panel
+    view_context.ts  # Graph context lists & vault statistics footer
     view_gaps.ts     # Semantic gap cards, bridge path & evidence excerpts
     view_inferences.ts # Inferred relationship cards & dismissal drawer
     view_offline.ts  # Friendly offline recovery card & onboarding

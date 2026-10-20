@@ -244,45 +244,49 @@ def discover(
 
         setup_telemetry(enable_memory_collector=True)
 
-    from pkmrag.discovery import GapDiscoveryEngine
+    from pkmrag.cli_discover import (
+        LOCKED_DATABASE_MESSAGE,
+        VaultDatabaseLockedError,
+        run_gap_discovery,
+    )
 
-    engine = GapDiscoveryEngine(vault_path)
+    on_prog = None
+    progress = None
+    if not (dry_run or json_output):
+        progress = _make_progress()
+        progress.start()
+        t_id = progress.add_task("[cyan]Scanning for semantic gaps...", total=limit)
+
+        def _cb(cur: int, tot: int, desc: str) -> None:
+            style = "yellow" if cur < 0 else "cyan"
+            if progress:
+                progress.update(
+                    t_id,
+                    description=f"[{style}]{desc}[/{style}]",
+                    total=max(tot, 1) if tot > 0 else limit,
+                    completed=max(cur, 0),
+                )
+
+        on_prog = _cb
+
     try:
-        on_prog = None
-        progress = None
-        if not (dry_run or json_output):
-            progress = _make_progress()
-            progress.start()
-            t_id = progress.add_task("[cyan]Scanning for semantic gaps...", total=limit)
-
-            def _cb(cur: int, tot: int, desc: str) -> None:
-                style = "yellow" if cur < 0 else "cyan"
-                if progress:
-                    progress.update(
-                        t_id,
-                        description=f"[{style}]{desc}[/{style}]",
-                        total=max(tot, 1) if tot > 0 else limit,
-                        completed=max(cur, 0),
-                    )
-
-            on_prog = _cb
-
-        candidates, inferred, stats = engine.discover(
-            similarity_threshold=threshold,
+        candidates, inferred, stats = run_gap_discovery(
+            vault_path,
+            threshold=threshold,
             limit=limit,
-            dry_run=dry_run,
-            provider_type=provider,
+            provider=provider,
             model=model,
             rpm=rpm,
             tpm=tpm,
-            enrich=dry_run,
+            dry_run=dry_run,
             on_progress=on_prog,
         )
-
+    except VaultDatabaseLockedError:
+        console.print(LOCKED_DATABASE_MESSAGE)
+        raise typer.Exit(code=1) from None
+    finally:
         if progress:
             progress.stop()
-    finally:
-        engine.close()
 
     render_discovery_results(
         candidates, inferred, stats, dry_run=dry_run, json_output=json_output, console=console

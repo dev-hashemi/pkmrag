@@ -176,7 +176,8 @@ A native desktop companion plugin (`plugins/obsidian/`) connecting Obsidian to P
 - **Interactive Setup Wizard:** If installed before the Python core engine, the sidebar automatically guides you through a 2-step setup with 1-click command copying and live verification.
 - **PKMRAG Insights Sidebar:** Real-time semantic gap recommendations, contradiction warnings with LLM citations, and structural graph context.
 - **Evidence-Backed Missing Links:** Each gap card shows the similarity score, the real graph distance (`N hops away` or `No path within 10 hops`), the clickable **bridge path** connecting the two notes, and the **matching passages** from both notes that justify the suggestion.
-- **Navigable Graph Context:** Backlinks, outgoing links, and the 2-hop cluster are listed as clickable notes instead of bare counts.
+- **Navigable Graph Context:** Backlinks, outgoing links, and the 2-hop cluster are listed as clickable notes instead of bare counts, with vault-wide graph counters in the footer.
+- **Instant Suggestions:** Gaps are mined from a note-scoped vector sweep, so the sidebar stays responsive no matter how large the vault is.
 - **Zero-Terminal Workflow & Auto-Daemon:** Transparently starts the background engine daemon on launch and shuts down cleanly on exit.
 - **In-App AI Discovery & Indexing:** Trigger deep AI relationship discovery (`⚡ Discover`) and full vault rebuilds directly from Obsidian without opening a shell.
 - **Settings-Driven LLM & Embedding Models:** Swap between Ollama, OpenAI, Groq, or local endpoints and customize models with 1-click latency verification directly inside Obsidian Settings.

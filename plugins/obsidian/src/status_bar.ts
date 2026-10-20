@@ -101,6 +101,8 @@ export function setupEventStream(plugin: PkmragPlugin): EventSource | null {
       plugin.isVaultIndexed = true;
       plugin.updateStatusBar();
       new Notice("PKMRAG: Vault indexing complete.");
+      // Refresh the health payload so the vault statistics footer stays accurate.
+      void plugin.checkConnection();
       plugin.refreshActiveView();
     } else if (event === "discover_complete") {
       plugin.activeJob = null;

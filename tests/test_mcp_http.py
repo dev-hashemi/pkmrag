@@ -176,6 +176,35 @@ def test_http_gaps_endpoint_respects_limit(gap_vault: Path) -> None:
     assert len(data["candidates"]) <= 1
 
 
+def test_http_gaps_endpoint_note_path_scopes_results(gap_vault: Path) -> None:
+    """A note-scoped request must only return pairs touching that note."""
+    app = create_http_app(gap_vault, token="tok")
+    client = TestClient(app)
+
+    resp = client.get(
+        "/api/v1/gaps?threshold=0.10&note_path=Gamma.md",
+        headers={"Authorization": "Bearer tok"},
+    )
+    assert resp.status_code == 200
+    candidates = resp.json()["candidates"]
+    assert candidates
+    for cand in candidates:
+        assert "Gamma.md" in (cand["source_path"], cand["target_path"])
+
+
+def test_http_gaps_endpoint_unindexed_note_returns_empty(gap_vault: Path) -> None:
+    """A note that is not indexed must yield an empty candidate list, not an error."""
+    app = create_http_app(gap_vault, token="tok")
+    client = TestClient(app)
+
+    resp = client.get(
+        "/api/v1/gaps?threshold=0.10&note_path=Missing.md",
+        headers={"Authorization": "Bearer tok"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["candidates"] == []
+
+
 def test_http_search_endpoint_returns_canonical_contract(populated_vault: Path) -> None:
     """Search results must expose the canonical SearchResult fields."""
     app = create_http_app(populated_vault, token="tok")

@@ -5,7 +5,16 @@
 import type PkmragPlugin from "./main";
 import { SemanticGapCandidate } from "./types";
 import { renderDismissedDrawer } from "./view_inferences";
-import { displayTitle, excerpt, formatBridgePath, formatGapDistance, gapCounterpart, noteStem } from "./format";
+import {
+  displayTitle,
+  excerpt,
+  formatBridgePath,
+  formatGapDistance,
+  gapCounterpart,
+  noteStem,
+  searchAnchor,
+  splitChunkHeading,
+} from "./format";
 
 export function renderGapsSection(
   container: HTMLElement,
@@ -123,9 +132,16 @@ function renderEvidence(card: HTMLElement, gap: SemanticGapCandidate): void {
   ];
 
   for (const [label, path, text] of sides) {
+    const { heading, body: passage } = splitChunkHeading(text);
     const row = body.createDiv({ cls: "pkmrag-evidence-row" });
     row.createSpan({ cls: "pkmrag-evidence-label", text: label });
     row.createSpan({ cls: "pkmrag-evidence-note", text: displayTitle(path) });
-    row.createDiv({ cls: "pkmrag-evidence-text", text: excerpt(text, 240) });
+    const section = searchAnchor(heading);
+    if (section) {
+      row.createSpan({ cls: "pkmrag-evidence-heading", text: section });
+    }
+    if (passage) {
+      row.createDiv({ cls: "pkmrag-evidence-text", text: excerpt(passage, 240) });
+    }
   }
 }

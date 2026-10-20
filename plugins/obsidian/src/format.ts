@@ -74,6 +74,35 @@ export function searchLinkTitle(result: SearchResult): string {
   return displayTitle(result.note_path, result.note_title);
 }
 
+/** Canonical, order-independent key for a pair of note paths. */
+export function pairKey(a: string, b: string): string {
+  return [a, b].sort().join("::");
+}
+
+/** Whether the user previously dismissed the link between two notes. */
+export function isDismissedPair(
+  dismissed: Record<string, unknown>,
+  a: string,
+  b: string
+): boolean {
+  return Boolean(
+    dismissed[pairKey(a, b)] || dismissed[`${a}::${b}`] || dismissed[`${b}::${a}`]
+  );
+}
+
+/** Split a chunk's leading heading breadcrumb away from its body text. */
+export function splitChunkHeading(text: string): { heading: string; body: string } {
+  const trimmed = text.replace(/^\s+/, "");
+  if (!trimmed.startsWith("#")) {
+    return { heading: "", body: trimmed };
+  }
+  const newline = trimmed.indexOf("\n");
+  if (newline === -1) {
+    return { heading: trimmed.trim(), body: "" };
+  }
+  return { heading: trimmed.slice(0, newline).trim(), body: trimmed.slice(newline).trim() };
+}
+
 /** Collapse whitespace and clip text to a maximum length. */
 export function excerpt(text: string, max: number): string {
   const clean = text.replace(/\s+/g, " ").trim();

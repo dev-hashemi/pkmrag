@@ -4,14 +4,19 @@
 
 import type PkmragPlugin from "./main";
 import { NoteContext } from "./types";
-import { displayTitle } from "./format";
+import { displayTitle, isDismissedPair } from "./format";
 
 export function renderInferencesSection(
   container: HTMLElement,
+  plugin: PkmragPlugin,
   context: NoteContext | null,
   onOpenLink: (path: string) => void
 ): void {
-  const infs = context?.inferred_relationships || [];
+  const dismissed = plugin.settings.dismissedSuggestions || {};
+  // A dismissed missing link must not reappear as an inferred relationship.
+  const infs = (context?.inferred_relationships || []).filter(
+    (rel) => !isDismissedPair(dismissed, rel.source_path, rel.target_path)
+  );
   const sec = container.createDiv({ cls: "pkmrag-section" });
   sec.createDiv({
     cls: "pkmrag-section-header",
