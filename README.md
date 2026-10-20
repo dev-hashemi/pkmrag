@@ -77,8 +77,10 @@ For local development or cloning from source:
 ```bash
 git clone https://github.com/dev-hashemi/pkmrag.git
 cd pkmrag
-uv sync
+uv sync                       # dev environment
+uv tool install --editable .  # also expose the `pkmrag` CLI globally, from this checkout
 ```
+`--editable` links the global CLI to your working tree, so code changes take effect on the next restart — no reinstall. (Drop it for a fixed snapshot, then re-run with `--force` to update.)
 
 ### 2. Verify Storage & Engine Health
 ```bash
