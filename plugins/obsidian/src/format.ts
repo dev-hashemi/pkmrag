@@ -74,6 +74,14 @@ export function searchLinkTitle(result: SearchResult): string {
   return displayTitle(result.note_path, result.note_title);
 }
 
+/** How a failed daemon request should be interpreted. */
+export type RequestFailure = "unindexed" | "offline";
+
+/** Classify a failed daemon request: the vault is unindexed, or the daemon is unreachable. */
+export function classifyRequestError(message: string): RequestFailure {
+  return message.includes("VAULT_UNINDEXED") ? "unindexed" : "offline";
+}
+
 /** Canonical, order-independent key for a pair of note paths. */
 export function pairKey(a: string, b: string): string {
   return [a, b].sort().join("::");

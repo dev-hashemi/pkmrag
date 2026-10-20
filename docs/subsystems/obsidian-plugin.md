@@ -8,6 +8,8 @@ The PKMRAG plugin is a lightweight, local-first companion plugin for [Obsidian](
 
 ### 1.1 "PKMRAG Insights" Sidebar Panel
 - **Active Note Context:** Automatically synchronizes with whatever markdown note is active in Obsidian.
+- **Stale Response Guard:** Each note load carries a monotonic token, so a slow response for a note you have already left can never overwrite the note you are looking at now.
+- **Independent Sections:** The graph context and the missing-link suggestions load separately. A failing suggestions request shows an inline error in its own section instead of discarding the graph context or marking a healthy daemon as offline.
 - **Missing Links Section (Semantic Gaps):** Displays unlinked note pairs exhibiting high cosine similarity that are either more than 2 hops apart or unconnected in the graph.
   - **Evidence:** Every card shows the real graph distance (`N hops away` or `No path within 10 hops`), the clickable **bridge path** of intermediate notes, and — under *"Why are these similar?"* — the matching passages from both notes that justify the similarity score.
   - **Human-in-the-Loop Insertion:** Clicking `[+ Link]` writes `[[Target Note]]` at the editor cursor location. PKMRAG *never* mutates notes silently.
@@ -152,6 +154,9 @@ plugins/obsidian/
     compliance.test.ts # Obsidian community plugin compliance gates
     daemon.test.ts   # Daemon detection unit tests
     format.test.ts   # Presentation helper unit tests
+    view_race.test.ts# Out-of-order response and request fault isolation
+    mock_dom.ts      # DOM element stub for renderer tests
+    mock_obsidian.ts # Obsidian runtime stub
   icon.svg           # Community plugin icon (100x100 monochrome SVG)
   manifest.json      # Obsidian metadata
   package.json       # Node package configuration

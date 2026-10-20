@@ -9,7 +9,8 @@ import { renderSetupWizardView } from "./view_setup_wizard";
 export function renderOfflineView(
   container: HTMLElement,
   plugin: PkmragPlugin,
-  onRetry: () => void
+  onRetry: () => void,
+  detail?: string | null
 ): void {
   if (!plugin.daemonManager.isBinaryAvailable()) {
     renderSetupWizardView(container, plugin, onRetry);
@@ -26,6 +27,10 @@ export function renderOfflineView(
     cls: "pkmrag-offline-desc",
     text: "The local PKMRAG engine daemon is not running. Click 'Start Engine' below to launch the background process automatically (no terminal required):",
   });
+
+  if (detail) {
+    wrapper.createDiv({ cls: "pkmrag-error-box", text: detail });
+  }
 
   // Actions
   const btnRow = wrapper.createDiv({ cls: "pkmrag-offline-actions" });

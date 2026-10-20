@@ -6,6 +6,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   buildWikilink,
+  classifyRequestError,
   displayTitle,
   excerpt,
   formatBridgePath,
@@ -153,4 +154,10 @@ test("splitChunkHeading tolerates chunks without a heading", () => {
   const { heading, body } = splitChunkHeading("  plain body text");
   assert.equal(heading, "");
   assert.equal(body, "plain body text");
+});
+
+test("classifyRequestError separates an unindexed vault from an unreachable daemon", () => {
+  assert.equal(classifyRequestError("VAULT_UNINDEXED"), "unindexed");
+  assert.equal(classifyRequestError("Context fetch failed with HTTP 500"), "offline");
+  assert.equal(classifyRequestError("Failed to fetch"), "offline");
 });

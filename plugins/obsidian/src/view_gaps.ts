@@ -16,12 +16,19 @@ import {
   splitChunkHeading,
 } from "./format";
 
+/** Loading / failure state of the missing-links section. */
+export interface GapsSectionState {
+  loading?: boolean;
+  error?: string | null;
+}
+
 export function renderGapsSection(
   container: HTMLElement,
   plugin: PkmragPlugin,
   gaps: SemanticGapCandidate[],
   currentNotePath: string | null,
-  onUpdate: () => void
+  onUpdate: () => void,
+  state: GapsSectionState = {}
 ): void {
   const dismissed = plugin.settings.dismissedSuggestions || {};
   const visibleGaps = gaps.filter(
@@ -31,10 +38,20 @@ export function renderGapsSection(
   const sec = container.createDiv({ cls: "pkmrag-section" });
   sec.createDiv({
     cls: "pkmrag-section-header",
-    text: `Missing Links (${visibleGaps.length})`,
+    text: state.loading ? "Missing Links" : `Missing Links (${visibleGaps.length})`,
   });
 
-  if (visibleGaps.length === 0) {
+  if (state.loading) {
+    sec.createDiv({
+      cls: "pkmrag-empty-state",
+      text: "Scanning vault for related notes...",
+    });
+  } else if (state.error) {
+    sec.createDiv({
+      cls: "pkmrag-empty-state",
+      text: `Could not load suggestions: ${state.error}`,
+    });
+  } else if (visibleGaps.length === 0) {
     sec.createDiv({ cls: "pkmrag-empty-state", text: "No unlinked semantic gaps detected." });
   } else {
     for (const gap of visibleGaps) {
