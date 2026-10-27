@@ -77,7 +77,7 @@ def register_api_routes(
             )
 
         note_path = request.query_params.get("note_path", "").strip()
-        threshold = float(request.query_params.get("threshold", "0.80"))
+        threshold = float(request.query_params.get("threshold", "0.15"))
         limit = max(1, int(request.query_params.get("limit", "10")))
 
         started = time.perf_counter()

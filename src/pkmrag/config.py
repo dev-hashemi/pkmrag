@@ -81,7 +81,7 @@ class PkmragSettings(BaseSettings):
     # Search & Embeddings
     embedding_model: str = "BAAI/bge-small-en-v1.5"
     embedding_dim: int = 384
-    similarity_threshold: float = 0.80
+    similarity_threshold: float = 0.15
     graph_distance_threshold: int = 2
 
     # Traversal Defaults

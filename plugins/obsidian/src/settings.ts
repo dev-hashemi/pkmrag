@@ -158,10 +158,10 @@ export class PkmragSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Similarity Threshold")
-      .setDesc("Minimum cosine similarity for unlinked semantic gap recommendations (0.50 - 0.95)")
+      .setDesc("Minimum document similarity for unlinked semantic gap recommendations (0.01 - 0.95)")
       .addSlider((slider) =>
         slider
-          .setLimits(0.5, 0.95, 0.05)
+          .setLimits(0.01, 0.95, 0.01)
           .setValue(this.plugin.settings.similarityThreshold)
           .setDynamicTooltip()
           .onChange(async (val) => {

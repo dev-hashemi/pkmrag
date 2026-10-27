@@ -82,8 +82,8 @@ function renderGapCard(
   });
   targetLink.onclick = () => plugin.app.workspace.openLinkText(otherPath, "");
 
-  const pct = Math.round(gap.similarity * 100);
-  cardHead.createSpan({ cls: "pkmrag-badge", text: `${pct}% similar` });
+  const docPct = Math.round(gap.similarity * 100);
+  cardHead.createSpan({ cls: "pkmrag-badge", text: `${docPct}% similar` });
 
   card.createDiv({
     cls: "pkmrag-card-reason",
@@ -136,29 +136,63 @@ function renderGapCard(
 /** Render the matching passages that justify the similarity score. */
 function renderEvidence(card: HTMLElement, gap: SemanticGapCandidate): void {
   const details = card.createEl("details", { cls: "pkmrag-evidence" });
+
+  const matches =
+    gap.matched_chunks && gap.matched_chunks.length > 0
+      ? gap.matched_chunks
+      : [
+          {
+            source_chunk_id: gap.source_chunk_id,
+            target_chunk_id: gap.target_chunk_id,
+            source_chunk_text: gap.source_chunk_text,
+            target_chunk_text: gap.target_chunk_text,
+            similarity: gap.chunk_similarity || gap.similarity,
+          },
+        ];
+
+  const headerLabel =
+    matches.length > 1
+      ? `Why are these similar? (${matches.length} matching sections)`
+      : `Why are these similar? (${Math.round((matches[0].similarity || gap.chunk_similarity || gap.similarity) * 100)}% section match)`;
+
   const summary = details.createEl("summary", {
     cls: "pkmrag-evidence-summary",
-    text: "Why are these similar?",
+    text: headerLabel,
   });
-  summary.setAttribute("title", "Matching passages from both notes");
+  summary.setAttribute("title", "Matching passages from both notes with section similarity scores");
 
   const body = details.createDiv({ cls: "pkmrag-evidence-body" });
-  const sides: Array<[string, string, string]> = [
-    ["From", gap.source_path, gap.source_chunk_text],
-    ["To", gap.target_path, gap.target_chunk_text],
-  ];
 
-  for (const [label, path, text] of sides) {
-    const { heading, body: passage } = splitChunkHeading(text);
-    const row = body.createDiv({ cls: "pkmrag-evidence-row" });
-    row.createSpan({ cls: "pkmrag-evidence-label", text: label });
-    row.createSpan({ cls: "pkmrag-evidence-note", text: displayTitle(path) });
-    const section = searchAnchor(heading);
-    if (section) {
-      row.createSpan({ cls: "pkmrag-evidence-heading", text: section });
+  matches.forEach((m, idx) => {
+    const chunkPct = Math.round(m.similarity * 100);
+    const chunkContainer = body.createDiv({ cls: "pkmrag-evidence-pair" });
+    const sectionTitle =
+      matches.length > 1
+        ? `Match ${idx + 1} · ${chunkPct}% section similarity`
+        : `Section similarity: ${chunkPct}%`;
+
+    chunkContainer.createDiv({
+      cls: "pkmrag-evidence-section-header",
+      text: sectionTitle,
+    });
+
+    const sides: Array<[string, string, string]> = [
+      ["From", gap.source_path, m.source_chunk_text],
+      ["To", gap.target_path, m.target_chunk_text],
+    ];
+
+    for (const [label, path, text] of sides) {
+      const { heading, body: passage } = splitChunkHeading(text);
+      const row = chunkContainer.createDiv({ cls: "pkmrag-evidence-row" });
+      row.createSpan({ cls: "pkmrag-evidence-label", text: label });
+      row.createSpan({ cls: "pkmrag-evidence-note", text: displayTitle(path) });
+      const section = searchAnchor(heading);
+      if (section) {
+        row.createSpan({ cls: "pkmrag-evidence-heading", text: section });
+      }
+      if (passage) {
+        row.createDiv({ cls: "pkmrag-evidence-text", text: excerpt(passage, 240) });
+      }
     }
-    if (passage) {
-      row.createDiv({ cls: "pkmrag-evidence-text", text: excerpt(passage, 240) });
-    }
-  }
+  });
 }

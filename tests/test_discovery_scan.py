@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from pkmrag.discovery.engine import GapDiscoveryEngine
+from pkmrag.ingest.pipeline import IngestPipeline
 
 
 def test_gap_candidates_carry_note_titles(semantic_gap_vault: Path) -> None:
@@ -121,5 +122,83 @@ def test_per_note_scan_for_unknown_note_is_empty(semantic_gap_vault: Path) -> No
     engine = GapDiscoveryEngine(semantic_gap_vault)
     try:
         assert engine.find_gap_candidates(min_similarity=0.50, focus_path="Missing.md") == []
+    finally:
+        engine.close()
+
+
+def test_coverage_weighted_scoring_discounts_partial_overlap(tmp_path: Path) -> None:
+    """Notes that share only a single section out of many must have discounted similarity."""
+    vault = tmp_path / "coverage_vault"
+    vault.mkdir()
+
+    # Note A: short 1-chunk note on CI/CD
+    (vault / "CICD.md").write_text(
+        "# Continuous Integration and Delivery\n\n"
+        "Automated continuous integration and deployment pipelines run unit tests, lint code, "
+        "security analysis tools, and build Docker containers on every pull request.\n"
+        "DevOps workflows rely on delivery pipelines to ensure reproducible builds "
+        "and rapid rollback capabilities across all staging and production environments.\n"
+    )
+
+    # Note B: broad multi-chunk roadmap where only 1 section mentions CI/CD
+    (vault / "Roadmap.md").write_text(
+        "# Backend Roadmap\n\n"
+        "## Relational Databases\n\n"
+        "Relational databases utilize B-tree indexes for fast lookups, foreign keys, and ACID.\n"
+        "Designing normalized schemas and executing query optimization ensures throughput "
+        "and prevents expensive sequential scans on large tables in production.\n\n"
+        "## Frontend Styling\n\n"
+        "Cascading style sheets define responsive layouts using modern flexbox, CSS grid.\n"
+        "CSS architecture methodologies like BEM help maintain modular and reusable design tokens "
+        "across complex component libraries in web applications.\n\n"
+        "## Continuous Integration and Delivery\n\n"
+        "Automated continuous integration and deployment pipelines run unit tests, lint code, "
+        "security analysis tools, and build Docker containers on every pull request.\n"
+        "DevOps workflows rely on delivery pipelines to ensure reproducible builds "
+        "and rapid rollback capabilities across all staging and production environments.\n\n"
+        "## Audio Processing\n\n"
+        "Digital signal processing uses Fast Fourier Transforms to analyze acoustic bands.\n"
+        "Audio filtering algorithms such as Butterworth filters shape frequencies to remove noise "
+        "and enhance vocal clarity during microphone capture.\n\n"
+        "## Sourdough Baking\n\n"
+        "Wild yeast and lactobacilli ferment flour and water over twenty-four hours.\n"
+        "Careful temperature control, autolyse phases, stretch and fold techniques, "
+        "and Dutch oven baking produce an open crumb with a blistered crust.\n"
+    )
+
+    # Note C: focused 1-chunk note on continuous deployment (full overlap with CICD.md)
+    (vault / "DeploymentPipelines.md").write_text(
+        "# Automated Deployment Pipelines\n\n"
+        "Automated continuous integration and deployment pipelines run unit tests, lint code, "
+        "security analysis tools, and build Docker containers on every pull request.\n"
+        "DevOps workflows rely on delivery pipelines to ensure reproducible builds "
+        "and rapid rollback capabilities across all staging and production environments.\n"
+    )
+
+    IngestPipeline(vault, target="all").run()
+
+    engine = GapDiscoveryEngine(vault)
+    try:
+        # At high threshold (0.60), only the fully overlapping pair surfaces
+        high_thresh = engine.find_gap_candidates(min_similarity=0.60)
+        high_pairs = [{c.source_path, c.target_path} for c in high_thresh]
+        assert {"CICD.md", "DeploymentPipelines.md"} in high_pairs
+        assert {"CICD.md", "Roadmap.md"} not in high_pairs
+
+        # Full overlap candidate retains high similarity (close to 1.0)
+        full_pair = {"CICD.md", "DeploymentPipelines.md"}
+        full_cand = next(c for c in high_thresh if full_pair == {c.source_path, c.target_path})
+        assert full_cand.similarity >= 0.85
+
+        # At lower threshold (0.20), both surface; partial overlap has discounted score
+        low_thresh = engine.find_gap_candidates(min_similarity=0.20)
+        roadmap_pair = {"CICD.md", "Roadmap.md"}
+        partial_cand = next(c for c in low_thresh if roadmap_pair == {c.source_path, c.target_path})
+        # Score drops to ~0.53 because only 1 of Roadmap's sections matches.
+        assert 0.30 <= partial_cand.similarity <= 0.58
+        # The section-level match retains its raw high similarity independently
+        assert partial_cand.chunk_similarity >= 0.90
+        assert len(partial_cand.matched_chunks) >= 1
+        assert partial_cand.matched_chunks[0].similarity >= 0.90
     finally:
         engine.close()

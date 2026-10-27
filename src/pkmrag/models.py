@@ -216,6 +216,16 @@ class InferredRelationship(BaseModel):
     created_at: str = ""
 
 
+class ChunkPairMatch(BaseModel):
+    """A pair of matching chunks between two notes."""
+
+    source_chunk_id: str
+    target_chunk_id: str
+    source_chunk_text: str
+    target_chunk_text: str
+    similarity: float
+
+
 class SemanticGapCandidate(BaseModel):
     """A pair of notes that exhibit high similarity but lack a graph connection."""
 
@@ -230,6 +240,8 @@ class SemanticGapCandidate(BaseModel):
     target_chunk_id: str
     source_chunk_text: str
     target_chunk_text: str
+    chunk_similarity: float = 0.0
+    matched_chunks: list[ChunkPairMatch] = Field(default_factory=list)
 
 
 class DiscoveryStats(BaseModel):

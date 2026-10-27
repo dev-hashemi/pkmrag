@@ -33,7 +33,7 @@ export const DEFAULT_SETTINGS: PkmragPluginSettings = {
   authToken: "",
   autoSyncOnSave: true,
   autoRefreshOnNoteOpen: true,
-  similarityThreshold: 0.75,
+  similarityThreshold: 0.15,
   maxSuggestions: 5,
   showInlineIndicators: true,
   dismissedSuggestions: {},
@@ -125,6 +125,14 @@ export interface NoteContext {
   inferred_relationships?: InferredRelationship[];
 }
 
+export interface ChunkPairMatch {
+  source_chunk_id: string;
+  target_chunk_id: string;
+  source_chunk_text: string;
+  target_chunk_text: string;
+  similarity: number;
+}
+
 /** Mirrors pkmrag.models.SemanticGapCandidate — keep in sync (tests/test_api_contract.py). */
 export interface SemanticGapCandidate {
   source_path: string;
@@ -138,6 +146,8 @@ export interface SemanticGapCandidate {
   target_chunk_id: string;
   source_chunk_text: string;
   target_chunk_text: string;
+  chunk_similarity: number;
+  matched_chunks: ChunkPairMatch[];
 }
 
 export interface GapsResponse {

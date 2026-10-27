@@ -35,6 +35,8 @@ function makeCandidate(overrides: Partial<SemanticGapCandidate> = {}): SemanticG
     target_chunk_id: "Research/Vector Retrieval.md#chunk_0",
     source_chunk_text: "daily body",
     target_chunk_text: "vector body",
+    chunk_similarity: 0.64,
+    matched_chunks: [],
     ...overrides,
   };
 }

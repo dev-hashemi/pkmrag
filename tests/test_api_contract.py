@@ -10,6 +10,7 @@ from pydantic import BaseModel
 
 from pkmrag.mcp.models import JobState
 from pkmrag.models import (
+    ChunkPairMatch,
     InferredRelationship,
     NoteContext,
     SearchResult,
@@ -22,6 +23,7 @@ PLUGIN_TYPES = Path(__file__).resolve().parents[1] / "plugins" / "obsidian" / "s
 SHARED_INTERFACES: dict[str, type[BaseModel]] = {
     "SearchResult": SearchResult,
     "SemanticGapCandidate": SemanticGapCandidate,
+    "ChunkPairMatch": ChunkPairMatch,
     "NoteContext": NoteContext,
     "InferredRelationship": InferredRelationship,
     "ActiveJobState": JobState,

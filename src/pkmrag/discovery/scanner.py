@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from typing import NamedTuple, Optional
 
 from pkmrag.config import settings
@@ -12,18 +13,17 @@ from pkmrag.graph.traversal import (
     has_inferred_relationship,
     resolve_note_path,
 )
-from pkmrag.models import SemanticGapCandidate
+from pkmrag.models import ChunkPairMatch, SemanticGapCandidate
 from pkmrag.search.vector_store import VectorStore
 from pkmrag.telemetry import trace_span
 
-# Chunk columns required to build a candidate pair.
 CHUNK_COLUMNS = ["id", "note_path", "note_title", "text", "vector"]
-
-# Nearest neighbours retrieved per chunk during the ANN sweep.
 ANN_LIMIT = 20
+COVERAGE_ALPHA = 0.3
+CHUNK_MATCH_FLOOR = 0.65
 
-# (similarity, chunk_id_src, chunk_id_dst, text_src, text_dst, title_src, title_dst)
-PairMatch = tuple[float, str, str, str, str, str, str]
+ChunkMatch = tuple[float, str, str, str, str, str, str]
+PairMatch = tuple[float, float, str, str, str, str, str, str, list[ChunkPairMatch]]
 
 
 class ChunkRow(NamedTuple):
@@ -64,7 +64,13 @@ class GapScanner:
         if not rows:
             return []
 
-        pairs = self._collect_pairs(rows, threshold)
+        chunk_counts = (
+            dict(Counter(r.note_path for r in rows))
+            if focus is None
+            else self._count_chunks_per_note()
+        )
+
+        pairs = self._collect_pairs(rows, threshold, chunk_counts)
         candidates = self._filter_pairs(pairs, hops, focus)
         candidates.sort(key=lambda c: c.similarity, reverse=True)
         return candidates
@@ -74,6 +80,11 @@ class GapScanner:
         if not focus_path:
             return None
         return resolve_note_path(self.graph_store.conn, focus_path) or focus_path
+
+    def _count_chunks_per_note(self) -> dict[str, int]:
+        """Return total chunk count per note across the vector store."""
+        table = self.vector_store.table.search().select(["note_path"]).to_arrow()
+        return dict(Counter(table["note_path"].to_pylist()))
 
     def _load_chunks(self, focus: Optional[str]) -> list[ChunkRow]:
         """Load every chunk, or only the chunks belonging to the focus note."""
@@ -104,9 +115,13 @@ class GapScanner:
         self,
         rows: list[ChunkRow],
         threshold: float,
+        chunk_counts: dict[str, int],
     ) -> dict[tuple[str, str], PairMatch]:
-        """Group high-similarity chunk pairs by canonical note pair."""
-        best: dict[tuple[str, str], PairMatch] = {}
+        """Group chunk pairs by canonical note pair and compute coverage-weighted scores."""
+        pair_data: dict[
+            tuple[str, str],
+            tuple[dict[tuple[str, str], ChunkMatch], dict[str, float], dict[str, float]],
+        ] = {}
 
         with trace_span("gap.vector_ann", attributes={"similarity_threshold": threshold}):
             for row in rows:
@@ -123,38 +138,83 @@ class GapScanner:
                         continue  # Skip self-note chunks
 
                     sim = 1.0 - float(match.get("_distance", 1.0))
-                    if sim < threshold:
+                    if sim < CHUNK_MATCH_FLOOR:
                         continue
 
                     # Canonical pair key (min, max) eliminates bidirectional duplicates.
                     pair_key = (min(row.note_path, other_path), max(row.note_path, other_path))
-                    current = best.get(pair_key)
-                    if current is not None and sim <= current[0]:
-                        continue
-
                     other_id = str(match.get("id", ""))
                     other_text = str(match.get("text", ""))
                     other_title = str(match.get("note_title", "") or "")
+
                     if row.note_path == pair_key[0]:
-                        best[pair_key] = (
-                            sim,
-                            row.chunk_id,
-                            other_id,
-                            row.text,
-                            other_text,
-                            row.note_title,
-                            other_title,
+                        c_a_id, c_b_id = row.chunk_id, other_id
+                        txt_a, txt_b = row.text, other_text
+                        t_a, t_b = row.note_title, other_title
+                    else:
+                        c_a_id, c_b_id = other_id, row.chunk_id
+                        txt_a, txt_b = other_text, row.text
+                        t_a, t_b = other_title, row.note_title
+
+                    match_key = (c_a_id, c_b_id)
+                    chunk_match = (sim, c_a_id, c_b_id, txt_a, txt_b, t_a, t_b)
+
+                    if pair_key not in pair_data:
+                        pair_data[pair_key] = (
+                            {match_key: chunk_match},
+                            {c_a_id: sim},
+                            {c_b_id: sim},
                         )
                     else:
-                        best[pair_key] = (
-                            sim,
-                            other_id,
-                            row.chunk_id,
-                            other_text,
-                            row.text,
-                            other_title,
-                            row.note_title,
-                        )
+                        matches_map, sims_a, sims_b = pair_data[pair_key]
+                        if match_key not in matches_map or sim > matches_map[match_key][0]:
+                            matches_map[match_key] = chunk_match
+                        if sim > sims_a.get(c_a_id, 0.0):
+                            sims_a[c_a_id] = sim
+                        if sim > sims_b.get(c_b_id, 0.0):
+                            sims_b[c_b_id] = sim
+
+        best: dict[tuple[str, str], PairMatch] = {}
+        for pair_key, (matches_map, sims_a, sims_b) in pair_data.items():
+            path_a, path_b = pair_key
+            tot_a = chunk_counts.get(path_a, len(sims_a))
+            tot_b = chunk_counts.get(path_b, len(sims_b))
+
+            cov_a = len(sims_a) / max(1, tot_a)
+            cov_b = len(sims_b) / max(1, tot_b)
+            coverage = min(cov_a, cov_b)
+
+            all_sims = list(sims_a.values()) + list(sims_b.values())
+            avg_sim = sum(all_sims) / len(all_sims)
+
+            final_score = avg_sim * (COVERAGE_ALPHA + (1.0 - COVERAGE_ALPHA) * coverage)
+            if final_score < threshold:
+                continue
+
+            sorted_chunks = sorted(matches_map.values(), key=lambda m: m[0], reverse=True)[:5]
+            best_chunk = sorted_chunks[0]
+            matched_list = [
+                ChunkPairMatch(
+                    source_chunk_id=m[1],
+                    target_chunk_id=m[2],
+                    source_chunk_text=m[3],
+                    target_chunk_text=m[4],
+                    similarity=round(m[0], 4),
+                )
+                for m in sorted_chunks
+            ]
+
+            best[pair_key] = (
+                final_score,
+                best_chunk[0],
+                best_chunk[1],
+                best_chunk[2],
+                best_chunk[3],
+                best_chunk[4],
+                best_chunk[5],
+                best_chunk[6],
+                matched_list,
+            )
 
         return best
 
@@ -182,12 +242,14 @@ class GapScanner:
             hop_cache: dict[str, dict[str, int]] = {}
             for (src, dst), (
                 sim,
+                chunk_sim,
                 chunk_src,
                 chunk_dst,
                 text_src,
                 text_dst,
                 title_src,
                 title_dst,
+                matched_chunks,
             ) in pairs.items():
                 if focus is not None:
                     other = dst if src == focus else src
@@ -216,6 +278,8 @@ class GapScanner:
                         target_chunk_id=chunk_dst,
                         source_chunk_text=text_src,
                         target_chunk_text=text_dst,
+                        chunk_similarity=round(chunk_sim, 4),
+                        matched_chunks=matched_chunks,
                     )
                 )
 
