@@ -263,3 +263,16 @@ def test_run_server_invalid_transport(tmp_path: Path) -> None:
     """Verify run_server raises ValueError for unrecognized transport."""
     with pytest.raises(ValueError, match="Unsupported transport 'ftp'"):
         run_server(tmp_path, transport="ftp")
+
+
+def test_http_shutdown_endpoint(populated_vault: Path) -> None:
+    """Verify /api/v1/shutdown initiates graceful shutdown."""
+    app = create_http_app(populated_vault, token="secure_test_token")
+    client = TestClient(app)
+
+    resp_unauth = client.post("/api/v1/shutdown")
+    assert resp_unauth.status_code == 401
+
+    resp = client.post("/api/v1/shutdown", headers={"Authorization": "Bearer secure_test_token"})
+    assert resp.status_code == 200
+    assert resp.json() == {"status": "shutting_down"}

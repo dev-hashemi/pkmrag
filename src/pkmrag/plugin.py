@@ -20,9 +20,9 @@ from pkmrag.models import PluginInstallResult
 def find_plugin_dir() -> Path:
     """Locate the Obsidian plugin directory (bundled package assets or repo source)."""
     candidates = [
-        Path(__file__).resolve().parent / "plugin_assets",
-        Path(__file__).resolve().parent.parent.parent / "plugins" / "obsidian",
         Path.cwd() / "plugins" / "obsidian",
+        Path(__file__).resolve().parent.parent.parent / "plugins" / "obsidian",
+        Path(__file__).resolve().parent / "plugin_assets",
     ]
     for candidate in candidates:
         if candidate.is_dir() and (candidate / "manifest.json").is_file():
@@ -71,6 +71,9 @@ def install_obsidian_plugin(
     if (build or not main_js.is_file()) and (source_dir / "package.json").is_file():
         build_plugin(source_dir)
         did_build = True
+        assets_dir = Path(__file__).resolve().parent / "plugin_assets"
+        if assets_dir.is_dir() and assets_dir != source_dir:
+            shutil.copy2(source_dir / "main.js", assets_dir / "main.js")
 
     if not main_js.is_file():
         raise FileNotFoundError(f"main.js not found in {source_dir} after build.")

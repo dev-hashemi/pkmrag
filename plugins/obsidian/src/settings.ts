@@ -37,11 +37,11 @@ export class PkmragSettingTab extends PluginSettingTab {
   }
 
   private renderDaemonSection(containerEl: HTMLElement): void {
-    containerEl.createEl("h3", { text: "Background Daemon (Zero-Terminal)" });
+    containerEl.createEl("h3", { text: "Local Search Engine (Zero-Terminal)" });
 
     new Setting(containerEl)
-      .setName("Auto-Start Background Daemon")
-      .setDesc("Automatically start the local PKMRAG engine daemon on Obsidian launch (Desktop only)")
+      .setName("Auto-Start Local Engine")
+      .setDesc("Automatically start the local PKMRAG engine on Obsidian launch (Desktop only)")
       .addToggle((toggle) =>
         toggle.setValue(this.plugin.settings.autoStartDaemon).onChange(async (val) => {
           this.plugin.settings.autoStartDaemon = val;
@@ -73,7 +73,7 @@ export class PkmragSettingTab extends PluginSettingTab {
       );
 
     const daemonStatusSetting = new Setting(containerEl)
-      .setName("Daemon Process Control")
+      .setName("Engine Status")
       .setDesc(`Current Status: ${this.plugin.daemonManager.statusMessage}`);
 
     if (!this.plugin.daemonManager.isBinaryAvailable()) {
@@ -86,34 +86,6 @@ export class PkmragSettingTab extends PluginSettingTab {
           })
       );
     }
-
-    daemonStatusSetting.addButton((btn) =>
-      btn.setButtonText("Start").onClick(async () => {
-        btn.setDisabled(true);
-        const ok = await this.plugin.daemonManager.start();
-        new Notice(ok ? "PKMRAG Daemon started!" : "Failed to start daemon.");
-        btn.setDisabled(false);
-        this.display();
-      })
-    );
-
-    daemonStatusSetting.addButton((btn) =>
-      btn.setButtonText("Restart").onClick(async () => {
-        btn.setDisabled(true);
-        const ok = await this.plugin.daemonManager.restart();
-        new Notice(ok ? "PKMRAG Daemon restarted!" : "Failed to restart daemon.");
-        btn.setDisabled(false);
-        this.display();
-      })
-    );
-
-    daemonStatusSetting.addButton((btn) =>
-      btn.setButtonText("Stop").onClick(() => {
-        this.plugin.daemonManager.stop();
-        new Notice("PKMRAG Daemon stopped.");
-        this.display();
-      })
-    );
 
     const env = this.plugin.installer.detectEnvironment();
     const envDesc = env.hasUv

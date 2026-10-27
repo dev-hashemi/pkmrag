@@ -4,18 +4,14 @@
 
 import { FileSystemAdapter, Notice, Platform } from "obsidian";
 import type PkmragPlugin from "./main";
-
-interface SpawnedProcess {
-  pid?: number;
-  kill: (signal?: string) => boolean;
-  on: (event: string, listener: (...args: unknown[]) => void) => void;
-  stdout?: { on: (event: string, listener: (chunk: unknown) => void) => void };
-  stderr?: { on: (event: string, listener: (chunk: unknown) => void) => void };
-}
-
-interface ChildProcessModule {
-  spawn: (command: string, args: string[], options?: Record<string, unknown>) => SpawnedProcess;
-}
+import {
+  getPlatformInfo,
+  getPkmragCandidates,
+  getExtraPaths,
+  type ChildProcessModule,
+  type PlatformInfo,
+  type SpawnedProcess,
+} from "./daemon_paths";
 
 export class DaemonManager {
   private plugin: PkmragPlugin;
@@ -43,53 +39,12 @@ export class DaemonManager {
     return "Stopped";
   }
 
-  private getPlatformInfo(): { home: string; isWin: boolean; fs: { existsSync: (p: string) => boolean } | null } {
-    const winObj = typeof window !== "undefined" ? (window as any) : (globalThis as any);
-    const req = winObj.require;
-    const fs = req ? (req(["f", "s"].join("")) as { existsSync: (p: string) => boolean }) : null;
-    const os = req ? (req(["o", "s"].join("")) as { homedir: () => string; platform?: () => string }) : null;
-    const proc = winObj.process;
-    const home = os ? os.homedir() : "";
-    const isWin = (os && os.platform ? os.platform() === "win32" : false) || proc?.platform === "win32";
-    return { home, isWin, fs };
+  getPlatformInfo(): PlatformInfo {
+    return getPlatformInfo();
   }
 
-  private getPkmragCandidates(home: string, isWin: boolean): string[] {
-    const winObj = typeof window !== "undefined" ? (window as any) : (globalThis as any);
-    const proc = winObj.process;
-    const procEnv = proc?.env || {};
-    const localAppData = procEnv.LOCALAPPDATA || "";
-    const list: string[] = [];
-    if (isWin) {
-      list.push(
-        `${home}/.local/bin/pkmrag.exe`,
-        `${home}/.cargo/bin/pkmrag.exe`,
-        `${home}/.local/bin/pkmrag`
-      );
-      if (localAppData) {
-        list.push(`${localAppData}/pipx/venvs/pkmrag/Scripts/pkmrag.exe`);
-        list.push(`${localAppData}/uv/tools/pkmrag/Scripts/pkmrag.exe`);
-        list.push(`${localAppData}/Programs/Python/Python311/Scripts/pkmrag.exe`);
-        list.push(`${localAppData}/Programs/Python/Python312/Scripts/pkmrag.exe`);
-      }
-    } else {
-      list.push(
-        `${home}/.local/bin/pkmrag`,
-        `${home}/.cargo/bin/pkmrag`,
-        `${home}/.local/share/uv/tools/pkmrag/bin/pkmrag`,
-        `${home}/.local/share/pipx/venvs/pkmrag/bin/pkmrag`,
-        `/opt/homebrew/bin/pkmrag`,
-        `/usr/local/bin/pkmrag`,
-        `/usr/bin/pkmrag`
-      );
-    }
-    const pathSep = isWin ? ";" : ":";
-    const binName = isWin ? "pkmrag.exe" : "pkmrag";
-    const pathDirs = (procEnv.PATH || "").split(pathSep).filter(Boolean);
-    for (const dir of pathDirs) {
-      list.push(`${dir}/${binName}`);
-    }
-    return list;
+  getPkmragCandidates(home: string, isWin: boolean): string[] {
+    return getPkmragCandidates(home, isWin);
   }
 
   isBinaryAvailable(): boolean {
@@ -193,9 +148,7 @@ export class DaemonManager {
     const winObj = typeof window !== "undefined" ? (window as any) : (globalThis as any);
     const procEnv = winObj.process?.env || {};
     const pathSep = isWin ? ";" : ":";
-    const extraPaths = isWin
-      ? [`${home}/.local/bin`, `${home}/.cargo/bin`]
-      : [`${home}/.local/bin`, `${home}/.cargo/bin`, `${home}/envs/base/bin`, "/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"];
+    const extraPaths = getExtraPaths(home, isWin);
     const enhancedPath = extraPaths.concat((procEnv.PATH || "").split(pathSep)).filter(Boolean).join(pathSep);
 
     try {
@@ -266,23 +219,70 @@ export class DaemonManager {
     }
   }
 
-  stop(): void {
-    if (this.process) {
+  async stop(): Promise<void> {
+    // 1. Immediately disconnect active SSE stream so Obsidian doesn't hold connection open
+    try {
+      this.plugin.disconnectEventStream();
+    } catch {
+      // Ignored
+    }
+
+    // 2. Request graceful daemon shutdown via HTTP
+    try {
+      await this.plugin.client.requestShutdown();
+    } catch {
+      // Ignored
+    }
+
+    // 3. Signal and await child process exit if tracked
+    const proc = this.process;
+    if (proc) {
       try {
-        this.process.kill("SIGTERM");
+        proc.kill("SIGTERM");
       } catch {
         // Ignored
       }
-      this.process = null;
+
+      // Poll up to 3s (30 x 100ms) for graceful exit
+      for (let i = 0; i < 30; i++) {
+        if (!this.process) break;
+        await new Promise((resolve) => window.setTimeout(resolve, 100));
+      }
+
+      // Escalate to SIGKILL if still lingering
+      if (this.process) {
+        try {
+          this.process.kill("SIGKILL");
+        } catch {
+          // Ignored
+        }
+        for (let i = 0; i < 10; i++) {
+          if (!this.process) break;
+          await new Promise((resolve) => window.setTimeout(resolve, 100));
+        }
+        this.process = null;
+      }
+    } else {
+      // Daemon was external or detached; wait for port to be closed
+      for (let i = 0; i < 6; i++) {
+        await new Promise((resolve) => window.setTimeout(resolve, 500));
+        try {
+          await this.plugin.client.checkHealth();
+        } catch {
+          break; // Port closed, daemon stopped
+        }
+      }
     }
+
     this.isStarting = false;
     this.plugin.activeJob = null;
     this.plugin.updateStatusBar(false);
   }
 
   async restart(): Promise<boolean> {
-    this.stop();
-    await new Promise((resolve) => window.setTimeout(resolve, 800));
+    await this.stop();
+    // Safety buffer for OS file locks to settle
+    await new Promise((resolve) => window.setTimeout(resolve, 400));
     return this.start();
   }
 }

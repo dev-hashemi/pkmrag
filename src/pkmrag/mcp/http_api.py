@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
+import os
+import signal
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -145,3 +148,13 @@ def register_api_routes(
     app.add_route("/api/v1/gaps", gaps_handler, methods=["GET"])
     app.add_route("/api/v1/overview", overview_handler, methods=["GET"])
     app.add_route("/api/v1/search", search_handler, methods=["POST"])
+
+    async def shutdown_handler(request: Request) -> Response:
+        loop = asyncio.get_running_loop()
+        broadcaster = getattr(app.state, "broadcaster", None)
+        if broadcaster is not None:
+            await broadcaster.close()
+        loop.call_later(0.1, lambda: os.kill(os.getpid(), signal.SIGTERM))
+        return JSONResponse({"status": "shutting_down"})
+
+    app.add_route("/api/v1/shutdown", shutdown_handler, methods=["POST"])

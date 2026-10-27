@@ -68,6 +68,21 @@ export class PkmragClient {
     return (await res.json()) as HealthResponse;
   }
 
+  /** Ask running PKMRAG daemon to cleanly shut down. */
+  async requestShutdown(): Promise<boolean> {
+    try {
+      await this.ensureAuthToken();
+      const base = this.settings.serverUrl.replace(/\/+$/, "");
+      const res = await fetch(`${base}/api/v1/shutdown`, {
+        method: "POST",
+        headers: this.getHeaders(),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }
+
   /** Retrieve graph context for a note. */
   async getNoteContext(notePath: string): Promise<NoteContext | null> {
     await this.ensureAuthToken();

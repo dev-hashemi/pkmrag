@@ -126,11 +126,8 @@ export default class PkmragPlugin extends Plugin {
 
   onunload(): void {
     this.installer?.cancel();
-    this.daemonManager.stop();
-    if (this.eventSource) {
-      this.eventSource.close();
-      this.eventSource = null;
-    }
+    void this.daemonManager.stop();
+    this.disconnectEventStream();
     for (const timer of this.debounceMap.values()) {
       window.clearTimeout(timer);
     }
@@ -263,11 +260,15 @@ export default class PkmragPlugin extends Plugin {
     notifySidebar(this);
   }
 
-  initEventStream(): void {
+  disconnectEventStream(): void {
     if (this.eventSource) {
       this.eventSource.close();
       this.eventSource = null;
     }
+  }
+
+  initEventStream(): void {
+    this.disconnectEventStream();
     this.eventSource = setupEventStream(this);
   }
 }

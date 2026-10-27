@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 from starlette.applications import Starlette
 from starlette.concurrency import run_in_threadpool
@@ -151,6 +153,18 @@ def create_http_app(
     app.add_middleware(TokenAuthMiddleware, token=token)
     app.state.broadcaster = broadcaster
     app.state.server_state = server_state
+
+    orig_lifespan = app.router.lifespan_context
+
+    @asynccontextmanager
+    async def app_lifespan(app_inst: Any) -> AsyncIterator[None]:
+        async with orig_lifespan(app_inst):
+            yield
+        await broadcaster.close()
+        if server_state.graph_store:
+            server_state.graph_store.close()
+
+    app.router.lifespan_context = app_lifespan
     return app
 
 
@@ -178,7 +192,7 @@ def run_server(
         render_server_startup(
             resolved_path, host=host, port=port, token=auth_token, no_auth=no_auth
         )
-        uvicorn.run(app, host=host, port=port, log_level="info")
+        uvicorn.run(app, host=host, port=port, log_level="info", timeout_graceful_shutdown=2)
         return
 
     raise ValueError(f"Unsupported transport '{transport}'. Must be 'stdio', 'http', or 'sse'.")

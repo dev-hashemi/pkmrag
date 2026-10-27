@@ -55,11 +55,11 @@ export function registerPluginCommands(plugin: PkmragPlugin): void {
 
   plugin.addCommand({
     id: "restart-pkmrag-daemon",
-    name: "Restart Background Daemon",
+    name: "Restart Local Engine",
     callback: async () => {
-      new Notice("PKMRAG: Restarting daemon...");
+      new Notice("PKMRAG: Restarting engine...");
       const ok = await plugin.daemonManager.restart();
-      new Notice(ok ? "PKMRAG: Daemon restarted." : "Failed to restart daemon.");
+      new Notice(ok ? "PKMRAG: Engine restarted." : "Failed to restart engine.");
     },
   });
 
