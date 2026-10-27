@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from pathlib import PurePosixPath
 from typing import Any
+from urllib.parse import unquote
 
 import yaml
 
@@ -157,8 +158,8 @@ def extract_wikilinks(body: str) -> list[Wikilink]:
         else:
             target, anchor = dest, ""
 
-        target = target.strip()
-        anchor = anchor.strip()
+        target = unquote(target.strip())
+        anchor = unquote(anchor.strip())
 
         # Only process relative markdown or anchor links
         if not target and not anchor:
@@ -212,8 +213,9 @@ def parse_note_content(
     # Resolve All Tags
     tags = extract_tags(masked_body, frontmatter_tags=fm_tags)
 
-    # Resolve Links
-    links = extract_wikilinks(masked_body)
+    # Resolve Links from both frontmatter and body
+    fm_raw = content[: len(content) - len(body)] if len(body) < len(content) else ""
+    links = extract_wikilinks(fm_raw) + extract_wikilinks(masked_body)
 
     return NoteMetadata(
         path=rel_path,

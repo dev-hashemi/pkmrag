@@ -131,6 +131,8 @@ export interface ChunkPairMatch {
   source_chunk_text: string;
   target_chunk_text: string;
   similarity: number;
+  source_heading?: string;
+  target_heading?: string;
 }
 
 /** Mirrors pkmrag.models.SemanticGapCandidate — keep in sync (tests/test_api_contract.py). */
@@ -148,6 +150,8 @@ export interface SemanticGapCandidate {
   target_chunk_text: string;
   chunk_similarity: number;
   matched_chunks: ChunkPairMatch[];
+  relationship_type?: "DEEP_OVERLAP" | "CONTAINMENT" | "SHARED_CONCEPT" | "WEAK_OVERLAP" | string;
+  ui_summary?: string;
 }
 
 export interface GapsResponse {

@@ -104,7 +104,7 @@ export class PkmragClient {
     await this.ensureAuthToken();
     const base = this.settings.serverUrl.replace(/\/+$/, "");
     const thresh = threshold ?? this.settings.similarityThreshold;
-    const lim = limit ?? this.settings.maxSuggestions;
+    const lim = limit ?? 50;
     let url = `${base}/api/v1/gaps?threshold=${thresh}&limit=${lim}`;
     if (notePath) url += `&note_path=${encodeURIComponent(notePath)}`;
 

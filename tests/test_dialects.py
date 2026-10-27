@@ -178,3 +178,21 @@ def test_cli_dialect_selection(tmp_path: Path) -> None:
     assert res.exit_code == 0
     assert "Dialect: commonmark" in res.stdout
     assert "Ingestion successful" in res.stdout
+
+
+def test_dialect_url_unquoting_resolution() -> None:
+    """Verify URL-encoded link targets are unquoted during resolution."""
+    obsidian = ObsidianDialect()
+    index = SourceIndex(
+        paths_set={"Project management/Agile.md"},
+        lower_path_to_path={"project management/agile.md": "Project management/Agile.md"},
+        basename_to_paths={"agile": ["Project management/Agile.md"]},
+        alias_to_path={},
+    )
+    resolved = obsidian.resolve_link(
+        source_rel_path="Concepts/Project management.md",
+        link=Wikilink(target="Project%20management/Agile.md"),
+        index=index,
+    )
+    assert resolved.target_path == "Project management/Agile.md"
+    assert resolved.is_unresolved is False

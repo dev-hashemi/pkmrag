@@ -200,10 +200,11 @@ def execute_discover_gaps(
         src_label = c.source_title or c.source_path
         dst_label = c.target_title or c.target_path
         distance = f"{c.hops} hops apart" if c.hops >= 0 else "no path within 10 hops"
+        rel_label = c.relationship_type.replace("_", " ").title()
         lines.append(
             f"### `{src_label}` ↔ `{dst_label}`\n"
             f"- **Paths**: `{c.source_path}` ↔ `{c.target_path}`\n"
-            f"- **Cosine Similarity**: {c.similarity:.4f}\n"
+            f"- **Relationship**: `{rel_label}` ({c.similarity:.4f})\n"
             f"- **Graph Distance**: {distance}\n"
         )
         if c.bridge_path:

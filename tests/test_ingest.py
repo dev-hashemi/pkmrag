@@ -16,6 +16,7 @@ from pkmrag.parser.markdown import (
     extract_tags,
     extract_wikilinks,
     parse_frontmatter,
+    parse_note_content,
     strip_code_blocks,
 )
 
@@ -100,6 +101,30 @@ URL: https://example.com#anchor (ignored)
     assert "123" not in tags
     assert "Local Section" not in tags
     assert "Section Anchor" not in tags
+
+
+def test_parse_note_content_frontmatter_links_and_url_decoding() -> None:
+    """Verify links in YAML frontmatter and URL-encoded markdown links are extracted."""
+    content = """---
+type: concept
+main-concept: "[[SDLC]]"
+parent: "[[Project management]]"
+unquoted: [[Another Concept]]
+---
+# Note Body
+Link: [Agile](Project%20management/Agile%2018cf84f548c8802cb93bf701ba72a3b8.md)
+"""
+    note_meta = parse_note_content(
+        rel_path="Concepts/Agile.md",
+        content=content,
+        mtime=100.0,
+        content_hash="h123",
+    )
+    targets = [lnk.target for lnk in note_meta.links]
+    assert "SDLC" in targets
+    assert "Project management" in targets
+    assert "Another Concept" in targets
+    assert "Project management/Agile 18cf84f548c8802cb93bf701ba72a3b8.md" in targets
 
 
 def test_vault_indexer_resolution(tmp_path: Path) -> None:

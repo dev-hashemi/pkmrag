@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path, PurePosixPath
+from urllib.parse import unquote
 
 from pkmrag.config import settings
 from pkmrag.models import NoteMetadata, ResolvedLink, SourceIndex, Wikilink
@@ -51,7 +52,7 @@ class ObsidianDialect:
         index: SourceIndex,
     ) -> ResolvedLink:
         """Resolve an Obsidian wikilink using shortest-path, alias, and proximity matching."""
-        target = link.target.strip()
+        target = unquote(link.target.strip())
 
         # 1. Self-anchor reference (e.g. `[[#Section]]`)
         if not target:

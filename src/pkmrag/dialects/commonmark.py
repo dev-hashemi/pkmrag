@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import posixpath
 from pathlib import Path, PurePosixPath
+from urllib.parse import unquote
 
 from pkmrag.config import settings
 from pkmrag.models import NoteMetadata, ResolvedLink, SourceIndex, Wikilink
@@ -71,7 +72,8 @@ class CommonMarkDialect:
         tags = extract_tags(masked_body, frontmatter_tags=fm_tags)
 
         # Links (extracts both markdown [text](dest) and any wikilinks present)
-        links = extract_wikilinks(masked_body)
+        fm_raw = content[: len(content) - len(body)] if len(body) < len(content) else ""
+        links = extract_wikilinks(fm_raw) + extract_wikilinks(masked_body)
 
         return NoteMetadata(
             path=rel_path,
@@ -91,7 +93,7 @@ class CommonMarkDialect:
         index: SourceIndex,
     ) -> ResolvedLink:
         """Resolve links using strict POSIX relative directory navigation."""
-        target = link.target.strip()
+        target = unquote(link.target.strip())
 
         # 1. Self-anchor reference
         if not target:

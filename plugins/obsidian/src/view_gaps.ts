@@ -54,8 +54,30 @@ export function renderGapsSection(
   } else if (visibleGaps.length === 0) {
     sec.createDiv({ cls: "pkmrag-empty-state", text: "No unlinked semantic gaps detected." });
   } else {
-    for (const gap of visibleGaps) {
+    const initialLimit = plugin.settings.maxSuggestions || 5;
+    const initialGaps = visibleGaps.slice(0, initialLimit);
+    const remainingGaps = visibleGaps.slice(initialLimit);
+
+    for (const gap of initialGaps) {
       renderGapCard(sec, plugin, gap, currentNotePath, onUpdate);
+    }
+
+    if (remainingGaps.length > 0) {
+      const moreContainer = sec.createDiv({ cls: "pkmrag-more-gaps pkmrag-hidden" });
+      for (const gap of remainingGaps) {
+        renderGapCard(moreContainer, plugin, gap, currentNotePath, onUpdate);
+      }
+      const showMoreBtn = sec.createEl("button", {
+        cls: "pkmrag-btn-sm pkmrag-btn-show-more",
+        text: `▾ Show ${remainingGaps.length} more related notes`,
+      });
+      showMoreBtn.onclick = () => {
+        const isHidden = moreContainer.hasClass("pkmrag-hidden");
+        moreContainer.toggleClass("pkmrag-hidden", !isHidden);
+        showMoreBtn.setText(
+          isHidden ? "▴ Show less" : `▾ Show ${remainingGaps.length} more related notes`
+        );
+      };
     }
   }
 
@@ -83,7 +105,22 @@ function renderGapCard(
   targetLink.onclick = () => plugin.app.workspace.openLinkText(otherPath, "");
 
   const docPct = Math.round(gap.similarity * 100);
-  cardHead.createSpan({ cls: "pkmrag-badge", text: `${docPct}% similar` });
+  let badgeLabel = `${docPct}% similar`;
+  if (gap.relationship_type === "DEEP_OVERLAP") {
+    badgeLabel = "Deep Overlap";
+  } else if (gap.relationship_type === "CONTAINMENT") {
+    badgeLabel = "Topic Included";
+  } else if (gap.relationship_type === "SHARED_CONCEPT") {
+    badgeLabel = "Shared Concept";
+  }
+  cardHead.createSpan({ cls: "pkmrag-badge", text: badgeLabel });
+
+  if (gap.ui_summary) {
+    card.createDiv({
+      cls: "pkmrag-card-summary",
+      text: gap.ui_summary,
+    });
+  }
 
   card.createDiv({
     cls: "pkmrag-card-reason",
@@ -163,9 +200,13 @@ function renderEvidence(card: HTMLElement, gap: SemanticGapCandidate): void {
 
   const body = details.createDiv({ cls: "pkmrag-evidence-body" });
 
-  matches.forEach((m, idx) => {
+  const initialSectionLimit = 2;
+  const initialMatches = matches.slice(0, initialSectionLimit);
+  const remainingMatches = matches.slice(initialSectionLimit);
+
+  const renderMatch = (parentEl: HTMLElement, m: (typeof matches)[0], idx: number) => {
     const chunkPct = Math.round(m.similarity * 100);
-    const chunkContainer = body.createDiv({ cls: "pkmrag-evidence-pair" });
+    const chunkContainer = parentEl.createDiv({ cls: "pkmrag-evidence-pair" });
     const sectionTitle =
       matches.length > 1
         ? `Match ${idx + 1} · ${chunkPct}% section similarity`
@@ -176,13 +217,14 @@ function renderEvidence(card: HTMLElement, gap: SemanticGapCandidate): void {
       text: sectionTitle,
     });
 
-    const sides: Array<[string, string, string]> = [
-      ["From", gap.source_path, m.source_chunk_text],
-      ["To", gap.target_path, m.target_chunk_text],
+    const sides: Array<[string, string, string, string | undefined]> = [
+      ["From", gap.source_path, m.source_chunk_text, m.source_heading],
+      ["To", gap.target_path, m.target_chunk_text, m.target_heading],
     ];
 
-    for (const [label, path, text] of sides) {
-      const { heading, body: passage } = splitChunkHeading(text);
+    for (const [label, path, text, headingOverride] of sides) {
+      const { heading: parsedHeading, body: passage } = splitChunkHeading(text);
+      const heading = headingOverride || parsedHeading;
       const row = chunkContainer.createDiv({ cls: "pkmrag-evidence-row" });
       row.createSpan({ cls: "pkmrag-evidence-label", text: label });
       row.createSpan({ cls: "pkmrag-evidence-note", text: displayTitle(path) });
@@ -194,5 +236,26 @@ function renderEvidence(card: HTMLElement, gap: SemanticGapCandidate): void {
         row.createDiv({ cls: "pkmrag-evidence-text", text: excerpt(passage, 240) });
       }
     }
-  });
+  };
+
+  initialMatches.forEach((m, idx) => renderMatch(body, m, idx));
+
+  if (remainingMatches.length > 0) {
+    const moreSectionsContainer = body.createDiv({ cls: "pkmrag-more-sections pkmrag-hidden" });
+    remainingMatches.forEach((m, idx) =>
+      renderMatch(moreSectionsContainer, m, initialSectionLimit + idx)
+    );
+
+    const showMoreSectionsBtn = body.createEl("button", {
+      cls: "pkmrag-btn-sm pkmrag-btn-show-more",
+      text: `▾ Show ${remainingMatches.length} more matching sections`,
+    });
+    showMoreSectionsBtn.onclick = () => {
+      const isHidden = moreSectionsContainer.hasClass("pkmrag-hidden");
+      moreSectionsContainer.toggleClass("pkmrag-hidden", !isHidden);
+      showMoreSectionsBtn.setText(
+        isHidden ? "▴ Show fewer sections" : `▾ Show ${remainingMatches.length} more matching sections`
+      );
+    };
+  }
 }

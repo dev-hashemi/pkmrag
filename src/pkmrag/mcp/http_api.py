@@ -78,18 +78,18 @@ def register_api_routes(
 
         note_path = request.query_params.get("note_path", "").strip()
         threshold = float(request.query_params.get("threshold", "0.15"))
-        limit = max(1, int(request.query_params.get("limit", "10")))
+        limit = max(1, int(request.query_params.get("limit", "50")))
 
         started = time.perf_counter()
         engine = GapDiscoveryEngine(vault_path, graph_store=server_state.graph_store)
         try:
             # A note-scoped sweep costs O(chunks in that note) instead of O(vault).
-            candidates = engine.find_gap_candidates(
+            all_candidates = engine.find_gap_candidates(
                 min_similarity=threshold,
                 focus_path=note_path or None,
             )
             # Enrich only the visible subset: hop distance requires a graph query per pair.
-            candidates = engine.enrich_candidates(candidates[:limit])
+            candidates = engine.enrich_candidates(all_candidates[:limit])
         finally:
             engine.close()
 

@@ -16,7 +16,7 @@ class HierarchicalMarkdownChunker:
     def __init__(
         self,
         min_tokens: int = 40,
-        max_tokens: int = 500,
+        max_tokens: int = 320,
         overlap_tokens: int = 30,
     ) -> None:
         self.min_tokens = min_tokens
@@ -210,8 +210,14 @@ class HierarchicalMarkdownChunker:
                     )
                 )
                 chunk_idx += 1
-                curr_parts = [para]
-                curr_tokens = para_tokens
+                last_para = curr_parts[-1]
+                last_tokens = self._estimate_tokens(last_para)
+                if self.overlap_tokens > 0 and last_tokens <= self.overlap_tokens:
+                    curr_parts = [last_para, para]
+                    curr_tokens = last_tokens + para_tokens
+                else:
+                    curr_parts = [para]
+                    curr_tokens = para_tokens
             else:
                 curr_parts.append(para)
                 curr_tokens += para_tokens

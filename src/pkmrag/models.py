@@ -8,12 +8,7 @@ from typing import Literal, Optional
 from pydantic import BaseModel, Field
 
 RelationshipType = Literal[
-    "EXTENDS",
-    "CONTRADICTS",
-    "SUPPORTS",
-    "PREREQUISITE_FOR",
-    "REFINES",
-    "NONE",
+    "EXTENDS", "CONTRADICTS", "SUPPORTS", "PREREQUISITE_FOR", "REFINES", "NONE"
 ]
 
 
@@ -224,6 +219,8 @@ class ChunkPairMatch(BaseModel):
     source_chunk_text: str
     target_chunk_text: str
     similarity: float
+    source_heading: str = ""
+    target_heading: str = ""
 
 
 class SemanticGapCandidate(BaseModel):
@@ -242,6 +239,8 @@ class SemanticGapCandidate(BaseModel):
     target_chunk_text: str
     chunk_similarity: float = 0.0
     matched_chunks: list[ChunkPairMatch] = Field(default_factory=list)
+    relationship_type: str = "SHARED_CONCEPT"
+    ui_summary: str = ""
 
 
 class DiscoveryStats(BaseModel):

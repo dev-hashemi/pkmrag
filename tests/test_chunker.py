@@ -90,3 +90,23 @@ def test_chunker_empty_and_no_heading() -> None:
     assert len(chunks) == 1
     assert chunks[0].heading == "# Thoughts"
     assert "standalone thoughts" in chunks[0].text
+
+
+def test_chunker_default_tokens_and_overlap() -> None:
+    """Verify default max_tokens=320 and paragraph overlap carryover."""
+    chunker = HierarchicalMarkdownChunker()
+    assert chunker.max_tokens == 320
+    assert chunker.overlap_tokens == 30
+
+    short_overlap_para = "Short summary paragraph. " * 4  # ~16 tokens <= 30
+    long_para_1 = "Main body content of section one. " * 35  # ~175 tokens
+    long_para_2 = "Main body content of section two. " * 35  # ~175 tokens
+
+    content = f"# Title\n\n## Section\n\n{long_para_1}\n\n{short_overlap_para}\n\n{long_para_2}"
+    chunks = chunker.chunk_document("test.md", "Title", content)
+
+    # 175 + 16 + 175 = 366 words > 320 words, so it should split
+    assert len(chunks) >= 2
+    # The short paragraph should be in chunk 0 and carried over into chunk 1 as overlap
+    assert "Short summary paragraph." in chunks[0].text
+    assert "Short summary paragraph." in chunks[1].text
