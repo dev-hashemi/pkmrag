@@ -16,7 +16,7 @@ The hybrid search subsystem fuses dense semantic embeddings, sparse BM25 keyword
 Instead of fixed token windows, PKMRAG chunks along Markdown headings (`#`–`######`):
 1. **Breadcrumbs:** Tracks heading lineage (e.g. `# Arch > ## Storage > ### LanceDB`) and prepends it to chunk text for contextualized indexing.
 2. **Micro-Section Merging:** Sections below 40 tokens merge into adjacent sections to prevent low-context fragments.
-3. **Macro-Section Splitting:** Sections exceeding 500 tokens split on paragraph boundaries (`\n\n`), keeping breadcrumb context on each subchunk.
+3. **Macro-Section Splitting:** Sections exceeding 320 words split on paragraph boundaries (`\n\n`) with overlap carryover, keeping breadcrumb context on each subchunk while staying safely within `bge-small-en-v1.5`'s 512-token context window.
 
 ---
 

@@ -26,7 +26,7 @@ src/pkmrag/
   ingest/         # Vault → graph and vector ingestion pipeline & single-note reindexer
   search/         # Chunking, FastEmbed, LanceDB vector store, RRF fusion, service
   inference/      # LLM inference client (OpenAI, Ollama) and token-bucket rate limiter
-  discovery/      # Semantic gap discovery (scanner) and relationship inference engine
+  discovery/      # Semantic gap discovery (scanner, relatedness) and inference engine
   eval/           # Retrieval evaluation harness and IR metrics (MRR, Recall, MAP)
   telemetry/      # OpenTelemetry spans, collector, visual tree, tracer lifecycle
   mcp/            # FastMCP server, tool handlers, and stdio/HTTP transport

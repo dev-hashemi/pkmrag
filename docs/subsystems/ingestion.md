@@ -14,8 +14,8 @@ The ingestion pipeline coordinates filesystem discovery, dialect-specific parsin
 ## 🔌 Pluggable Dialect Strategy
 
 PKMRAG separates syntax parsing from storage using [`KnowledgeDialect`](file:///home/ali/projects/my/pkmrag/src/pkmrag/dialects/base.py):
-- `ObsidianDialect`: Parses `[[wikilinks|alias]]`, embedded media (`![[img.png]]`), hashtags (`#tag`), and YAML frontmatter.
-- `CommonMarkDialect`: Parses standard Markdown links (`[text](url.md)`).
+- `ObsidianDialect`: Parses `[[wikilinks|alias]]`, embedded media (`![[img.png]]`), hashtags (`#tag`), and YAML frontmatter (extracting wikilinks across both body and frontmatter properties).
+- `CommonMarkDialect`: Parses standard Markdown links (`[text](url.md)`), decoding URL-encoded link targets.
 - Auto-detection selects the dialect based on vault configuration (e.g., presence of `.obsidian/`).
 
 ---

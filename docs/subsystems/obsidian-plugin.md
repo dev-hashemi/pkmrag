@@ -10,8 +10,10 @@ The PKMRAG plugin is a lightweight, local-first companion plugin for [Obsidian](
 - **Active Note Context:** Automatically synchronizes with whatever markdown note is active in Obsidian.
 - **Stale Response Guard:** Each note load carries a monotonic token, so a slow response for a note you have already left can never overwrite the note you are looking at now.
 - **Independent Sections:** The graph context and the missing-link suggestions load separately. A failing suggestions request shows an inline error in its own section instead of discarding the graph context or marking a healthy daemon as offline.
-- **Missing Links Section (Semantic Gaps):** Displays unlinked note pairs exhibiting high cosine similarity that are either more than 2 hops apart or unconnected in the graph.
-  - **Evidence:** Every card shows the real graph distance (`N hops away` or `No path within 10 hops`), the clickable **bridge path** of intermediate notes, and — under *"Why are these similar?"* — the matching passages from both notes that justify the similarity score.
+- **Missing Links Section (Semantic Gaps):** Displays unlinked note pairs exhibiting high semantic similarity that are either more than 2 hops apart or unconnected in the graph.
+  - **Semantic Intent Badges & Summaries:** Cards display classified intent badges (`Deep Overlap`, `Topic Included`, `Shared Concept`) and human-readable coverage summaries (e.g., `Covers 95% of target note`) rather than bare similarity percentages.
+  - **Progressive Disclosure:** Shows the top 5 related notes by default with a `▾ Show X more related notes` toggle. Inside each card, the top 2 matching sections are shown with a `▾ Show X more matching sections` toggle when additional non-overlapping matches exist.
+  - **Evidence:** Every card shows the real graph distance (`N hops away` or `No path within 10 hops`), the clickable **bridge path** of intermediate notes, and — under *"Why are these similar?"* — the matching passages from both notes with heading breadcrumbs (`§ Section Anchor`) that justify the connection.
   - **Human-in-the-Loop Insertion:** Clicking `[+ Link]` writes `[[Target Note]]` at the editor cursor location. PKMRAG *never* mutates notes silently.
   - **Session Dismissal:** Clicking `[Dismiss]` hides recommendations for the active editing session.
 - **Contradiction Warnings & Inferences:**
