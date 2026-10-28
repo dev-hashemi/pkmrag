@@ -178,6 +178,7 @@ A native desktop companion plugin (`plugins/obsidian/`) connecting Obsidian to P
 - **Interactive Setup Wizard:** If installed before the Python core engine, the sidebar automatically guides you through a 2-step setup with 1-click command copying and live verification.
 - **PKMRAG Insights Sidebar:** Real-time semantic gap recommendations, contradiction warnings with LLM citations, and structural graph context.
 - **Evidence-Backed Missing Links:** Each gap card shows the similarity score, the real graph distance (`N hops away` or `No path within 10 hops`), the clickable **bridge path** connecting the two notes, and the **matching passages** from both notes that justify the suggestion.
+- **One-Click Related Links:** `Add to Related` appends a folder-aware `[[Target Note]]` under the source note's `## Related` section (created automatically), never writing into whichever editor happens to be focused.
 - **Navigable Graph Context:** Backlinks, outgoing links, and the 2-hop cluster are listed as clickable notes instead of bare counts, with vault-wide graph counters in the footer.
 - **Instant Suggestions:** Gaps are mined from a note-scoped vector sweep, so the sidebar stays responsive no matter how large the vault is.
 - **Zero-Terminal Workflow & Auto-Daemon:** Transparently starts the background engine daemon on launch and shuts down cleanly on exit.

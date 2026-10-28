@@ -2,7 +2,7 @@
  * PKMRAG Insights Obsidian Plugin Entry Point.
  */
 
-import { MarkdownView, Notice, Plugin, TFile, WorkspaceLeaf, addIcon } from "obsidian";
+import { Plugin, TFile, WorkspaceLeaf, addIcon } from "obsidian";
 import { PkmragClient } from "./client";
 import { DaemonManager } from "./daemon";
 import { HostInstaller } from "./installer";
@@ -10,7 +10,6 @@ import { registerPluginCommands } from "./commands";
 import { createPkmragEditorExtension } from "./extension";
 import { PkmragSettingTab } from "./settings";
 import { notifySidebar, renderStatusBar, setupEventStream } from "./status_bar";
-import { buildWikilink } from "./format";
 
 import {
   ActiveJobState,
@@ -177,21 +176,6 @@ export default class PkmragPlugin extends Plugin {
     if (path) {
       view.loadInsightsForNote(path);
     }
-  }
-
-  insertLink(target: string, anchor?: string): void {
-    const wikilink = buildWikilink(target, anchor);
-    if (!wikilink) {
-      new Notice("PKMRAG: Cannot insert an empty link.");
-      return;
-    }
-    const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-    if (!view || !view.editor) {
-      new Notice(`No active markdown editor to insert ${wikilink}.`);
-      return;
-    }
-    view.editor.replaceSelection(wikilink);
-    new Notice(`Inserted link to ${wikilink}`);
   }
 
   setActiveInsights(

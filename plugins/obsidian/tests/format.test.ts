@@ -17,7 +17,6 @@ import {
   noteStem,
   pairKey,
   searchAnchor,
-  searchLinkTitle,
   splitChunkHeading,
 } from "../src/format.js";
 import type { SearchResult, SemanticGapCandidate } from "../src/types.js";
@@ -110,11 +109,6 @@ test("buildWikilink produces resolvable Obsidian links", () => {
   assert.equal(buildWikilink("Vector Retrieval"), "[[Vector Retrieval]]");
   assert.equal(buildWikilink("Vector Retrieval", "Core Formula"), "[[Vector Retrieval#Core Formula]]");
   assert.equal(buildWikilink("  "), "");
-});
-
-test("searchLinkTitle uses the note title when present", () => {
-  assert.equal(searchLinkTitle(makeResult()), "Vector Retrieval");
-  assert.equal(searchLinkTitle(makeResult({ note_title: "" })), "Vector Retrieval");
 });
 
 test("excerpt collapses whitespace and clips long text", () => {

@@ -69,11 +69,6 @@ export function buildWikilink(title: string, anchor?: string): string {
   return cleanAnchor ? `[[${clean}#${cleanAnchor}]]` : `[[${clean}]]`;
 }
 
-/** Wikilink target for a search result, using the note title plus a valid anchor. */
-export function searchLinkTitle(result: SearchResult): string {
-  return displayTitle(result.note_path, result.note_title);
-}
-
 /** How a failed daemon request should be interpreted. */
 export type RequestFailure = "unindexed" | "offline";
 

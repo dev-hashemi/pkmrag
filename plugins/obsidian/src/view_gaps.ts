@@ -2,8 +2,11 @@
  * Semantic gaps (missing links) section renderer for PKMRAG Insights sidebar.
  */
 
+import { Notice } from "obsidian";
+
 import type PkmragPlugin from "./main";
 import { SemanticGapCandidate } from "./types";
+import { addRelatedLinkToNote } from "./link_actions";
 import { renderDismissedDrawer } from "./view_inferences";
 import {
   displayTitle,
@@ -147,11 +150,32 @@ function renderGapCard(
   renderEvidence(card, gap);
 
   const actions = card.createDiv({ cls: "pkmrag-card-actions" });
-  const insertBtn = actions.createEl("button", {
-    cls: "pkmrag-btn-sm mod-cta",
-    text: "+ Link",
-  });
-  insertBtn.onclick = () => plugin.insertLink(noteStem(otherPath));
+  if (currentNotePath) {
+    const addBtn = actions.createEl("button", {
+      cls: "pkmrag-btn-sm mod-cta",
+      text: "Add to Related",
+    });
+    addBtn.setAttribute("title", `Append [[${otherTitle}]] to this note's Related section`);
+    addBtn.onclick = async () => {
+      addBtn.setAttribute("disabled", "true");
+      addBtn.setText("Adding...");
+      try {
+        const result = await addRelatedLinkToNote(plugin.app, currentNotePath, otherPath);
+        addBtn.addClass("pkmrag-btn-done");
+        addBtn.setText(result.inserted ? "Linked ✓" : "Already linked");
+        new Notice(
+          result.inserted
+            ? `PKMRAG: Added [[${result.linkText}]] under Related in "${displayTitle(currentNotePath)}".`
+            : `PKMRAG: "${displayTitle(currentNotePath)}" already links to [[${result.linkText}]].`
+        );
+      } catch (err: unknown) {
+        addBtn.removeAttribute("disabled");
+        addBtn.setText("Add to Related");
+        const msg = err instanceof Error ? err.message : String(err);
+        new Notice(`PKMRAG: Could not add link: ${msg}`);
+      }
+    };
+  }
 
   const dismissBtn = actions.createEl("button", { cls: "pkmrag-btn-sm", text: "Dismiss" });
   dismissBtn.onclick = async () => {

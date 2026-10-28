@@ -2,9 +2,12 @@
  * Proximity concept search bar and result renderer for PKMRAG Insights sidebar.
  */
 
+import { Notice } from "obsidian";
+
 import type PkmragPlugin from "./main";
 import { SearchResult } from "./types";
-import { displayTitle, excerpt, formatGraphBoost, searchAnchor, searchLinkTitle } from "./format";
+import { insertReferenceAtCursor } from "./link_actions";
+import { displayTitle, excerpt, formatGraphBoost, searchAnchor } from "./format";
 
 export class ProximitySearchDrawer {
   private containerEl!: HTMLElement;
@@ -122,10 +125,27 @@ export class ProximitySearchDrawer {
     const actions = card.createDiv({ cls: "pkmrag-card-actions" });
     const insertBtn = actions.createEl("button", {
       cls: "pkmrag-btn-sm",
-      text: "+ Insert Ref",
+      text: "Insert reference",
     });
+    insertBtn.setAttribute("title", "Insert a link at the cursor in this note");
     insertBtn.onclick = () => {
-      this.plugin.insertLink(searchLinkTitle(res), searchAnchor(res.heading));
+      const sourcePath = this.getCurrentNotePath();
+      if (!sourcePath) {
+        new Notice("PKMRAG: Open a markdown note before inserting a reference.");
+        return;
+      }
+      try {
+        const wikilink = insertReferenceAtCursor(
+          this.plugin.app,
+          sourcePath,
+          res.note_path,
+          searchAnchor(res.heading)
+        );
+        new Notice(`PKMRAG: Inserted ${wikilink} at the cursor.`);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        new Notice(`PKMRAG: Could not insert reference: ${msg}`);
+      }
     };
   }
 }

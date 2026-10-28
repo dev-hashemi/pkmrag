@@ -21,6 +21,8 @@
 .pkmrag-btn-show-more { width: 100%; margin-top: 4px; margin-bottom: 8px; justify-content: center; }
 .pkmrag-card-actions { display: flex; gap: 6px; margin-top: 8px; }
 .pkmrag-btn-sm { font-size: 11px; padding: 2px 8px; height: 24px; cursor: pointer; }
+.pkmrag-btn-done { color: var(--text-success, #2b8a3e); border-color: var(--text-success, #2b8a3e); cursor: default; }
+.pkmrag-btn-done:disabled { opacity: 1; }
 .pkmrag-chip-container { display: flex; flex-wrap: wrap; gap: 4px; }
 .pkmrag-chip {
   display: inline-flex;

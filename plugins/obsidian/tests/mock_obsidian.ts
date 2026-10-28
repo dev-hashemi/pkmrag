@@ -52,5 +52,19 @@ export class WorkspaceLeaf {
   }
 }
 
+export class TFile {
+  path = "";
+  extension = "md";
+}
+
+export class MarkdownView {
+  file: TFile | null = null;
+  editor: any;
+
+  getMode(): "source" | "preview" {
+    return "source";
+  }
+}
+
 export function setIcon(): void {}
 export function addIcon(): void {}

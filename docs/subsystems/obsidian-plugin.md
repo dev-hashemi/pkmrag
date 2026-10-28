@@ -14,7 +14,7 @@ The PKMRAG plugin is a lightweight, local-first companion plugin for [Obsidian](
   - **Semantic Intent Badges & Summaries:** Cards display classified intent badges (`Deep Overlap`, `Topic Included`, `Shared Concept`) and human-readable coverage summaries (e.g., `Covers 95% of target note`) rather than bare similarity percentages.
   - **Progressive Disclosure:** Shows the top 5 related notes by default with a `▾ Show X more related notes` toggle. Inside each card, the top 2 matching sections are shown with a `▾ Show X more matching sections` toggle when additional non-overlapping matches exist.
   - **Evidence:** Every card shows the real graph distance (`N hops away` or `No path within 10 hops`), the clickable **bridge path** of intermediate notes, and — under *"Why are these similar?"* — the matching passages from both notes with heading breadcrumbs (`§ Section Anchor`) that justify the connection.
-  - **Human-in-the-Loop Insertion:** Clicking `[+ Link]` writes `[[Target Note]]` at the editor cursor location. PKMRAG *never* mutates notes silently.
+  - **Human-in-the-Loop Insertion:** Clicking **Add to Related** appends `- [[Target Note]]` under the note's `## Related` section, creating the section on first use. The action always targets the note the card belongs to — never whichever editor happens to be focused — resolves duplicate note names with a folder-aware link, and prefers the open editor so the change is undoable. The card flips to `Linked ✓` and disappears once the background reindex confirms the new edge. PKMRAG *never* mutates notes silently.
   - **Session Dismissal:** Clicking `[Dismiss]` hides recommendations for the active editing session.
 - **Contradiction Warnings & Inferences:**
   - Distinct amber warning cards for notes classified with `CONTRADICTS` relationships, citing the LLM rationale excerpt.
@@ -42,7 +42,7 @@ The plugin subscribes to PKMRAG's Server-Sent Events stream (`GET /api/v1/events
 - **Anchored Graph Search:** Accessible via the `🔍 Concept Explorer` drawer in the sidebar.
 - **Context-Aware Fusion:** Dispatches hybrid semantic and graph traversal anchored to the active note (`POST /api/v1/search` with a `near` note), returning dense/sparse fusion scores and textual snippets.
 - **Graph Boost Visibility:** Hits that were boosted by graph proximity show a `⚡ ×1.25 · 1 hop` badge so the ranking reason is never opaque.
-- **1-Click Reference Insertion:** Inserts `[[Target Note#Heading]]` at your current cursor position, using a resolvable Obsidian anchor.
+- **1-Click Reference Insertion:** `Insert reference` inserts `[[Target Note#Heading]]` at the cursor in the note the drawer is anchored to (editing mode required), using a resolvable Obsidian anchor.
 
 ### 1.7 Knowledge Governance & Persistent Dismissal Memory
 - **Persistent Feedback:** Dismissed suggestions are recorded in plugin data (`dismissedSuggestions` in `data.json`) keyed by `source_path` and `target_path`, preventing dismissed links from recurring across sessions.
