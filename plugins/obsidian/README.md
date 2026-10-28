@@ -4,6 +4,8 @@
 
 PKMRAG is a companion plugin that connects your Obsidian vault to the local [PKMRAG](https://github.com/dev-hashemi/pkmrag) engine. It brings semantic understanding and deterministic graph intelligence into your daily note-taking without sending your notes to third-party cloud services.
 
+![PKMRAG Obsidian Insights Screenshot](assets/PKMRAG-Screenshot.png)
+
 ---
 
 ## Features

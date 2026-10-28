@@ -10,7 +10,7 @@ export function renderLlmSection(
   plugin: PkmragPlugin,
   refreshTab: () => void
 ): void {
-  containerEl.createEl("h3", { text: "AI Discovery & Custom LLM Configuration" });
+  new Setting(containerEl).setName("AI Discovery & Custom LLM Configuration").setHeading();
 
   new Setting(containerEl)
     .setName("LLM Provider")

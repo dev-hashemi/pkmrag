@@ -201,6 +201,15 @@ test("Obsidian compliance: no undescribed directive comments (eslint-comments/re
   assert.deepStrictEqual(hits, [], `undescribed eslint directive comments: ${hits.join(", ")}`);
 });
 
+test("Obsidian compliance: settings tabs use Setting.setHeading() instead of HTML headings", () => {
+  const settingFiles = srcFiles().filter((f) => f.rel.includes("settings"));
+  assertNoMatch(
+    settingFiles,
+    /\.createEl\(\s*['"]h[1-6]['"]/,
+    "use new Setting(containerEl).setName(...).setHeading() instead of direct heading elements"
+  );
+});
+
 test("Obsidian compliance: no hardcoded text colors in TS", () => {
   assertNoMatch(
     srcFiles(),

@@ -50,7 +50,7 @@ for (const file of filesToCopy) {
 }
 
 // 2. Directories to copy
-for (const dir of ["src", "tests"]) {
+for (const dir of ["src", "tests", "assets"]) {
   const src = join(PLUGIN_ROOT, dir);
   const dest = join(targetDir, dir);
   if (existsSync(src)) {

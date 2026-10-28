@@ -18,7 +18,7 @@ export class PkmragSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    containerEl.createEl("h2", { text: "PKMRAG Knowledge Engine Settings" });
+    new Setting(containerEl).setName("PKMRAG Knowledge Engine Settings").setHeading();
 
     // 1. Daemon Management Section
     this.renderDaemonSection(containerEl);
@@ -37,7 +37,7 @@ export class PkmragSettingTab extends PluginSettingTab {
   }
 
   private renderDaemonSection(containerEl: HTMLElement): void {
-    containerEl.createEl("h3", { text: "Local Search Engine (Zero-Terminal)" });
+    new Setting(containerEl).setName("Local Search Engine (Zero-Terminal)").setHeading();
 
     new Setting(containerEl)
       .setName("Auto-Start Local Engine")
@@ -121,7 +121,7 @@ export class PkmragSettingTab extends PluginSettingTab {
   }
 
   private renderEmbeddingsSection(containerEl: HTMLElement): void {
-    containerEl.createEl("h3", { text: "Search & Local Embeddings" });
+    new Setting(containerEl).setName("Search & Local Embeddings").setHeading();
 
     new Setting(containerEl)
       .setName("Active Embedding Model")
@@ -134,7 +134,7 @@ export class PkmragSettingTab extends PluginSettingTab {
   }
 
   private renderBehaviorSection(containerEl: HTMLElement): void {
-    containerEl.createEl("h3", { text: "Behavior & Retrieval Thresholds" });
+    new Setting(containerEl).setName("Behavior & Retrieval Thresholds").setHeading();
 
     new Setting(containerEl)
       .setName("Auto-Sync on Save")
@@ -196,7 +196,7 @@ export class PkmragSettingTab extends PluginSettingTab {
   }
 
   private renderMaintenanceSection(containerEl: HTMLElement): void {
-    containerEl.createEl("h3", { text: "Vault Maintenance & Governance" });
+    new Setting(containerEl).setName("Vault Maintenance & Governance").setHeading();
 
     new Setting(containerEl)
       .setName("Rebuild Full Vault Index")

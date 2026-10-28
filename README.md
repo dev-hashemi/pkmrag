@@ -174,6 +174,8 @@ claude mcp add pkmrag -- uv run pkmrag serve /path/to/vault
 
 ## 💎 Obsidian Desktop Plugin (`pkmrag`)
 
+![PKMRAG Obsidian Insights Screenshot](assets/PKMRAG-Screenshot.png)
+
 A native desktop companion plugin (`plugins/obsidian/`) connecting Obsidian to PKMRAG:
 - **Interactive Setup Wizard:** If installed before the Python core engine, the sidebar automatically guides you through a 2-step setup with 1-click command copying and live verification.
 - **PKMRAG Insights Sidebar:** Real-time semantic gap recommendations, contradiction warnings with LLM citations, and structural graph context.
