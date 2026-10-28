@@ -66,5 +66,14 @@ export class MarkdownView {
   }
 }
 
+export class Keymap {
+  static isModEvent(evt?: any): boolean | string {
+    if (!evt) return false;
+    if (evt.metaKey || evt.ctrlKey) return "tab";
+    if (evt.altKey) return "split";
+    return false;
+  }
+}
+
 export function setIcon(): void {}
 export function addIcon(): void {}

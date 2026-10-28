@@ -61,6 +61,19 @@ export function searchAnchor(heading: string): string {
   return leaf.replace(/^#+\s*/, "").trim();
 }
 
+/** Normalize heading text by removing markdown formatting (*, _, `, ~, [[, ]], leading #). */
+export function normalizeHeading(text: string): string {
+  if (!text) return "";
+  return text
+    .replace(/^#+\s*/, "")
+    .replace(/[*_~`]/g, "")
+    .replace(/\[\[(?:[^\]|]+\|)?([^\]]+)\]\]/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
 /** Build an Obsidian wikilink, optionally targeting a heading anchor. */
 export function buildWikilink(title: string, anchor?: string): string {
   const clean = title.trim();

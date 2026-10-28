@@ -66,6 +66,10 @@ export default class PkmragPlugin extends Plugin {
       VIEW_TYPE_PKMRAG_INSIGHTS,
       (leaf: WorkspaceLeaf) => new PkmragInsightsView(leaf, this)
     );
+    this.registerHoverLinkSource(VIEW_TYPE_PKMRAG_INSIGHTS, {
+      display: "PKMRAG Insights",
+      defaultMod: true,
+    });
 
     // Ribbon Icon
     this.addRibbonIcon("pkmrag-ribbon", "PKMRAG Insights", () => {

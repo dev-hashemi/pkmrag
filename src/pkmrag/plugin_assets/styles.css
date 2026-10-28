@@ -191,6 +191,17 @@
   margin-right: 4px;
 }
 .pkmrag-evidence-note { color: var(--text-muted); font-weight: var(--font-semibold); }
+.pkmrag-evidence-note.pkmrag-link,
+.pkmrag-evidence-heading.pkmrag-link {
+  color: var(--text-accent);
+  cursor: pointer;
+  text-decoration: none;
+}
+.pkmrag-evidence-note.pkmrag-link:hover,
+.pkmrag-evidence-heading.pkmrag-link:hover {
+  color: var(--text-accent-hover, var(--text-accent));
+  text-decoration: underline;
+}
 .pkmrag-evidence-heading {
   color: var(--text-faint);
   font-size: 10px;
@@ -203,8 +214,31 @@
   color: var(--text-muted);
   line-height: 1.4;
   margin-top: 2px;
-  padding-left: 8px;
+  padding: 3px 6px 3px 8px;
   border-left: 2px solid var(--background-modifier-border);
+  cursor: pointer;
+  border-radius: 0 4px 4px 0;
+  transition: background-color 0.15s ease, border-left-color 0.15s ease;
+}
+.pkmrag-evidence-text:hover {
+  background-color: var(--background-modifier-hover);
+  border-left-color: var(--text-accent);
+}
+.pkmrag-evidence-toggle {
+  font-size: 10px;
+  color: var(--text-faint);
+  margin-left: 6px;
+  cursor: pointer;
+  user-select: none;
+  font-weight: var(--font-normal);
+}
+.pkmrag-evidence-toggle:hover {
+  color: var(--text-accent);
+  text-decoration: underline;
+}
+.pkmrag-evidence-current .pkmrag-evidence-label {
+  color: var(--text-accent);
+  font-weight: var(--font-semibold);
 }
 
 /* Graph Context link groups */

@@ -14,6 +14,7 @@ import {
   formatGraphBoost,
   gapCounterpart,
   isDismissedPair,
+  normalizeHeading,
   noteStem,
   pairKey,
   searchAnchor,
@@ -156,4 +157,13 @@ test("classifyRequestError separates an unindexed vault from an unreachable daem
   assert.equal(classifyRequestError("VAULT_UNINDEXED"), "unindexed");
   assert.equal(classifyRequestError("Context fetch failed with HTTP 500"), "offline");
   assert.equal(classifyRequestError("Failed to fetch"), "offline");
+});
+
+test("normalizeHeading strips markdown formatting, leading hashes, and normalizes spacing", () => {
+  assert.equal(normalizeHeading("## **5. Service contains ...**"), "5. service contains ...");
+  assert.equal(normalizeHeading("# **5. Service contains ..."), "5. service contains ...");
+  assert.equal(normalizeHeading("5. Service contains ..."), "5. service contains ...");
+  assert.equal(normalizeHeading("### [[Section Name|Alias]]"), "alias");
+  assert.equal(normalizeHeading("### [Link Text](https://example.com)"), "link text");
+  assert.equal(normalizeHeading(""), "");
 });

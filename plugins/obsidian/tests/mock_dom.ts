@@ -9,7 +9,9 @@ export interface MockEl {
   className: string;
   tag?: string;
   attrs: Record<string, string>;
-  onclick?: () => void;
+  onclick?: (evt?: any) => void;
+  addEventListener?: (event: string, handler: (e: any) => void) => void;
+  dispatchEvent?: (event: string, e: any) => void;
   createDiv: (opts?: MockElOptions) => MockEl;
   createSpan: (opts?: MockElOptions) => MockEl;
   createEl: (tag: string, opts?: MockElOptions) => MockEl;
@@ -30,12 +32,20 @@ export interface MockElOptions {
 }
 
 export function createMockEl(): MockEl {
+  const listeners: Record<string, Array<(e: any) => void>> = {};
   const el: MockEl = {
     children: [],
     textContent: "",
     style: {},
     className: "",
     attrs: {},
+    addEventListener: (event: string, handler: (e: any) => void) => {
+      listeners[event] = listeners[event] || [];
+      listeners[event].push(handler);
+    },
+    dispatchEvent: (event: string, e: any) => {
+      (listeners[event] || []).forEach((fn) => fn(e));
+    },
     createDiv: (opts?: MockElOptions) => appendChild(el, "div", opts),
     createSpan: (opts?: MockElOptions) => appendChild(el, "span", opts),
     createEl: (tag: string, opts?: MockElOptions) => appendChild(el, tag, opts),
