@@ -4,57 +4,9 @@
 
 import test from "node:test";
 import assert from "node:assert";
-import { readdirSync, readFileSync, existsSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
-
-let repoDir = import.meta.dirname;
-while (!existsSync(join(repoDir, "README.md")) && repoDir !== join(repoDir, "..")) {
-  repoDir = join(repoDir, "..");
-}
-const REPO = repoDir;
-const OBSIDIAN_PKG = join(REPO, "plugins", "obsidian");
-const OBSIDIAN_SRC = join(OBSIDIAN_PKG, "src");
-
-function collectTsFiles(dir: string, out: string[] = []): string[] {
-  for (const entry of readdirSync(dir)) {
-    const full = join(dir, entry);
-    if (statSync(full).isDirectory()) {
-      if (entry === "node_modules") continue;
-      collectTsFiles(full, out);
-    } else if (/\.tsx?$/.test(entry)) {
-      out.push(full);
-    }
-  }
-  return out;
-}
-
-function srcFiles(): { path: string; rel: string; code: string }[] {
-  return collectTsFiles(OBSIDIAN_SRC).map((path) => ({
-    path,
-    rel: relative(REPO, path),
-    code: readFileSync(path, "utf8"),
-  }));
-}
-
-function assertNoMatch(
-  files: { rel: string; code: string }[],
-  pattern: RegExp,
-  message: string,
-  allowlist: string[] = []
-): void {
-  const hits: string[] = [];
-  for (const f of files) {
-    const stripped = f.code
-      .split("\n")
-      .filter((line) => !line.trim().startsWith("*") && !line.trim().startsWith("//"))
-      .join("\n");
-    pattern.lastIndex = 0;
-    if (pattern.test(stripped) && !allowlist.includes(f.rel)) {
-      hits.push(f.rel);
-    }
-  }
-  assert.deepStrictEqual(hits, [], `${message}: ${hits.join(", ")}`);
-}
+import { readFileSync, existsSync } from "node:fs";
+import { join } from "node:path";
+import { REPO, OBSIDIAN_PKG, srcFiles, assertNoMatch } from "./compliance_helpers";
 
 // --- Manifest + release checklist (review-blocking) ---
 
@@ -131,7 +83,12 @@ test("Obsidian compliance: prefer Vault API over Adapter / full scans", () => {
     srcFiles(),
     /vault\.adapter\b/,
     "use the Vault API instead of vault.adapter (allowlisted for hidden token discovery only)",
-    ["plugins/obsidian/src/client.ts", "plugins/obsidian/src/daemon.ts"]
+    [
+      "plugins/obsidian/src/client.ts",
+      "plugins/obsidian/src/daemon.ts",
+      "src/client.ts",
+      "src/daemon.ts",
+    ]
   );
 
   assertNoMatch(
@@ -158,13 +115,41 @@ test("Obsidian compliance: commands use narrowest callback and no default hotkey
   assert.deepStrictEqual(hits, [], `addCommand without a callback type: ${hits.join(", ")}`);
 });
 
+test("Obsidian compliance: command IDs do not contain plugin ID", () => {
+  const files = srcFiles();
+  const hits: string[] = [];
+  for (const f of files) {
+    const re = /\.addCommand\(\{\s*id:\s*["']([^"']+)["']/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(f.code)) !== null) {
+      if (m[1].toLowerCase().includes("pkmrag")) {
+        hits.push(`${f.rel}: ${m[1]}`);
+      }
+    }
+  }
+  assert.deepStrictEqual(hits, [], `command IDs must not include plugin ID: ${hits.join(", ")}`);
+});
+
 // --- Security / mobile guards ---
 
-test("Obsidian compliance: no Node/Electron imports in client source", () => {
+test("Obsidian compliance: no static Node/Electron imports in client source", () => {
   assertNoMatch(
     srcFiles(),
-    /(from\s+['"](node:|fs['"]|crypto['"]|os['"]|electron['"]|child_process|path['"])|require\(\s*['"](fs|crypto|os|electron|child_process)['"])/,
-    "mobile-safe Web APIs only (SubtleCrypto, navigator.clipboard)"
+    /from\s+['"](node:|fs['"]|crypto['"]|os['"]|electron['"]|child_process|path['"])/,
+    "static Node imports break bundling; use runtime window.require for desktop-only features"
+  );
+  assertNoMatch(
+    srcFiles(),
+    /require\(\s*['"]electron['"]/,
+    "electron APIs are forbidden; use Obsidian API or Web APIs instead"
+  );
+});
+
+test("Obsidian compliance: no obfuscated module loading", () => {
+  assertNoMatch(
+    srcFiles(),
+    /req\(\s*\[[^\]]+\]\.join/,
+    "do not obfuscate module names via string joins"
   );
 });
 

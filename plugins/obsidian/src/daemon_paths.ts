@@ -23,8 +23,8 @@ export interface ChildProcessModule {
 export function getPlatformInfo(): PlatformInfo {
   const winObj = typeof window !== "undefined" ? (window as any) : (globalThis as any);
   const req = winObj.require;
-  const fs = req ? (req(["f", "s"].join("")) as { existsSync: (p: string) => boolean }) : null;
-  const os = req ? (req(["o", "s"].join("")) as { homedir: () => string; platform?: () => string }) : null;
+  const fs = req ? (req("fs") as { existsSync: (p: string) => boolean }) : null;
+  const os = req ? (req("os") as { homedir: () => string; platform?: () => string }) : null;
   const proc = winObj.process;
   const home = os ? os.homedir() : "";
   const isWin = (os && os.platform ? os.platform() === "win32" : false) || proc?.platform === "win32";

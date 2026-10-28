@@ -65,10 +65,10 @@ export class HostInstaller {
 
   private getNodeModules() {
     const req = (window as unknown as { require?: (name: string) => unknown }).require;
-    const fs = req ? (req(["f", "s"].join("")) as { existsSync: (p: string) => boolean }) : null;
-    const os = req ? (req(["o", "s"].join("")) as { homedir: () => string; platform?: () => string }) : null;
+    const fs = req ? (req("fs") as { existsSync: (p: string) => boolean }) : null;
+    const os = req ? (req("os") as { homedir: () => string; platform?: () => string }) : null;
     const proc = (window as unknown as { process?: { platform?: string; env?: Record<string, string> } }).process;
-    const cp = req ? (req(["child", "process"].join("_")) as ChildProcessModule) : null;
+    const cp = req ? (req("child_process") as ChildProcessModule) : null;
     const home = os ? os.homedir() : "";
     const platform = (os && os.platform ? os.platform() : proc?.platform || "linux") as "win32" | "darwin" | "linux";
     return { fs, home, platform, isWin: platform === "win32", cp, procEnv: proc?.env || {} };
@@ -183,30 +183,24 @@ export class HostInstaller {
         return await this.runProcess(env.pipxPath, ["install", "pkmrag", "--force"], callbacks);
       }
 
-      // Tier 3: Zero-dependency bootstrapping via Astral's standalone uv installer
-      if (isWin) {
-        callbacks.onPhase("Bootstrapping uv package manager...", 10);
-        callbacks.onLog("No Python or package manager found. Bootstrapping standalone uv on Windows...");
-        const psCmd = 'irm https://astral.sh/uv/install.ps1 | iex';
-        callbacks.onLog(`$ powershell -Command "${psCmd}"`);
-        const okBootstrap = await this.runProcess("powershell", ["-ExecutionPolicy", "ByPass", "-Command", psCmd], callbacks);
-        if (!okBootstrap) throw new Error("Failed to bootstrap uv via PowerShell.");
-      } else {
-        callbacks.onPhase("Bootstrapping uv package manager...", 10);
-        callbacks.onLog("No Python or package manager found. Bootstrapping standalone uv on POSIX...");
-        const shCmd = "curl -LsSf https://astral.sh/uv/install.sh | sh";
-        callbacks.onLog(`$ ${shCmd}`);
-        const okBootstrap = await this.runProcess("sh", ["-c", shCmd], callbacks);
-        if (!okBootstrap) throw new Error("Failed to bootstrap uv via shell script.");
+      // Tier 3: Python present (without uv/pipx)
+      if (env.hasPython && env.pythonPath) {
+        callbacks.onPhase("Installing uv via Python pip...", 20);
+        callbacks.onLog(`Found Python at ${env.pythonPath}`);
+        callbacks.onLog("$ python -m pip install --user uv");
+        const okPip = await this.runProcess(env.pythonPath, ["-m", "pip", "install", "--user", "uv"], callbacks);
+        if (okPip) {
+          const postEnv = this.detectEnvironment();
+          const uvBinary = postEnv.uvPath || (isWin ? `${home}/.local/bin/uv.exe` : `${home}/.local/bin/uv`);
+          callbacks.onPhase("Installing PKMRAG via uv...", 60);
+          callbacks.onLog(`Running installer using ${uvBinary}...`);
+          callbacks.onLog("$ uv tool install pkmrag --force");
+          return await this.runProcess(uvBinary, ["tool", "install", "pkmrag", "--force"], callbacks);
+        }
       }
 
-      // Re-detect uv path after bootstrapping
-      callbacks.onPhase("Installing PKMRAG companion...", 50);
-      const postEnv = this.detectEnvironment();
-      const uvBinary = postEnv.uvPath || (isWin ? `${home}/.local/bin/uv.exe` : `${home}/.local/bin/uv`);
-      callbacks.onLog(`Running installer using ${uvBinary}...`);
-      callbacks.onLog("$ uv tool install pkmrag --force");
-      return await this.runProcess(uvBinary, ["tool", "install", "pkmrag", "--force"], callbacks);
+      callbacks.onError("No package manager found. Please install uv or pipx using the terminal command below.");
+      return false;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       callbacks.onError(msg);

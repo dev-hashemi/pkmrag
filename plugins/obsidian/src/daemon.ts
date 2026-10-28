@@ -68,8 +68,7 @@ export class DaemonManager {
     const req = (window as unknown as { require?: (name: string) => unknown }).require;
     if (!req) return null;
     try {
-      const modName = ["child", "process"].join("_");
-      return req(modName) as ChildProcessModule;
+      return req("child_process") as ChildProcessModule;
     } catch {
       return null;
     }

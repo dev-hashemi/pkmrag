@@ -7,25 +7,25 @@ import type PkmragPlugin from "./main";
 
 export function registerPluginCommands(plugin: PkmragPlugin): void {
   plugin.addCommand({
-    id: "open-pkmrag-insights",
+    id: "open-insights",
     name: "Open Insights Sidebar",
     callback: () => plugin.activateView(),
   });
 
   plugin.addCommand({
-    id: "setup-pkmrag-engine",
+    id: "setup-engine",
     name: "Install / Setup Engine",
     callback: () => plugin.activateView(),
   });
 
   plugin.addCommand({
-    id: "refresh-pkmrag-insights",
+    id: "refresh-insights",
     name: "Refresh Insights for Active Note",
     callback: () => plugin.refreshActiveView(),
   });
 
   plugin.addCommand({
-    id: "run-pkmrag-discover",
+    id: "run-discover",
     name: "Run AI Gap Discovery",
     callback: async () => {
       new Notice("PKMRAG: AI Gap Discovery started in background...");
@@ -39,7 +39,7 @@ export function registerPluginCommands(plugin: PkmragPlugin): void {
   });
 
   plugin.addCommand({
-    id: "rebuild-pkmrag-index",
+    id: "rebuild-index",
     name: "Rebuild Vault Index (Full)",
     callback: async () => {
       new Notice("PKMRAG: Full index rebuild started in background...");
@@ -54,7 +54,7 @@ export function registerPluginCommands(plugin: PkmragPlugin): void {
   });
 
   plugin.addCommand({
-    id: "restart-pkmrag-daemon",
+    id: "restart-daemon",
     name: "Restart Local Engine",
     callback: async () => {
       new Notice("PKMRAG: Restarting engine...");
@@ -64,7 +64,7 @@ export function registerPluginCommands(plugin: PkmragPlugin): void {
   });
 
   plugin.addCommand({
-    id: "sync-pkmrag-vault",
+    id: "sync-vault",
     name: "Sync Vault Index (Incremental)",
     callback: async () => {
       new Notice("PKMRAG: Synchronizing vault delta...");
@@ -79,7 +79,7 @@ export function registerPluginCommands(plugin: PkmragPlugin): void {
   });
 
   plugin.addCommand({
-    id: "toggle-pkmrag-inline-indicators",
+    id: "toggle-inline-indicators",
     name: "Toggle Inline Heading Indicators",
     callback: async () => {
       plugin.settings.showInlineIndicators = !plugin.settings.showInlineIndicators;
@@ -92,7 +92,7 @@ export function registerPluginCommands(plugin: PkmragPlugin): void {
   });
 
   plugin.addCommand({
-    id: "clear-pkmrag-dismissed",
+    id: "clear-dismissed",
     name: "Clear Dismissed Suggestions",
     callback: async () => {
       plugin.settings.dismissedSuggestions = {};

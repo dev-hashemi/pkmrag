@@ -68,3 +68,5 @@ jobs:
             diff "plugins/obsidian/$f" "src/pkmrag/plugin_assets/$f" \
               || { echo "::error::$f is out of sync between plugins/obsidian and src/pkmrag/plugin_assets"; exit 1; }
           done
+          diff "plugins/obsidian/manifest.json" "manifest.json" \
+            || { echo "::error::manifest.json at repository root is out of sync"; exit 1; }
