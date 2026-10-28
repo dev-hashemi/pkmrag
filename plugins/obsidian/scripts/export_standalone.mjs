@@ -128,5 +128,5 @@ console.log(`\nNext steps for publication:\n`);
 console.log(`  1. cd ${targetDir}`);
 console.log(`  2. git init && git add . && git commit -m "feat: initial standalone release"`);
 console.log(`  3. gh repo create dev-hashemi/obsidian-pkmrag --public --source=. --push`);
-console.log(`  4. git tag 0.10.0 && git push origin 0.10.0`);
+console.log(`  4. git tag 0.10.1 && git push origin 0.10.1`);
 console.log(`  5. Submit PR to obsidianmd/obsidian-releases adding to community-plugins.json`);

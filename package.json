@@ -1,6 +1,6 @@
 {
   "name": "pkmrag",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "private": true,
   "description": "Local-first Hybrid GraphRAG retrieval engine and Obsidian companion plugin",
   "type": "module",
