@@ -392,3 +392,172 @@
   word-break: break-all;
 }
 
+/* Inferred Relationships Section & Header */
+.pkmrag-section-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+.pkmrag-section-subtitle {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.pkmrag-timestamp {
+  display: inline-block;
+  cursor: default;
+}
+.pkmrag-timestamp-empty {
+  font-style: italic;
+  opacity: 0.8;
+}
+
+/* In-Section Progress Card */
+.pkmrag-in-section-progress {
+  background: var(--background-secondary);
+  border: 1px solid var(--interactive-accent);
+  border-radius: var(--radius-s);
+  padding: 10px;
+  margin: 8px 0;
+}
+.pkmrag-in-section-progress-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: var(--font-semibold);
+  margin-bottom: 6px;
+  color: var(--text-normal);
+}
+.pkmrag-in-section-progress-pct {
+  color: var(--text-accent);
+}
+
+/* Actionable Empty State */
+.pkmrag-empty-state-actionable {
+  background: var(--background-secondary);
+  border: 1px dashed var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  padding: 14px;
+  text-align: center;
+  margin: 8px 0;
+}
+.pkmrag-empty-state-text {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin-bottom: 10px;
+}
+
+/* Card Metadata Line */
+.pkmrag-card-meta {
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+.pkmrag-card-meta-text {
+  opacity: 0.85;
+}
+
+/* Pre-Flight Estimate Modal */
+.pkmrag-estimate-modal {
+  padding: 4px;
+}
+.pkmrag-estimate-title {
+  margin-top: 0;
+  margin-bottom: 12px;
+  font-size: var(--font-ui-medium);
+  font-weight: var(--font-bold);
+}
+.pkmrag-estimate-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  padding: 8px 12px;
+  margin-bottom: 14px;
+}
+.pkmrag-estimate-scope {
+  font-size: 12px;
+  font-weight: var(--font-semibold);
+  color: var(--text-normal);
+}
+.pkmrag-estimate-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.pkmrag-estimate-card {
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  padding: 10px;
+  text-align: center;
+}
+.pkmrag-estimate-card-total {
+  border-color: var(--interactive-accent);
+  background: rgba(var(--interactive-accent-rgb), 0.08);
+}
+.pkmrag-estimate-card-val {
+  font-size: 16px;
+  font-weight: var(--font-bold);
+  color: var(--text-normal);
+}
+.pkmrag-estimate-card-total .pkmrag-estimate-card-val {
+  color: var(--text-accent);
+}
+.pkmrag-estimate-card-lbl {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.pkmrag-estimate-subhead {
+  margin: 12px 0 8px 0;
+  font-size: 12px;
+  font-weight: var(--font-bold);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.pkmrag-estimate-pair-list {
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  background: var(--background-primary);
+  margin-bottom: 16px;
+}
+.pkmrag-estimate-pair-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  font-size: 12px;
+}
+.pkmrag-estimate-pair-row:last-child {
+  border-bottom: none;
+}
+.pkmrag-estimate-pair-names {
+  color: var(--text-normal);
+  font-weight: var(--font-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 70%;
+}
+.pkmrag-estimate-pair-arrow {
+  color: var(--text-muted);
+  margin: 0 4px;
+}
+.pkmrag-estimate-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+

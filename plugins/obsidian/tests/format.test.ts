@@ -12,6 +12,7 @@ import {
   formatBridgePath,
   formatGapDistance,
   formatGraphBoost,
+  formatRelativeTime,
   gapCounterpart,
   isDismissedPair,
   normalizeHeading,
@@ -166,4 +167,16 @@ test("normalizeHeading strips markdown formatting, leading hashes, and normalize
   assert.equal(normalizeHeading("### [[Section Name|Alias]]"), "alias");
   assert.equal(normalizeHeading("### [Link Text](https://example.com)"), "link text");
   assert.equal(normalizeHeading(""), "");
+});
+
+test("formatRelativeTime formats relative timestamps accurately", () => {
+  assert.equal(formatRelativeTime(""), "");
+  assert.equal(formatRelativeTime("invalid-date"), "");
+
+  const now = Date.now();
+  assert.equal(formatRelativeTime(new Date(now - 10 * 1000).toISOString()), "just now");
+  assert.equal(formatRelativeTime(new Date(now - 5 * 60 * 1000).toISOString()), "5m ago");
+  assert.equal(formatRelativeTime(new Date(now - 3 * 3600 * 1000).toISOString()), "3h ago");
+  assert.equal(formatRelativeTime(new Date(now - 24 * 3600 * 1000).toISOString()), "yesterday");
+  assert.equal(formatRelativeTime(new Date(now - 3 * 24 * 3600 * 1000).toISOString()), "3d ago");
 });

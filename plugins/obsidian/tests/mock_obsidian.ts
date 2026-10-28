@@ -16,6 +16,28 @@ export class Notice {
   constructor(public message: string) {}
 }
 
+export class Modal {
+  contentEl: any;
+  app: any;
+
+  constructor(app: any) {
+    this.app = app;
+    this.contentEl = createMockEl();
+  }
+
+  open(): void {
+    if ((this as any).onOpen) {
+      (this as any).onOpen();
+    }
+  }
+
+  close(): void {
+    if ((this as any).onClose) {
+      (this as any).onClose();
+    }
+  }
+}
+
 export class FileSystemAdapter {
   getBasePath(): string {
     return "/home/mockuser/vault";

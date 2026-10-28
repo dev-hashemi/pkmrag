@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import threading
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
@@ -33,6 +34,8 @@ class ServerState:
         self.cache_manager = CacheManager(vault_path)
         self.search_service: Optional[SearchService] = None
         self.active_job: Optional[JobState] = None
+        self.last_discovered_notes: dict[str, str] = {}
+        self.last_vault_discovery: Optional[str] = None
         self.reload_stores()
 
     def is_indexed(self) -> bool:
@@ -87,6 +90,7 @@ class ServerState:
         message: str = "",
         stage: Optional[str] = None,
         unit: str = "items",
+        note_path: Optional[str] = None,
     ) -> None:
         """Register or start an active background job."""
         with self._lock:
@@ -100,7 +104,26 @@ class ServerState:
                 percent=percent,
                 message=message,
                 started_at=time.time(),
+                note_path=note_path,
             )
+
+    def record_discovery(
+        self, note_path: Optional[str] = None, timestamp: Optional[str] = None
+    ) -> None:
+        """Record the timestamp of a completed discovery operation."""
+        ts = timestamp or datetime.now(timezone.utc).isoformat()
+        with self._lock:
+            if note_path:
+                self.last_discovered_notes[note_path] = ts
+            else:
+                self.last_vault_discovery = ts
+
+    def get_last_discovered(self, note_path: Optional[str] = None) -> Optional[str]:
+        """Retrieve timestamp of the most recent discovery run."""
+        with self._lock:
+            if note_path and note_path in self.last_discovered_notes:
+                return self.last_discovered_notes[note_path]
+            return self.last_vault_discovery
 
     def update_job(
         self,

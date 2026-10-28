@@ -7,14 +7,20 @@ import { ItemView, Notice, WorkspaceLeaf } from "obsidian";
 import type PkmragPlugin from "./main";
 import { NoteContext, SemanticGapCandidate } from "./types";
 import { renderOfflineView } from "./view_offline";
-import { renderUnindexedView } from "./view_unindexed";
+import { renderUnindexedView, renderUnindexedNoteCard } from "./view_unindexed";
 import { renderSetupWizardView } from "./view_setup_wizard";
-import { renderProgressBanner, renderJobProgressView, renderTaskErrorCard } from "./view_progress";
+import {
+  renderProgressBanner,
+  renderJobProgressView,
+  renderTaskErrorCard,
+  retryFailedTask,
+} from "./view_progress";
 import { renderGapsSection } from "./view_gaps";
 import { ProximitySearchDrawer } from "./view_search";
 import { renderInferencesSection } from "./view_inferences";
 import { renderContextSection, renderVaultStats } from "./view_context";
 import { classifyRequestError, displayTitle } from "./format";
+import { DiscoveryEstimateModal } from "./modal_estimate";
 
 
 export const VIEW_TYPE_PKMRAG_INSIGHTS = "pkmrag-insights-view";
@@ -162,14 +168,28 @@ export class PkmragInsightsView extends ItemView {
     discoverBtn.title = "Run AI Gap Discovery & Relationship Inference";
     discoverBtn.onclick = async () => {
       discoverBtn.disabled = true;
+      discoverBtn.setText("Estimating...");
       try {
-        new Notice("PKMRAG: AI Discovery started in background...");
-        await this.plugin.client.triggerDiscover();
+        const estimate = await this.plugin.client.estimateDiscover({
+          note_path: this.currentNotePath || undefined,
+        });
+        new DiscoveryEstimateModal(this.app, {
+          estimate,
+          notePath: this.currentNotePath,
+          noteTitle: this.context?.title,
+          onConfirm: async () => {
+            new Notice("PKMRAG: AI Discovery started in background...");
+            await this.plugin.client.triggerDiscover({
+              note_path: this.currentNotePath || undefined,
+            });
+          },
+        }).open();
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        new Notice(`Discovery failed: ${msg}`);
+        new Notice(`Discovery estimation failed: ${msg}`);
       } finally {
         discoverBtn.disabled = false;
+        discoverBtn.setText("⚡ Discover");
       }
     };
 
@@ -210,34 +230,8 @@ export class PkmragInsightsView extends ItemView {
     }
 
     if (this.plugin.lastTaskError) {
-      renderTaskErrorCard(container, this.plugin, this.plugin.lastTaskError, async () => {
-        try {
-          this.plugin.lastTaskError = null;
-          this.plugin.activeJob = {
-            type: "ingest",
-            stage: "scan",
-            unit: "items",
-            phase: "initializing",
-            cur: 0,
-            total: 100,
-            percent: 0,
-            message: "Retrying vault indexing...",
-          };
-          this.plugin.updateStatusBar();
-          this.render();
-          await this.plugin.client.autoDiscoverVaultToken(this.plugin.app);
-          this.plugin.initEventStream();
-          await this.plugin.client.triggerIngest({ rebuild: true });
-          await this.plugin.syncJobState();
-        } catch (err: unknown) {
-          const msg = err instanceof Error ? err.message : String(err);
-          this.plugin.lastTaskError = {
-            type: "ingest",
-            message: msg,
-            timestamp: new Date(),
-          };
-          this.render();
-        }
+      renderTaskErrorCard(container, this.plugin, this.plugin.lastTaskError, () => {
+        void retryFailedTask(this.plugin, () => this.render());
       });
       return;
     }
@@ -266,29 +260,9 @@ export class PkmragInsightsView extends ItemView {
     new ProximitySearchDrawer(container, this.plugin, () => this.currentNotePath);
 
     if (!this.context && !this.isLoading) {
-      const noteCard = container.createDiv({ cls: "pkmrag-card" });
-      noteCard.createDiv({ cls: "pkmrag-card-target", text: "Note Not Indexed Yet" });
-      noteCard.createDiv({
-        cls: "pkmrag-card-reason",
-        text: "This note has not been parsed into LadybugDB yet.",
+      renderUnindexedNoteCard(container, this.plugin, this.currentNotePath, async () => {
+        await this.loadInsightsForNote(this.currentNotePath!);
       });
-      const reindexBtn = noteCard.createEl("button", {
-        cls: "pkmrag-btn-sm mod-cta",
-        text: "Index This Note",
-      });
-      reindexBtn.onclick = async () => {
-        reindexBtn.setText("Indexing...");
-        reindexBtn.setAttribute("disabled", "true");
-        try {
-          await this.plugin.client.reindexNote(this.currentNotePath!);
-          await this.loadInsightsForNote(this.currentNotePath!);
-        } catch (err: unknown) {
-          const msg = err instanceof Error ? err.message : String(err);
-          new Notice(`Reindex failed: ${msg}`);
-          reindexBtn.setText("Index This Note");
-          reindexBtn.removeAttribute("disabled");
-        }
-      };
       return;
     }
 

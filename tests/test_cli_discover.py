@@ -128,3 +128,24 @@ def test_cli_discover_ollama_flag(tmp_path: Path) -> None:
     data = _extract_json(result.output)
     assert data["dry_run"] is True
     assert "candidates" in data
+
+
+def test_cli_discover_scoped_note(tmp_path: Path) -> None:
+    """Verify pkmrag discover accepts --note option and limits scope."""
+    vault = tmp_path / "vault"
+    _setup_vault(vault)
+
+    result = runner.invoke(
+        app,
+        ["discover", str(vault), "--note", "Alpha.md", "--threshold", "0.4", "--dry-run", "--json"],
+    )
+    assert result.exit_code == 0
+    data = _extract_json(result.output)
+    assert data["dry_run"] is True
+    assert len(data["candidates"]) >= 1
+    for cand in data["candidates"]:
+        assert "Alpha.md" in (cand["source_path"], cand["target_path"])
+    assert data["dry_run"] is True
+    assert len(data["candidates"]) >= 1
+    for cand in data["candidates"]:
+        assert "Alpha.md" in (cand["source_path"], cand["target_path"])

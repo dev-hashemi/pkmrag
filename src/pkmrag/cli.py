@@ -160,6 +160,7 @@ def discover(
     rpm: Optional[int] = typer.Option(None, "--rpm", help="Rate limit: max requests per minute."),
     tpm: Optional[int] = typer.Option(None, "--tpm", help="Rate limit: max tokens per minute."),
     dry_run: bool = typer.Option(False, "--dry-run", help="Scan candidates without invoking LLM."),
+    note: Optional[str] = typer.Option(None, "--note", "-n", help="Focus on a single note."),
     trace: bool = typer.Option(False, "--trace", help="Display visual execution trace tree."),
     json_output: bool = typer.Option(False, "--json", help="Output raw JSON results."),
 ) -> None:
@@ -204,6 +205,7 @@ def discover(
             rpm=rpm,
             tpm=tpm,
             dry_run=dry_run,
+            note=note,
             on_progress=on_prog,
         )
     except VaultDatabaseLockedError:

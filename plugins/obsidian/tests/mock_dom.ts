@@ -106,3 +106,13 @@ export function findByText(node: MockEl, text: string): MockEl | null {
   }
   return null;
 }
+
+/** Find the first element whose class list includes cls, depth first. */
+export function findByClass(node: MockEl, cls: string): MockEl | null {
+  if (node.hasClass && node.hasClass(cls)) return node;
+  for (const child of node.children) {
+    const found = findByClass(child, cls);
+    if (found) return found;
+  }
+  return null;
+}

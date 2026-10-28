@@ -229,4 +229,49 @@ test("PkmragClient triggerDiscover and triggerIngest dispatch operational reques
   }
 });
 
+test("PkmragClient estimateDiscover dispatches pre-flight estimation request", async () => {
+  const client = new PkmragClient({ ...DEFAULT_SETTINGS });
+  const originalFetch = globalThis.fetch;
+  let capturedUrl = "";
+  let capturedBody = "";
+
+  globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    capturedUrl = String(input);
+    capturedBody = String(init?.body || "{}");
+    return new Response(
+      JSON.stringify({
+        candidate_count: 3,
+        evaluated_count: 3,
+        estimated_prompt_tokens: 2400,
+        estimated_completion_tokens: 360,
+        total_tokens: 2760,
+        provider: "openai",
+        model: "gpt-4o-mini",
+        candidate_pairs: [
+          {
+            source_path: "NoteA.md",
+            target_path: "NoteB.md",
+            source_title: "Note A",
+            target_title: "Note B",
+            similarity: 0.88,
+          },
+        ],
+      }),
+      { status: 200, headers: { "Content-Type": "application/json" } }
+    );
+  };
+
+  try {
+    const est = await client.estimateDiscover({ note_path: "NoteA.md", limit: 5 });
+    assert.ok(capturedUrl.endsWith("/api/v1/discover/estimate"));
+    assert.equal(JSON.parse(capturedBody).note_path, "NoteA.md");
+    assert.equal(est.candidate_count, 3);
+    assert.equal(est.total_tokens, 2760);
+    assert.equal(est.candidate_pairs.length, 1);
+    assert.equal(est.candidate_pairs[0].similarity, 0.88);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 

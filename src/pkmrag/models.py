@@ -7,6 +7,18 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
+from pkmrag.models_discovery import (
+    CandidatePairSummary,
+    DiscoveryEstimate,
+    DiscoveryStats,
+)
+
+__all__ = [
+    "CandidatePairSummary",
+    "DiscoveryEstimate",
+    "DiscoveryStats",
+]
+
 RelationshipType = Literal[
     "EXTENDS", "CONTRADICTS", "SUPPORTS", "PREREQUISITE_FOR", "REFINES", "NONE"
 ]
@@ -153,6 +165,7 @@ class NoteContext(BaseModel):
     neighbors_2hop: list[str] = Field(default_factory=list)
     inferred_relationships: list[InferredRelationship] = Field(default_factory=list)
     is_unresolved: bool = False
+    last_discovered_at: Optional[str] = None
 
 
 class GraphBridge(BaseModel):
@@ -241,20 +254,6 @@ class SemanticGapCandidate(BaseModel):
     matched_chunks: list[ChunkPairMatch] = Field(default_factory=list)
     relationship_type: str = "SHARED_CONCEPT"
     ui_summary: str = ""
-
-
-class DiscoveryStats(BaseModel):
-    """Summary metrics from a semantic gap discovery run."""
-
-    vault_path: str
-    total_notes_scanned: int
-    vector_candidates_found: int
-    graph_filtered_candidates: int
-    relationships_inferred: int
-    duration_ms: float
-    prompt_tokens: int = 0
-    completion_tokens: int = 0
-    tokens_saved_by_graph: int = 0
 
 
 class SyncResult(BaseModel):

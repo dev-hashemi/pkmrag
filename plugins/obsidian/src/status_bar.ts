@@ -96,6 +96,7 @@ export function setupEventStream(plugin: PkmragPlugin): EventSource | null {
         total: Number(data.total || 100),
         percent: Number(data.percent || 0),
         message: String(data.message || data.desc || ""),
+        note_path: data.note_path ? String(data.note_path) : undefined,
       };
       plugin.updateStatusBar();
       notifySidebar(plugin);

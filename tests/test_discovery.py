@@ -125,3 +125,47 @@ def test_gap_discovery_skips_already_inferred(semantic_gap_vault: Path) -> None:
         assert len(mock_provider.calls) == initial_calls
     finally:
         engine.close()
+
+
+def test_gap_discovery_scoped_to_single_note(semantic_gap_vault: Path) -> None:
+    """Verify that focus_path restricts candidate search to that note."""
+    mock_provider = MockInferenceProvider(
+        default_rel=InferredRelationshipResult(
+            rel_type="EXTENDS",
+            confidence=0.9,
+            reason="Scoped test relation",
+        )
+    )
+    engine = GapDiscoveryEngine(semantic_gap_vault, inference_provider=mock_provider)
+    try:
+        candidates, inferred, stats = engine.discover(
+            similarity_threshold=0.50,
+            focus_path="DistributedLocks.md",
+        )
+        assert len(candidates) >= 1
+        for cand in candidates:
+            assert "DistributedLocks.md" in (cand.source_path, cand.target_path)
+        assert stats.total_notes_scanned == 1
+    finally:
+        engine.close()
+
+
+def test_gap_discovery_estimate_tokens(semantic_gap_vault: Path) -> None:
+    """Verify pre-flight estimation calculates token counts without LLM execution."""
+    mock_provider = MockInferenceProvider()
+    engine = GapDiscoveryEngine(semantic_gap_vault, inference_provider=mock_provider)
+    try:
+        est = engine.estimate(
+            similarity_threshold=0.50,
+            focus_path="DistributedLocks.md",
+            limit=5,
+        )
+        assert est.candidate_count >= 1
+        assert est.evaluated_count <= 5
+        assert est.estimated_prompt_tokens > 0
+        assert est.estimated_completion_tokens > 0
+        assert est.total_tokens == est.estimated_prompt_tokens + est.estimated_completion_tokens
+        assert est.provider == "mock-inference"
+        assert len(mock_provider.calls) == 0
+    finally:
+        engine.close()

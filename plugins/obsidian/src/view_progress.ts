@@ -212,3 +212,33 @@ export function renderTaskErrorCard(
     (plugin.app as any).setting?.openTabById?.(plugin.manifest.id);
   };
 }
+
+export async function retryFailedTask(plugin: PkmragPlugin, render: () => void): Promise<void> {
+  try {
+    plugin.lastTaskError = null;
+    plugin.activeJob = {
+      type: "ingest",
+      stage: "scan",
+      unit: "items",
+      phase: "initializing",
+      cur: 0,
+      total: 100,
+      percent: 0,
+      message: "Retrying vault indexing...",
+    };
+    plugin.updateStatusBar();
+    render();
+    await plugin.client.autoDiscoverVaultToken(plugin.app);
+    plugin.initEventStream();
+    await plugin.client.triggerIngest({ rebuild: true });
+    await plugin.syncJobState();
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    plugin.lastTaskError = {
+      type: "ingest",
+      message: msg,
+      timestamp: new Date(),
+    };
+    render();
+  }
+}

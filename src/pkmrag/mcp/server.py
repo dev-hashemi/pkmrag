@@ -177,7 +177,11 @@ def create_mcp_server(vault_path: Path | str) -> MCPServer:
             return execute_vault_overview(graph_store=graph_store, limit=limit)
 
     @mcp.tool()
-    def discover_gaps(threshold: float = 0.80, limit: int = 10) -> str:
+    def discover_gaps(
+        note_path: Optional[str] = None,
+        threshold: float = 0.80,
+        limit: int = 10,
+    ) -> str:
         """Find unlinked note pairs exhibiting high semantic similarity (knowledge gaps)."""
         with trace_span("pkmrag.mcp.discover_gaps", attributes={"threshold": threshold}):
             return execute_discover_gaps(
@@ -185,6 +189,7 @@ def create_mcp_server(vault_path: Path | str) -> MCPServer:
                 graph_store=graph_store,
                 threshold=threshold,
                 limit=limit,
+                note_path=note_path,
             )
 
     @mcp.tool()

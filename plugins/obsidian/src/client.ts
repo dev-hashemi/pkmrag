@@ -6,7 +6,9 @@ import { App } from "obsidian";
 import { connectEventStream } from "./client_events";
 
 import {
+  DiscoverEstimateOptions,
   DiscoverOptions,
+  DiscoveryEstimate,
   GapsResponse,
   HealthResponse,
   IngestOptions,
@@ -182,53 +184,56 @@ export class PkmragClient {
     return (await res.json()) as LlmTestResponse;
   }
 
-  /** Trigger vault ingestion / full rebuild in background. */
-  async triggerIngest(options?: IngestOptions): Promise<{ status: string; message: string }> {
+  private async postJson<T>(endpoint: string, payload: unknown): Promise<T> {
     await this.ensureAuthToken();
     const base = this.settings.serverUrl.replace(/\/+$/, "");
-    let res = await fetch(`${base}/api/v1/ingest`, {
-      method: "POST",
-      headers: this.getHeaders(),
-      body: JSON.stringify(options || {}),
-    });
-    if (res.status === 401) {
-      await this.autoDiscoverVaultToken();
-      res = await fetch(`${base}/api/v1/ingest`, {
-        method: "POST",
-        headers: this.getHeaders(),
-        body: JSON.stringify(options || {}),
-      });
-    }
-    if (!res.ok) throw new Error(`Ingest request failed with HTTP ${res.status}`);
-    return (await res.json()) as { status: string; message: string };
-  }
-
-  /** Trigger AI semantic gap discovery and relationship inference. */
-  async triggerDiscover(options?: DiscoverOptions): Promise<{ status: string; message: string }> {
-    await this.ensureAuthToken();
-    const base = this.settings.serverUrl.replace(/\/+$/, "");
-    const payload = options || {
-      threshold: this.settings.similarityThreshold,
-      provider: this.settings.llmProvider,
-      base_url: this.settings.llmBaseUrl,
-      model: this.settings.llmModel,
-      api_key: this.settings.llmApiKey,
-    };
-    let res = await fetch(`${base}/api/v1/discover`, {
+    let res = await fetch(`${base}${endpoint}`, {
       method: "POST",
       headers: this.getHeaders(),
       body: JSON.stringify(payload),
     });
     if (res.status === 401) {
       await this.autoDiscoverVaultToken();
-      res = await fetch(`${base}/api/v1/discover`, {
+      res = await fetch(`${base}${endpoint}`, {
         method: "POST",
         headers: this.getHeaders(),
         body: JSON.stringify(payload),
       });
     }
-    if (!res.ok) throw new Error(`Discovery request failed with HTTP ${res.status}`);
-    return (await res.json()) as { status: string; message: string };
+    if (!res.ok) throw new Error(`Request to ${endpoint} failed with HTTP ${res.status}`);
+    return (await res.json()) as T;
+  }
+
+  /** Trigger vault ingestion / full rebuild in background. */
+  async triggerIngest(options?: IngestOptions): Promise<{ status: string; message: string }> {
+    return this.postJson<{ status: string; message: string }>("/api/v1/ingest", options || {});
+  }
+
+  /** Pre-flight token and candidate estimation for AI gap discovery. */
+  async estimateDiscover(options?: DiscoverEstimateOptions): Promise<DiscoveryEstimate> {
+    return this.postJson<DiscoveryEstimate>("/api/v1/discover/estimate", {
+      threshold: options?.threshold ?? this.settings.similarityThreshold,
+      limit: options?.limit ?? 20,
+      note_path: options?.note_path,
+      provider: options?.provider ?? this.settings.llmProvider,
+      base_url: options?.base_url ?? this.settings.llmBaseUrl,
+      model: options?.model ?? this.settings.llmModel,
+      api_key: options?.api_key ?? this.settings.llmApiKey,
+    });
+  }
+
+  /** Trigger AI semantic gap discovery and relationship inference. */
+  async triggerDiscover(options?: DiscoverOptions): Promise<{ status: string; message: string }> {
+    return this.postJson<{ status: string; message: string }>("/api/v1/discover", {
+      threshold: options?.threshold ?? this.settings.similarityThreshold,
+      limit: options?.limit ?? 20,
+      dry_run: options?.dry_run ?? false,
+      note_path: options?.note_path,
+      provider: options?.provider ?? this.settings.llmProvider,
+      base_url: options?.base_url ?? this.settings.llmBaseUrl,
+      model: options?.model ?? this.settings.llmModel,
+      api_key: options?.api_key ?? this.settings.llmApiKey,
+    });
   }
 
   /**

@@ -19,3 +19,4 @@ class JobState(BaseModel):
     percent: int = 0
     message: str = ""
     started_at: float = 0.0
+    note_path: Optional[str] = None

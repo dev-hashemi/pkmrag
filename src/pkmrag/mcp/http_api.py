@@ -7,7 +7,7 @@ import os
 import signal
 import time
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from starlette.applications import Starlette
 from starlette.concurrency import run_in_threadpool
@@ -64,6 +64,13 @@ def register_api_routes(
         ctx.inferred_relationships = get_inferred_relationships(
             server_state.graph_store.conn, ctx.path
         )
+        latest_ts: Optional[str] = None
+        for rel in ctx.inferred_relationships:
+            if rel.created_at and (latest_ts is None or rel.created_at > latest_ts):
+                latest_ts = rel.created_at
+        if not latest_ts:
+            latest_ts = server_state.get_last_discovered(ctx.path)
+        ctx.last_discovered_at = latest_ts
         return JSONResponse(ctx.model_dump())
 
     def gaps_handler(request: Request) -> Response:

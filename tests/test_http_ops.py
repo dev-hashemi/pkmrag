@@ -103,3 +103,47 @@ def test_http_ops_discover_endpoint(tmp_path: Path) -> None:
     )
     assert resp.status_code == 200
     assert resp.json()["status"] == "started"
+
+
+def test_http_ops_discover_estimate_endpoint(tmp_path: Path) -> None:
+    """Verify /api/v1/discover/estimate returns candidate and token estimates."""
+    vault = tmp_path / "vault"
+    vault.mkdir(parents=True, exist_ok=True)
+    (vault / "Note1.md").write_text("# Note 1\n\nContent about algorithms.")
+    (vault / "Note2.md").write_text("# Note 2\n\nContent about algorithms.")
+    IngestPipeline(vault).run()
+
+    app = create_http_app(vault, token="test_token")
+    client = TestClient(app)
+    headers = {"Authorization": "Bearer test_token"}
+
+    resp = client.post(
+        "/api/v1/discover/estimate",
+        json={"threshold": 0.3, "note_path": "Note1.md"},
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "candidate_count" in data
+    assert "estimated_prompt_tokens" in data
+    assert "estimated_completion_tokens" in data
+    assert "total_tokens" in data
+    assert "provider" in data
+    assert "candidate_pairs" in data
+
+
+def test_http_ops_context_last_discovered(tmp_path: Path) -> None:
+    """Verify /api/v1/context includes last_discovered_at metadata."""
+    vault = tmp_path / "vault"
+    vault.mkdir(parents=True, exist_ok=True)
+    (vault / "Note1.md").write_text("# Note 1\n\nContent about algorithms.")
+    IngestPipeline(vault).run()
+
+    app = create_http_app(vault, token="test_token")
+    client = TestClient(app)
+    headers = {"Authorization": "Bearer test_token"}
+
+    resp = client.get("/api/v1/context?note_path=Note1.md", headers=headers)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "last_discovered_at" in data

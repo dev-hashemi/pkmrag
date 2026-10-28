@@ -177,6 +177,7 @@ def execute_discover_gaps(
     graph_store: Optional[GraphStore],
     threshold: float = 0.80,
     limit: int = 10,
+    note_path: Optional[str] = None,
 ) -> str:
     """Discover unlinked note pairs exhibiting high semantic similarity (semantic gaps)."""
     if graph_store is None:
@@ -185,7 +186,7 @@ def execute_discover_gaps(
     from pkmrag.discovery.engine import GapDiscoveryEngine
 
     engine = GapDiscoveryEngine(vault_path=vault_path, graph_store=graph_store)
-    candidates = engine.find_gap_candidates(min_similarity=threshold)
+    candidates = engine.find_gap_candidates(min_similarity=threshold, focus_path=note_path)
 
     if not candidates:
         return (

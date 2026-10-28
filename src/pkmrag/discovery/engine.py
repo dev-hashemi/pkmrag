@@ -13,7 +13,12 @@ from pkmrag.graph.paths import find_shortest_bridge
 from pkmrag.graph.store import GraphStore
 from pkmrag.graph.traversal import add_inferred_relationship
 from pkmrag.inference.base import InferenceProvider
-from pkmrag.models import DiscoveryStats, InferredRelationship, SemanticGapCandidate
+from pkmrag.models import (
+    DiscoveryEstimate,
+    DiscoveryStats,
+    InferredRelationship,
+    SemanticGapCandidate,
+)
 from pkmrag.search.vector_store import VectorStore
 from pkmrag.telemetry import trace_span
 
@@ -143,6 +148,30 @@ class GapDiscoveryEngine:
 
         return inferred, evaluated
 
+    def estimate(
+        self,
+        similarity_threshold: Optional[float] = None,
+        focus_path: Optional[str] = None,
+        limit: int = 20,
+        provider_type: Optional[str] = None,
+        model: Optional[str] = None,
+        base_url: Optional[str] = None,
+        api_key: Optional[str] = None,
+    ) -> DiscoveryEstimate:
+        """Estimate candidate count and token usage prior to running AI discovery."""
+        from pkmrag.discovery.estimation import estimate_discovery
+
+        return estimate_discovery(
+            engine=self,
+            similarity_threshold=similarity_threshold,
+            focus_path=focus_path,
+            limit=limit,
+            provider_type=provider_type,
+            model=model,
+            base_url=base_url,
+            api_key=api_key,
+        )
+
     def discover(
         self,
         similarity_threshold: Optional[float] = None,
@@ -157,6 +186,7 @@ class GapDiscoveryEngine:
         rpm: Optional[int] = None,
         tpm: Optional[int] = None,
         enrich: bool = False,
+        focus_path: Optional[str] = None,
         on_progress: Optional[Callable[[int, int, str], None]] = None,
     ) -> tuple[list[SemanticGapCandidate], list[InferredRelationship], DiscoveryStats]:
         """Orchestrate end-to-end candidate discovery and optional LLM classification."""
@@ -165,6 +195,7 @@ class GapDiscoveryEngine:
             candidates = self.find_gap_candidates(
                 min_similarity=similarity_threshold,
                 max_hops=max_hops,
+                focus_path=focus_path,
             )
             if enrich and candidates:
                 candidates = self.enrich_candidates(candidates)
@@ -205,9 +236,10 @@ class GapDiscoveryEngine:
             span.set_attribute("gen_ai.usage.prompt_tokens", p_tok)
             span.set_attribute("gen_ai.usage.completion_tokens", c_tok)
 
+            notes_scanned = 1 if focus_path else self.graph_store.get_stats().get("notes", 0)
             stats = DiscoveryStats(
                 vault_path=str(self.vault_path),
-                total_notes_scanned=self.graph_store.get_stats().get("notes", 0),
+                total_notes_scanned=notes_scanned,
                 vector_candidates_found=len(candidates),
                 graph_filtered_candidates=len(candidates),
                 relationships_inferred=len(inferred),

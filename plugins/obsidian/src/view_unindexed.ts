@@ -109,3 +109,34 @@ export function renderUnindexedView(
     (plugin.app as any).setting?.openTabById?.(plugin.manifest.id);
   };
 }
+
+export function renderUnindexedNoteCard(
+  container: HTMLElement,
+  plugin: PkmragPlugin,
+  notePath: string,
+  onReindexed: () => Promise<void>
+): void {
+  const noteCard = container.createDiv({ cls: "pkmrag-card" });
+  noteCard.createDiv({ cls: "pkmrag-card-target", text: "Note Not Indexed Yet" });
+  noteCard.createDiv({
+    cls: "pkmrag-card-reason",
+    text: "This note has not been parsed into LadybugDB yet.",
+  });
+  const reindexBtn = noteCard.createEl("button", {
+    cls: "pkmrag-btn-sm mod-cta",
+    text: "Index This Note",
+  });
+  reindexBtn.onclick = async () => {
+    reindexBtn.setText("Indexing...");
+    reindexBtn.setAttribute("disabled", "true");
+    try {
+      await plugin.client.reindexNote(notePath);
+      await onReindexed();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      new Notice(`Reindex failed: ${msg}`);
+      reindexBtn.setText("Index This Note");
+      reindexBtn.removeAttribute("disabled");
+    }
+  };
+}

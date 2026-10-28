@@ -59,6 +59,36 @@ export interface DiscoverOptions {
   threshold?: number;
   limit?: number;
   dry_run?: boolean;
+  note_path?: string;
+  provider?: string;
+  model?: string;
+  base_url?: string;
+  api_key?: string;
+}
+
+export interface CandidatePairSummary {
+  source_path: string;
+  target_path: string;
+  source_title: string;
+  target_title: string;
+  similarity: number;
+}
+
+export interface DiscoveryEstimate {
+  candidate_count: number;
+  evaluated_count: number;
+  estimated_prompt_tokens: number;
+  estimated_completion_tokens: number;
+  total_tokens: number;
+  provider: string;
+  model: string;
+  candidate_pairs: CandidatePairSummary[];
+}
+
+export interface DiscoverEstimateOptions {
+  threshold?: number;
+  limit?: number;
+  note_path?: string;
   provider?: string;
   model?: string;
   base_url?: string;
@@ -84,6 +114,7 @@ export interface ActiveJobState {
   percent: number;
   message?: string;
   started_at?: number;
+  note_path?: string;
 }
 
 export interface TaskErrorState {
@@ -123,6 +154,7 @@ export interface NoteContext {
   neighbors_2hop: string[];
   is_unresolved?: boolean;
   inferred_relationships?: InferredRelationship[];
+  last_discovered_at?: string;
 }
 
 export interface ChunkPairMatch {

@@ -30,6 +30,7 @@ def run_gap_discovery(
     rpm: Optional[int],
     tpm: Optional[int],
     dry_run: bool,
+    note: Optional[str] = None,
     on_progress: Optional[Callable[[int, int, str], None]],
 ) -> tuple[list[SemanticGapCandidate], list[InferredRelationship], DiscoveryStats]:
     """Discover semantic gaps, raising VaultDatabaseLockedError when the database is busy."""
@@ -49,6 +50,7 @@ def run_gap_discovery(
             rpm=rpm,
             tpm=tpm,
             enrich=dry_run,
+            focus_path=note,
             on_progress=on_progress,
         )
     finally:
