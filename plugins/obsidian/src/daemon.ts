@@ -144,8 +144,9 @@ export class DaemonManager {
     const { command, args } = this.resolveBinary(vaultPath);
 
     const { home, isWin } = this.getPlatformInfo();
-    const winObj = typeof window !== "undefined" ? (window as any) : (globalThis as any);
-    const procEnv = winObj.process?.env || {};
+    const winObj = typeof window !== "undefined" ? (window as any) : undefined;
+    const proc = winObj?.process ?? (typeof process !== "undefined" ? process : undefined);
+    const procEnv = proc?.env || {};
     const pathSep = isWin ? ";" : ":";
     const extraPaths = getExtraPaths(home, isWin);
     const enhancedPath = extraPaths.concat((procEnv.PATH || "").split(pathSep)).filter(Boolean).join(pathSep);

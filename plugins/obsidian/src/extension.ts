@@ -23,16 +23,16 @@ class PkmragHeadingWidget extends WidgetType {
   }
 
   toDOM(): HTMLElement {
-    const span = document.createElement("span");
-    span.className = `pkmrag-inline-indicator ${
-      this.hasContradiction ? "pkmrag-inline-warning" : "pkmrag-inline-normal"
-    }`;
     const countLabel = this.count > 0 ? ` ${this.count}` : "";
-    span.textContent = this.hasContradiction ? ` ⚠️${countLabel}` : ` 🔗${countLabel}`;
-    span.title = `PKMRAG: ${this.count} unlinked connection${
-      this.count > 1 ? "s" : ""
-    }${this.hasContradiction ? " (includes contradiction)" : ""}. Click to open sidebar.`;
-
+    const span = createSpan({
+      cls: `pkmrag-inline-indicator ${
+        this.hasContradiction ? "pkmrag-inline-warning" : "pkmrag-inline-normal"
+      }`,
+      text: this.hasContradiction ? ` ⚠️${countLabel}` : ` 🔗${countLabel}`,
+      title: `PKMRAG: ${this.count} unlinked connection${
+        this.count > 1 ? "s" : ""
+      }${this.hasContradiction ? " (includes contradiction)" : ""}. Click to open sidebar.`,
+    });
 
     span.onclick = (e) => {
       e.stopPropagation();

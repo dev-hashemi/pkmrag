@@ -18,8 +18,6 @@ export class PkmragSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    new Setting(containerEl).setName("PKMRAG Knowledge Engine Settings").setHeading();
-
     // 1. Daemon Management Section
     this.renderDaemonSection(containerEl);
 

@@ -21,19 +21,19 @@ export interface ChildProcessModule {
 }
 
 export function getPlatformInfo(): PlatformInfo {
-  const winObj = typeof window !== "undefined" ? (window as any) : (globalThis as any);
-  const req = winObj.require;
+  const winObj = typeof window !== "undefined" ? (window as any) : undefined;
+  const req = winObj?.require ?? (typeof require !== "undefined" ? require : null);
   const fs = req ? (req("fs") as { existsSync: (p: string) => boolean }) : null;
   const os = req ? (req("os") as { homedir: () => string; platform?: () => string }) : null;
-  const proc = winObj.process;
+  const proc = winObj?.process ?? (typeof process !== "undefined" ? process : undefined);
   const home = os ? os.homedir() : "";
   const isWin = (os && os.platform ? os.platform() === "win32" : false) || proc?.platform === "win32";
   return { home, isWin, fs };
 }
 
 export function getPkmragCandidates(home: string, isWin: boolean): string[] {
-  const winObj = typeof window !== "undefined" ? (window as any) : (globalThis as any);
-  const proc = winObj.process;
+  const winObj = typeof window !== "undefined" ? (window as any) : undefined;
+  const proc = winObj?.process ?? (typeof process !== "undefined" ? process : undefined);
   const procEnv = proc?.env || {};
   const localAppData = procEnv.LOCALAPPDATA || "";
   const list: string[] = [];
